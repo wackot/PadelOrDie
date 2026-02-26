@@ -1,0 +1,452 @@
+/* ═══════════════════════════════════════════
+   PEDAL OR DIE — power.css
+   Power management screen: generators,
+   battery, consumers, upgrade paths
+═══════════════════════════════════════════ */
+
+/* ── Screen setup ──────────────────────── */
+#screen-power {
+  background:
+    radial-gradient(ellipse at 20% 90%, #0d0d1a 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 10%, #1a1a00 0%, transparent 50%),
+    #0a0a0f;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding-top: 52px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Root panel container ─────────────── */
+.power-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 10px 10px 80px 10px;
+  gap: 10px;
+}
+
+/* ── Header + live summary ─────────────── */
+.power-header {
+  background: #1a1a28;
+  border: 2px solid #3a3a5a;
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.power-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.45rem, 2vw, 0.65rem);
+  color: #ffd600;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.power-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.9rem, 4vw, 1.1rem);
+}
+
+/* ── Section title ─────────────────────── */
+.power-section-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.38rem, 1.6vw, 0.5rem);
+  color: #7a7a9a;
+  letter-spacing: 0.06em;
+  padding: 4px 0 2px 0;
+  border-bottom: 1px solid #2a2a3a;
+  text-transform: uppercase;
+}
+
+/* ── Generator grid ───────────────────── */
+.power-generators {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gen-card {
+  background: #16162a;
+  border: 2px solid #2a2a4a;
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: border-color 0.2s;
+  position: relative;
+}
+
+.gen-card.built {
+  border-color: #3a3a6a;
+  background: #1a1a32;
+}
+
+.gen-card.built::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #ffd600, #ff6d00);
+  border-radius: 4px 0 0 4px;
+}
+
+.gen-card.unbuilt {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.gen-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.gen-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gen-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.38rem, 1.6vw, 0.5rem);
+  color: #d4d4a0;
+}
+
+.gen-lv {
+  color: #ffd600;
+  margin-left: 6px;
+}
+
+.gen-desc {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  color: #7a7a8a;
+  line-height: 1.3;
+}
+
+/* ── Pip bar ───────────────────────────── */
+.gen-pips {
+  display: flex;
+  gap: 3px;
+  flex-wrap: nowrap;
+  margin: 4px 0;
+}
+
+.pow-pip {
+  width: 16px;
+  height: 8px;
+  background: #2a2a3a;
+  border-radius: 2px;
+  border: 1px solid #3a3a4a;
+  flex-shrink: 0;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.pow-pip.on {
+  background: #ffd600;
+  border-color: #ffaa00;
+  box-shadow: 0 0 4px rgba(255,214,0,0.6);
+}
+
+.pow-pip.bat.on {
+  background: #29b6f6;
+  border-color: #0090d4;
+  box-shadow: 0 0 4px rgba(41,182,246,0.6);
+}
+
+/* ── Generator stats row ─────────────── */
+.gen-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  color: #a0a0c0;
+}
+
+.gen-fuel.ok  { color: #4caf50; }
+.gen-fuel.out { color: #e53935; font-weight: bold; }
+
+.gen-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.8rem, 3vw, 0.95rem);
+}
+
+.gen-fuel-note     { color: #5a5a7a; }
+.gen-upgrade-cost  { color: #7a7a5a; }
+
+/* ── Upgrade button on generator card ── */
+.btn-gen-upgrade {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.3rem, 1.2vw, 0.38rem);
+  padding: 8px 10px;
+  background: #2a2a1a;
+  color: #ffd600;
+  border: 2px solid #5a5a20;
+  border-radius: 3px;
+  cursor: pointer;
+  align-self: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 70px;
+}
+
+.btn-gen-upgrade:hover:not(:disabled),
+.btn-gen-upgrade:active:not(:disabled) {
+  background: #3a3a20;
+  border-color: #ffd600;
+  transform: scale(1.04);
+}
+
+.btn-gen-upgrade:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+/* ── Battery card ─────────────────────── */
+.battery-card {
+  background: #0f1a28;
+  border: 2px solid #1a3a5a;
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.battery-card.built {
+  border-color: #29b6f6;
+  background: #0f1e30;
+}
+
+.battery-card.built::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #29b6f6, #0d47a1);
+}
+
+.battery-card {
+  position: relative;
+}
+
+.bat-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.bat-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bat-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.38rem, 1.6vw, 0.5rem);
+  color: #29b6f6;
+}
+
+.bat-desc {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  color: #5a7a9a;
+  line-height: 1.3;
+}
+
+/* ── Battery charge bar ─────────────── */
+.bat-charge-wrap {
+  background: #0a1020;
+  border: 1px solid #1a3a5a;
+  border-radius: 3px;
+  height: 12px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.bat-charge-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease, background 0.5s ease;
+  min-width: 2px;
+}
+
+.bat-stats {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  color: #29b6f6;
+}
+
+/* ── Battery parts checklist ─────────── */
+.bat-parts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.bat-part {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.8rem, 3vw, 0.95rem);
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #1a1a2a;
+  border: 1px solid #2a2a3a;
+}
+
+.bat-part.have    { color: #4caf50; border-color: #2a5c2d; }
+.bat-part.missing { color: #e53935; border-color: #5a1a1a; }
+
+/* ── Consumers panel ─────────────────── */
+.consumers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.consumer-row {
+  background: #14141e;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.consumer-row.locked {
+  opacity: 0.5;
+}
+
+.consumer-icon {
+  font-size: 1.3rem;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.consumer-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.consumer-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.3rem, 1.2vw, 0.4rem);
+  color: #d4d4a0;
+}
+
+.consumer-cost {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.8rem, 3vw, 0.95rem);
+  color: #ff6d00;
+}
+
+.consumer-req {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.75rem, 2.8vw, 0.9rem);
+  color: #5a5a4a;
+  font-style: italic;
+}
+
+.consumer-locked {
+  color: #3a3a4a;
+  font-size: 1rem;
+}
+
+/* Consumer ON/OFF toggle */
+.btn-consumer-toggle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.28rem, 1.1vw, 0.36rem);
+  padding: 6px 10px;
+  background: #1a1a2a;
+  color: #5a5a7a;
+  border: 2px solid #3a3a4a;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 52px;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-consumer-toggle.on {
+  background: #1a3a1a;
+  color: #4caf50;
+  border-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76,175,80,0.3);
+}
+
+.btn-consumer-toggle:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Power status bar (in upgrades tab) ─ */
+.power-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #14141e;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  color: #ffd600;
+  flex-wrap: wrap;
+}
+
+.power-status-bar .bat-charge-wrap {
+  height: 8px;
+  margin: 0;
+}
+
+/* ── HUD power indicator ──────────────── */
+#hud-power {
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.75rem, 3vw, 0.9rem);
+  color: #ffd600;
+  white-space: nowrap;
+  padding: 0 4px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Screen-power needs-power visual on recipes */
+.recipe-item.needs-power {
+  border-left: 3px solid #ffd600;
+  opacity: 0.8;
+}
+
+/* ── Electric bench "powered" glow effect on base SVG label */
+@keyframes elec-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
