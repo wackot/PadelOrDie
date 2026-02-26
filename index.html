@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Pedal or Die</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/ui.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/foraging.css" />
+  <link rel="stylesheet" href="css/crafting.css" />
+  <link rel="stylesheet" href="css/raids.css" />
+  <link rel="stylesheet" href="css/world.css" />
+  <link rel="stylesheet" href="css/power.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: LOADING                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-loading" class="screen active">
+    <div class="loading-content">
+      <h1 class="game-title">PEDAL<br/>OR<br/>DIE</h1>
+      <p class="loading-sub">End of the world. Your bike is all you have.</p>
+      <div class="loading-bar-wrap">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-text" id="loading-text">Initializing survival protocols...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: MAIN MENU                      -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-content">
+      <h1 class="game-title">PEDAL<br/>OR<br/>DIE</h1>
+      <p class="menu-sub">🧟 Survive. Forage. Pedal harder.</p>
+      <div class="menu-buttons">
+        <button class="btn-pixel btn-primary" id="btn-new-game">▶ NEW GAME</button>
+        <button class="btn-pixel btn-secondary" id="btn-load-game">📂 LOAD GAME</button>
+        <button class="btn-pixel btn-secondary" id="btn-import-save">⬆ IMPORT SAVE</button>
+      </div>
+      <p class="menu-version">v0.5 — Visual Base + Android Fix</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  HUD (visible during gameplay)          -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="hud-stat" title="Hunger">
+        🍖 <div class="hud-bar"><div class="hud-fill hunger-fill" id="hud-hunger"></div></div>
+      </div>
+      <div class="hud-stat" title="Thirst">
+        💧 <div class="hud-bar"><div class="hud-fill thirst-fill" id="hud-thirst"></div></div>
+      </div>
+      <div class="hud-stat" title="Energy">
+        ⚡ <div class="hud-bar"><div class="hud-fill energy-fill" id="hud-energy"></div></div>
+      </div>
+    </div>
+    <div class="hud-center">
+      <span class="hud-day" id="hud-day">DAY 1</span>
+      <span class="hud-time" id="hud-time">☀ DAYTIME</span>
+      <span class="hud-power" id="hud-power"></span>
+    </div>
+    <div class="hud-right">
+      <span class="hud-res">🪵 <span id="res-wood">0</span></span>
+      <span class="hud-res">🔩 <span id="res-metal">0</span></span>
+      <span class="hud-res">⛽ <span id="res-gasoline">0</span></span>
+      <span class="hud-res">🥫 <span id="res-food">0</span></span>
+      <span class="hud-res">🧴 <span id="res-water">0</span></span>
+      <button id="btn-audio-toggle" class="btn-audio-hud" title="Toggle Music">🔊</button>
+      <button id="btn-pause" class="btn-audio-hud" title="Pause">⏸</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: BASE VIEW (top down)           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-base" class="screen">
+    <div class="base-world" id="base-world">
+      <!-- Ground tiles (canvas) -->
+      <canvas id="base-canvas"></canvas>
+      <!-- SVG farmstead drawn by base.js -->
+      <svg id="base-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <!-- Night overlay -->
+      <div id="night-overlay" class="night-overlay hidden"></div>
+      <!-- Raid alert -->
+      <div id="raid-alert" class="raid-alert hidden">⚠️ BASE UNDER ATTACK! ⚠️</div>
+    </div>
+    <!-- Building tooltip -->
+    <div id="building-tooltip" class="building-tooltip hidden">
+      <h3 id="tooltip-title">Building</h3>
+      <p id="tooltip-desc">Description</p>
+      <button class="btn-pixel btn-primary" id="tooltip-action">ENTER</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: WORLD MAP  (Phase 8 Canvas)    -->
+  <!--  Rebuilt by WorldMap.render()           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-map" class="screen">
+    <!-- WorldMap.render() populates this entirely -->
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: FORAGING  (Phase 4)            -->
+  <!--  Built dynamically by foraging.js       -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-foraging" class="screen">
+    <!-- Populated by Foraging.start() -->
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: CRAFTING  (Phase 3)            -->
+  <!-- ═══════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: POWER MANAGEMENT              -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-power" class="screen">
+    <!-- Populated by Power.renderPanel() -->
+  </div>
+
+  <div id="screen-crafting" class="screen">
+    <div class="crafting-container" id="crafting-container">
+      <!-- Fully populated by crafting.js Crafting.render() -->
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: SHELTER (sleep)                -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-shelter" class="screen">
+    <div class="shelter-container">
+      <h2 class="screen-title">🏚️ SHELTER</h2>
+      <div class="shelter-content">
+        <div class="shelter-option" id="shelter-sleep">
+          <div class="shelter-icon">😴</div>
+          <h3>SLEEP</h3>
+          <p>Rest until morning. Restores energy.<br/><small>⚠ Night raids may occur</small></p>
+          <button class="btn-pixel btn-primary">SLEEP TILL DAWN</button>
+        </div>
+        <div class="shelter-option" id="shelter-rest">
+          <div class="shelter-icon">💤</div>
+          <h3>SHORT REST</h3>
+          <p>Rest for 2 hours.<br/>Partial energy restore.</p>
+          <button class="btn-pixel btn-secondary">REST (2 HRS)</button>
+        </div>
+      </div>
+      <button class="btn-pixel btn-secondary" id="btn-back-from-shelter">← BACK TO BASE</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: FRIDGE (eat/drink)             -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-fridge" class="screen">
+    <div class="fridge-container">
+      <h2 class="screen-title">🧊 FOOD STORE</h2>
+      <div class="fridge-content" id="fridge-content">
+        <!-- Filled by player.js -->
+      </div>
+      <button class="btn-pixel btn-secondary" id="btn-back-from-fridge">← BACK TO BASE</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: WELL (water)                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-well" class="screen">
+    <div class="well-container">
+      <h2 class="screen-title">🪣 WELL</h2>
+      <div class="well-content">
+        <svg width="120" height="130" viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" class="well-svg">
+          <!-- Stone surround rows -->
+          <ellipse cx="60" cy="82" rx="36" ry="12" fill="#252525"/>
+          <rect x="24" y="55" width="72" height="28" fill="#3a3a3a" rx="3"/>
+          <ellipse cx="60" cy="55" rx="36" ry="11" fill="#505050"/>
+          <!-- Water inside -->
+          <ellipse cx="60" cy="55" rx="28" ry="8" fill="#1a4060"/>
+          <ellipse cx="54" cy="53" rx="8" ry="3" fill="rgba(100,200,255,0.3)"/>
+          <!-- Stone bricks -->
+          <rect x="24" y="61" width="12" height="8" fill="#484848" rx="1"/>
+          <rect x="37" y="61" width="12" height="8" fill="#404040" rx="1"/>
+          <rect x="50" y="61" width="12" height="8" fill="#484848" rx="1"/>
+          <rect x="63" y="61" width="12" height="8" fill="#404040" rx="1"/>
+          <rect x="76" y="61" width="20" height="8" fill="#484848" rx="1"/>
+          <rect x="24" y="70" width="18" height="8" fill="#404040" rx="1"/>
+          <rect x="43" y="70" width="12" height="8" fill="#484848" rx="1"/>
+          <rect x="56" y="70" width="12" height="8" fill="#404040" rx="1"/>
+          <rect x="69" y="70" width="18" height="8" fill="#484848" rx="1"/>
+          <!-- Posts -->
+          <rect x="30" y="20" width="6" height="38" fill="#5a4020" rx="1"/>
+          <rect x="84" y="20" width="6" height="38" fill="#5a4020" rx="1"/>
+          <!-- Roof -->
+          <polygon points="22,22 98,22 60,2" fill="#7a3818"/>
+          <polygon points="60,2 98,22 62,4" fill="rgba(0,0,0,0.2)"/>
+          <!-- Crossbar -->
+          <rect x="36" y="36" width="48" height="6" fill="#6a5030" rx="2"/>
+          <rect x="54" y="32" width="12" height="12" fill="#4a3820" rx="2"/>
+          <!-- Rope -->
+          <line x1="60" y1="44" x2="60" y2="56" stroke="#8b7040" stroke-width="2.5" stroke-dasharray="4,2"/>
+          <!-- Bucket -->
+          <path d="M51 50 L49 60 L71 60 L69 50 Z" fill="#4a3a28"/>
+          <line x1="49" y1="50" x2="71" y2="50" stroke="#3a2818" stroke-width="2"/>
+          <rect x="52" y="53" width="16" height="5" fill="#1a5a8a" rx="1"/>
+        </svg>
+        <p>Draw water from the well to fill your supply.</p>
+        <p class="well-status">Water stored: <span id="well-water-count">0</span> units</p>
+        <button class="btn-pixel btn-primary" id="btn-draw-water">DRAW WATER</button>
+      </div>
+      <button class="btn-pixel btn-secondary" id="btn-back-from-well">← BACK TO BASE</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: RAID (combat screen)           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-raid" class="screen">
+    <!-- Populated dynamically by raids.js -->
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  NOTIFICATION TOAST                     -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="toast-container"></div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SAVE/LOAD PANEL                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="save-panel" class="save-panel hidden">
+    <h3>💾 SAVE & LOAD</h3>
+    <button class="btn-pixel btn-primary" id="btn-save-local">💾 Save Locally</button>
+    <button class="btn-pixel btn-secondary" id="btn-export-save">⬇ Export Save File</button>
+    <button class="btn-pixel btn-secondary" id="btn-import-save-ingame">⬆ Import Save File</button>
+    <button class="btn-pixel btn-danger" id="btn-close-save">✕ Close</button>
+  </div>
+
+  <!-- Save trigger button (always visible in game) -->
+  <button id="btn-open-save" class="btn-save-float hidden">💾</button>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="file-import" accept=".json" style="display:none" />
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCRIPTS (order matters!)               -->
+  <!-- ═══════════════════════════════════════ -->
+  <script src="js/audio.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/cadence.js"></script>
+  <script src="js/daynight.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/animals.js"></script>
+  <script src="js/raids.js"></script>
+  <script src="js/base.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/worldmap.js"></script>
+  <script src="js/foraging.js"></script>
+  <script src="js/power.js"></script>
+  <script src="js/crafting.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
