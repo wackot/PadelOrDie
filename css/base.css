@@ -36,15 +36,15 @@
 /* ── Building tooltip ─────────────────────── */
 .building-tooltip {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 12px;
+  left: 12px;
+  transform: none;
   background: var(--col-surface);
   border: 3px solid var(--col-border-hi);
   padding: 14px 18px;
   z-index: 50;
   min-width: 200px;
-  max-width: min(320px, 90vw);
+  max-width: min(300px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -53,8 +53,8 @@
 }
 
 @keyframes tipPop {
-  from { opacity:0; transform:translateX(-50%) scale(0.92); }
-  to   { opacity:1; transform:translateX(-50%) scale(1); }
+  from { opacity:0; transform:scale(0.92); }
+  to   { opacity:1; transform:scale(1); }
 }
 
 .building-tooltip h3 {
