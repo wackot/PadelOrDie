@@ -159,6 +159,10 @@ const State = {
       daysSinceLastRaid:  0
     },
 
+    // Active building construction (one at a time)
+    activeBuild: null,
+    // { key, stateKey, newLevel, upg, secsLeft, secsTotal, onComplete }
+
     cadence: {
       clicksPerMinute:  0,
       targetCPM:        60,       // normal foraging target

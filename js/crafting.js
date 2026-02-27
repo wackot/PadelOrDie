@@ -1103,87 +1103,171 @@ const Crafting = {
       </div>`;
     })() : '';
 
-    // Shelter unlock banner
-    const shelterBanner = `<div class="shelter-unlock-banner">
-      🏠 SHELTER Lv${shelterLv} — Upgrade shelter to unlock more buildings
-    </div>`;
-
-    // Group buildings: core + unlocked new ones
-    const buildingGroups = [
-      { label: '🏠 CORE BUILDINGS', keys: ['shelter','well','fence','storage'] },
-      { label: '🚴 BIKE',            keys: ['bike'] },
-      { label: '🌿 FARMING & FOOD',  keys: ['greenhouse','field','compost_bin','smokehouse'] },
-      { label: '⚙️ UTILITY',         keys: ['workshop','rain_collector','watchtower','radio_tower'] },
-      { label: '⚡ POWER & TECH',    keys: ['powerhouse','elecbench','alarm_system','solar_station'] },
-      { label: '🏥 ADVANCED',        keys: ['medkit_station','bunker'] },
+    const allKeys = [
+      'shelter','fence','well','storage','bike',
+      'greenhouse','field','compost_bin','smokehouse',
+      'workshop','rain_collector','watchtower','radio_tower',
+      'powerhouse','elecbench','alarm_system','solar_station',
+      'medkit_station','bunker',
     ];
 
-    let groupHTML = '';
-    for (const group of buildingGroups) {
-      const cards = group.keys.map(key => {
-        const upg = this.baseUpgrades[key];
-        if (!upg) return '';
-        const reqLv = upg.unlockReq || 0;
-        const isLocked = reqLv > shelterLv;
+    const tiles = allKeys.map(key => {
+      const upg = this.baseUpgrades[key];
+      if (!upg) return '';
+      const reqLv     = upg.unlockReq || 0;
+      const isLocked  = reqLv > shelterLv;
+      const stKey     = key === 'shelter' ? 'house' : key;
+      const curLv     = State.data.base.buildings[stKey]?.level || 0;
+      const isMax     = curLv >= upg.maxLevel;
+      const isNew     = reqLv > 0 && curLv === 0 && !isLocked;
+      const nextCost  = !isMax && !isLocked ? this.baseUpgrades[key].levels[curLv] : null;
+      const canAfford = nextCost ? this._canAffordUpgrade(nextCost.cost) : false;
 
-        if (isLocked) {
-          return `<div class="upgrade-card locked-card">
-            <div class="upgrade-icon" style="opacity:0.3">${upg.icon}</div>
-            <div class="upgrade-info">
-              <span class="upgrade-name" style="color:#666">${upg.name}</span>
-              <span class="upgrade-desc" style="color:#555">🔒 Unlock at Shelter Lv${reqLv}</span>
-            </div>
-            <button class="btn-upgrade" disabled style="opacity:0.3">🔒 LOCKED</button>
-          </div>`;
-        }
+      let statusDot = '';
+      if (isLocked)      statusDot = '<span class="bld-dot bld-dot-locked">🔒</span>';
+      else if (isMax)    statusDot = '<span class="bld-dot bld-dot-max">✓</span>';
+      else if (isNew)    statusDot = '<span class="bld-dot bld-dot-new">NEW</span>';
+      else if (canAfford)statusDot = '<span class="bld-dot bld-dot-ready">▲</span>';
 
-        const stKey = key === 'shelter' ? 'house' : key;
-        const currentLevel = State.data.base.buildings[stKey]?.level || 0;
-        const displayLevel = Math.max(1, currentLevel);
-        const isMax        = currentLevel >= upg.maxLevel;
-        const nextLevel    = upg.levels[currentLevel] || null;
-        const canAfford    = nextLevel ? this._canAffordUpgrade(nextLevel.cost) : false;
-        const isNew        = reqLv > 0 && currentLevel === 0;
+      return `<button class="bld-tile ${isLocked?'bld-locked':''} ${isMax?'bld-maxed':''} ${isNew?'bld-new':''}"
+        onclick="Crafting._openBuildingModal('${key}')"
+        ${isLocked ? 'title="Locked — upgrade Shelter"' : ''}>
+        <span class="bld-tile-icon">${upg.icon}</span>
+        <span class="bld-tile-name">${upg.name}</span>
+        <span class="bld-tile-lv">Lv ${curLv}/${upg.maxLevel}</span>
+        ${statusDot}
+      </button>`;
+    }).join('');
 
-        const costStr = nextLevel
-          ? Object.entries(nextLevel.cost)
-              .filter(([,v]) => v > 0)
-              .map(([r,v]) => `${this.emojiMap[r]||'📦'}${v} ${r}`)
-              .join(', ') || 'Free'
-          : '—';
+    el.innerHTML = powerBar +
+      `<div class="shelter-unlock-banner">🏠 SHELTER Lv${shelterLv} — tap a building to upgrade</div>` +
+      `<div class="bld-grid">${tiles}</div>` +
+      `<div class="bld-modal-backdrop hidden" id="bld-modal-backdrop" onclick="Crafting._closeBuildingModal()"></div>` +
+      `<div class="bld-modal hidden" id="bld-modal"></div>`;
+  },
 
-        const pipsHTML = Array.from({length: upg.maxLevel}, (_, i) => `
-          <div class="level-pip ${i < currentLevel ? 'filled' : ''}"></div>
-        `).join('');
+  _openBuildingModal(key) {
+    const upg      = this.baseUpgrades[key];
+    const modal    = document.getElementById('bld-modal');
+    const backdrop = document.getElementById('bld-modal-backdrop');
+    if (!upg || !modal) return;
 
-        return `
-          <div class="upgrade-card ${isMax ? 'max-level' : ''} ${isNew ? 'new-unlock' : ''}">
-            <div class="upgrade-icon">${upg.icon}</div>
-            <div class="upgrade-info">
-              <span class="upgrade-name">${upg.name}${isNew ? ' <span class="new-badge">NEW</span>' : ''}</span>
-              <span class="upgrade-desc">${upg.levels[Math.max(0,currentLevel-1)]?.desc || upg.levels[0]?.desc || ''}</span>
-              <div class="upgrade-level-pips">${pipsHTML}</div>
-              <span class="upgrade-cost">${isMax ? '✅ MAX LEVEL' : `Next: ${costStr}`}</span>
-            </div>
-            <button class="btn-upgrade ${isMax ? 'maxed' : ''}"
-                    onclick="Crafting._upgradeBuilding('${key}')"
-                    ${isMax || !canAfford ? 'disabled' : ''}>
-              ${isMax ? '✓ MAX' : canAfford ? (currentLevel===0?'🔨 BUILD':'▲ UPGRADE') : '❌ NEED MORE'}
-            </button>
-          </div>
-        `;
-      }).join('');
+    const shelterLv  = State.data.base.buildings.house?.level || 1;
+    const reqLv      = upg.unlockReq || 0;
+    const isLocked   = reqLv > shelterLv;
+    const stKey      = key === 'shelter' ? 'house' : key;
+    const curLv      = State.data.base.buildings[stKey]?.level || 0;
+    const isMax      = curLv >= upg.maxLevel;
+    const nextDef    = !isMax ? upg.levels[curLv] : null;
+    const canAfford  = nextDef ? this._canAffordUpgrade(nextDef.cost) : false;
 
-      if (cards.trim()) {
-        groupHTML += `<div class="upgrade-group">
-          <div class="upgrade-group-label">${group.label}</div>
-          ${cards}
-        </div>`;
-      }
+    // Is THIS building currently under construction?
+    const ab         = State.data.activeBuild;
+    const isBuilding = ab && ab.key === key;
+    const otherBuilding = ab && ab.key !== key;
+
+    // Level pips
+    const pips = Array.from({length: upg.maxLevel}, (_,i) =>
+      `<div class="level-pip ${i < curLv ? 'filled' : ''}"></div>`
+    ).join('');
+
+    // Construction progress bar (shown when actively building)
+    const buildProgressHTML = isBuilding ? (() => {
+      const pct  = Math.round(((ab.secsTotal - ab.secsLeft) / ab.secsTotal) * 100);
+      const secs = Math.ceil(ab.secsLeft);
+      const cpm  = Cadence.getCPM();
+      const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
+      const speedStr = bonus > 0 ? ` ⚡ +${bonus.toFixed(1)}s/tick from biking!` : ' Bike faster to speed up!';
+      return `<div class="bld-build-progress">
+        <div class="bld-build-header">🏗 UNDER CONSTRUCTION — ${secs}s remaining${speedStr}</div>
+        <div class="bld-build-bar-wrap">
+          <div class="bld-build-bar" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+    })() : '';
+
+    // Cost breakdown (only show if not currently building this)
+    const buildTimeStr = `⏱ Build time: 10s (bike to reduce)`;
+    const costHTML = isBuilding
+      ? ''  // replaced by progress bar above
+      : isLocked
+        ? `<div class="bld-modal-cost locked">🔒 Requires Shelter Lv${reqLv}</div>`
+        : isMax
+          ? `<div class="bld-modal-cost maxed">✅ MAX LEVEL REACHED</div>`
+          : (() => {
+              const rows = Object.entries(nextDef.cost)
+                .filter(([,v]) => v > 0)
+                .map(([r,v]) => {
+                  const have = State.data.inventory[r] || 0;
+                  const ok   = have >= v;
+                  const em   = this.emojiMap[r] || '📦';
+                  return `<div class="bld-cost-row ${ok?'ok':'short'}">
+                    <span>${em} ${r}</span>
+                    <span>${have}/${v} ${ok?'✓':'✗'}</span>
+                  </div>`;
+                }).join('');
+              return (rows
+                ? `<div class="bld-modal-cost"><div class="bld-cost-header">Cost to upgrade:</div>${rows}</div>`
+                : `<div class="bld-modal-cost ok">Free upgrade!</div>`)
+                + `<div class="bld-build-time">${buildTimeStr}</div>`;
+            })();
+
+    // All levels list
+    const levelsHTML = upg.levels.map((lv, i) => {
+      const done = i < curLv;
+      const curr = i === curLv - 1;
+      return `<div class="bld-lv-row ${curr?'current':''} ${done&&!curr?'done':''}">
+        <span class="bld-lv-num">${done||curr?'✓':i+1}</span>
+        <span class="bld-lv-desc">${lv.desc}</span>
+      </div>`;
+    }).join('');
+
+    let btnLabel, btnDisabled;
+    if (isBuilding) {
+      btnLabel = '🏗 BUILDING…'; btnDisabled = true;
+    } else if (isLocked) {
+      btnLabel = '🔒 LOCKED'; btnDisabled = true;
+    } else if (isMax) {
+      btnLabel = '✓ MAXED'; btnDisabled = true;
+    } else if (otherBuilding) {
+      btnLabel = `🚧 BUSY: ${ab.upg.name}`; btnDisabled = true;
+    } else if (!canAfford) {
+      btnLabel = '❌ NEED RESOURCES'; btnDisabled = true;
+    } else {
+      btnLabel = curLv === 0 ? '🔨 BUILD' : '▲ UPGRADE'; btnDisabled = false;
     }
 
-    el.innerHTML = powerBar + shelterBanner + groupHTML;
+    modal.innerHTML = `
+      <div class="bld-modal-header">
+        <span class="bld-modal-icon">${upg.icon}</span>
+        <div class="bld-modal-title-block">
+          <span class="bld-modal-name">${upg.name}</span>
+          <span class="bld-modal-sublv">Level ${curLv} / ${upg.maxLevel}</span>
+        </div>
+        <button class="bld-modal-close" onclick="Crafting._closeBuildingModal()">✕</button>
+      </div>
+      <div class="bld-modal-pips">${pips}</div>
+      <div class="bld-modal-scroll">
+        ${buildProgressHTML}
+        ${costHTML}
+        <div class="bld-lv-list">${levelsHTML}</div>
+      </div>
+      <button class="btn-upgrade bld-modal-btn ${isMax?'maxed':''} ${isBuilding?'building':''}"
+        onclick="Crafting._upgradeBuilding('${key}')"
+        ${btnDisabled ? 'disabled' : ''}>
+        ${btnLabel}
+      </button>
+    `;
+
+    modal.classList.remove('hidden');
+    backdrop.classList.remove('hidden');
   },
+
+  _closeBuildingModal() {
+    document.getElementById('bld-modal')?.classList.add('hidden');
+    document.getElementById('bld-modal-backdrop')?.classList.add('hidden');
+  },
+
 
   _canAffordUpgrade(cost) {
     return Object.entries(cost).every(([res, amt]) =>
@@ -1196,7 +1280,6 @@ const Crafting = {
     if (!upg) return;
     const b    = State.data.base.buildings;
 
-    // 'shelter' in baseUpgrades maps to 'house' in state.buildings
     const stateKey = buildingKey === 'shelter' ? 'house' : buildingKey;
     if (!b[stateKey]) b[stateKey] = { level: buildingKey === 'shelter' ? 1 : 0 };
 
@@ -1206,40 +1289,103 @@ const Crafting = {
     const nextLevel = upg.levels[currentLevel];
     if (!nextLevel || !this._canAffordUpgrade(nextLevel.cost)) return;
 
-    // Consume resources
+    // Block if another build is already running
+    if (State.data.activeBuild) {
+      Utils.toast('🚧 Already constructing! Bike to finish faster.', 'warn');
+      return;
+    }
+
+    // Consume resources immediately
     Object.entries(nextLevel.cost).forEach(([res, amt]) => {
       if (amt > 0) State.consumeResource(res, amt);
     });
 
-    b[stateKey].level = currentLevel + 1;
-    const newLvl = currentLevel + 1;
+    // DEV: all build times = 10s. Adjust per building/level later.
+    const buildSecs = 10;
 
-    // When shelter is upgraded: unlock new buildings
-    if (buildingKey === 'shelter') {
-      const shelterDef = this.baseUpgrades.shelter;
-      const unlocks = shelterDef.levels[currentLevel]?.unlocks || [];
+    State.data.activeBuild = {
+      key:       buildingKey,
+      stateKey:  stateKey,
+      newLevel:  currentLevel + 1,
+      secsLeft:  buildSecs,
+      secsTotal: buildSecs,
+      upg:       upg,
+    };
+
+    Utils.toast(`🏗 Building ${upg.name}… pedal to speed it up!`, 'info', 3000);
+    Audio.sfxCraft();
+    this._closeBuildingModal();
+    this._renderUpgradesTab();
+    this._startBuildTimer();
+    HUD.update();
+  },
+
+  // ── Build timer ───────────────────────────
+  _buildTimer: null,
+
+  _startBuildTimer() {
+    if (this._buildTimer) clearInterval(this._buildTimer);
+    this._buildTimer = setInterval(() => this._tickBuild(), 1000);
+  },
+
+  _tickBuild() {
+    const ab = State.data.activeBuild;
+    if (!ab) { clearInterval(this._buildTimer); this._buildTimer = null; return; }
+
+    // CPM bonus: every 10 CPM above 60 shaves 0.5 extra seconds per tick
+    const cpm   = Cadence.getCPM();
+    const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
+    ab.secsLeft = Math.max(0, ab.secsLeft - 1 - bonus);
+
+    // Update tile countdown display
+    this._refreshBuildTile(ab.key);
+
+    // If modal is open for this building, refresh it
+    const modal = document.getElementById('bld-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      this._openBuildingModal(ab.key);
+    }
+
+    if (ab.secsLeft <= 0) this._completeBuild();
+  },
+
+  _refreshBuildTile(key) {
+    const ab = State.data.activeBuild;
+    document.querySelectorAll('.bld-tile').forEach(t => {
+      if (t.getAttribute('onclick')?.includes(`'${key}'`)) {
+        const lvEl = t.querySelector('.bld-tile-lv');
+        if (lvEl && ab) lvEl.textContent = `🏗 ${Math.ceil(ab.secsLeft)}s`;
+      }
+    });
+  },
+
+  _completeBuild() {
+    clearInterval(this._buildTimer);
+    this._buildTimer = null;
+
+    const ab = State.data.activeBuild;
+    if (!ab) return;
+    State.data.activeBuild = null;
+
+    const b = State.data.base.buildings;
+    b[ab.stateKey].level = ab.newLevel;
+
+    // Shelter unlocks
+    if (ab.key === 'shelter') {
+      const unlocks = ab.upg.levels[ab.newLevel - 1]?.unlocks || [];
       unlocks.forEach(bldKey => {
         if (!b[bldKey]) b[bldKey] = { level: 0 };
         Utils.toast(`🔓 ${this.baseUpgrades[bldKey]?.name || bldKey} UNLOCKED!`, 'good');
       });
-      // Show unlock toast
-      if (unlocks.length > 0) {
-        setTimeout(() => Audio.sfxUnlock?.(), 300);
-      }
+      if (unlocks.length > 0) setTimeout(() => Audio.sfxUnlock?.(), 300);
     }
 
-    // Apply upgrade bonuses
-    this._applyBuildingUpgrade(buildingKey, newLvl);
-
-    Utils.toast(`🏗 ${upg.name} upgraded to level ${newLvl}!`, 'good');
-    Audio.sfxCraft();
-    this._playCraftAnimation({ emoji: upg.icon, name: upg.name }, () => {
-      this._renderUpgradesTab();
-      HUD.update();
-      Base.updateNight();
-    });
-
-    console.log('[Crafting] Building upgraded:', buildingKey, 'to level', currentLevel + 1);
+    this._applyBuildingUpgrade(ab.key, ab.newLevel);
+    Utils.toast(`✅ ${ab.upg.name} upgraded to Lv${ab.newLevel}!`, 'good', 4000);
+    Audio.sfxVictory?.();
+    this._renderUpgradesTab();
+    HUD.update();
+    Base.updateNight();
   },
 
   _applyBuildingUpgrade(buildingKey, newLevel) {
