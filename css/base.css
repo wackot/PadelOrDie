@@ -10,33 +10,41 @@
   justify-content: stretch;
 }
 
+/* Scroll container — full viewport minus HUD */
 .base-world {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  touch-action: manipulation;
+  overflow: scroll;
+  overflow-x: scroll;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
+/* The actual world canvas — fixed large size */
 #base-canvas {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  width: 1000px;
+  height: 1000px;
+  display: block;
 }
 
 #base-svg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  width: 1000px;
+  height: 1000px;
   overflow: visible;
 }
 
 /* ── Building tooltip ─────────────────────── */
 .building-tooltip {
-  position: absolute;
-  top: 12px;
+  position: fixed;
+  top: 60px;
   left: 12px;
   transform: none;
   background: var(--col-surface);
