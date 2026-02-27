@@ -85,14 +85,21 @@
   <!-- ═══════════════════════════════════════ -->
   <div id="screen-base" class="screen">
     <div class="base-world" id="base-world">
-      <!-- Ground tiles (canvas) -->
-      <canvas id="base-canvas"></canvas>
-      <!-- SVG farmstead drawn by base.js -->
-      <svg id="base-svg" xmlns="http://www.w3.org/2000/svg"></svg>
-      <!-- Night overlay -->
+      <!-- Pannable / zoomable inner layer -->
+      <div id="base-world-inner">
+        <canvas id="base-canvas"></canvas>
+        <svg id="base-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <!-- Night overlay (outside inner so it covers full viewport) -->
       <div id="night-overlay" class="night-overlay hidden"></div>
       <!-- Raid alert -->
       <div id="raid-alert" class="raid-alert hidden">⚠️ BASE UNDER ATTACK! ⚠️</div>
+    </div>
+    <!-- Zoom controls -->
+    <div class="map-zoom-controls" id="base-zoom-controls">
+      <button class="map-zoom-btn" id="base-zoom-in">＋</button>
+      <button class="map-zoom-btn" id="base-zoom-out">－</button>
+      <button class="map-zoom-btn" id="base-zoom-fit">⊡</button>
     </div>
     <!-- Building tooltip -->
     <div id="building-tooltip" class="building-tooltip hidden">
