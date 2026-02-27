@@ -75,6 +75,7 @@
       <span class="hud-res">⛽ <span id="res-gasoline">0</span></span>
       <span class="hud-res">🥫 <span id="res-food">0</span></span>
       <span class="hud-res">🧴 <span id="res-water">0</span></span>
+      <button id="btn-player-stats" class="btn-audio-hud" title="Player Stats" onclick="PlayerStats.open()">👤</button>
       <button id="btn-audio-toggle" class="btn-audio-hud" title="Toggle Music">🔊</button>
       <button id="btn-pause" class="btn-audio-hud" title="Pause">⏸</button>
     </div>
@@ -102,11 +103,9 @@
       <button class="map-zoom-btn" id="base-zoom-fit">⊡</button>
     </div>
     <!-- Building tooltip -->
-    <div id="building-tooltip" class="building-tooltip hidden">
-      <h3 id="tooltip-title">Building</h3>
-      <p id="tooltip-desc">Description</p>
-      <button class="btn-pixel btn-primary" id="tooltip-action">ENTER</button>
-    </div>
+    <!-- Building modal — replaces tooltip, injected by base.js -->
+    <div id="bld-win-backdrop" class="bld-win-backdrop hidden" onclick="Base.closeBuildingWindow()"></div>
+    <div id="bld-win" class="bld-win hidden"></div>
   </div>
 
   <!-- ═══════════════════════════════════════ -->
@@ -234,6 +233,31 @@
     <!-- Populated dynamically by raids.js -->
   </div>
 
+  <!-- Building screens — content filled by Base.renderBuildingScreen() -->
+  <div id="screen-bld-storage"    class="screen bld-screen"><div class="bld-container" id="bld-storage-content"></div></div>
+  <div id="screen-bld-bike"       class="screen bld-screen"><div class="bld-container" id="bld-bike-content"></div></div>
+  <div id="screen-bld-fence"      class="screen bld-screen"><div class="bld-container" id="bld-fence-content"></div></div>
+  <div id="screen-bld-greenhouse" class="screen bld-screen"><div class="bld-container" id="bld-greenhouse-content"></div></div>
+  <div id="screen-bld-field"      class="screen bld-screen"><div class="bld-container" id="bld-field-content"></div></div>
+  <div id="screen-bld-workshop"   class="screen bld-screen"><div class="bld-container" id="bld-workshop-content"></div></div>
+  <div id="screen-bld-elecbench"      class="screen bld-screen"><div class="bld-container" id="bld-elecbench-content"></div></div>
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: PLAYER STATS                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-player-stats" class="screen">
+    <div id="player-stats-content"></div>
+  </div>
+
+  <div id="screen-bld-radio_tower"    class="screen bld-screen"><div class="bld-container" id="bld-radio_tower-content"></div></div>
+  <div id="screen-bld-rain_collector" class="screen bld-screen"><div class="bld-container" id="bld-rain_collector-content"></div></div>
+  <div id="screen-bld-solar_station"  class="screen bld-screen"><div class="bld-container" id="bld-solar_station-content"></div></div>
+
+  <!-- Upgrade confirm overlay (shared) -->
+  <div id="upgrade-confirm-backdrop" class="upgrade-confirm-backdrop hidden" onclick="Base.closeUpgradeConfirm()"></div>
+  <div id="upgrade-confirm-modal"    class="upgrade-confirm-modal hidden">
+    <div id="upgrade-confirm-content"></div>
+  </div>
+
   <!-- ═══════════════════════════════════════ -->
   <!--  NOTIFICATION TOAST                     -->
   <!-- ═══════════════════════════════════════ -->
@@ -263,6 +287,7 @@
   <script src="js/utils.js"></script>
   <script src="js/state.js"></script>
   <script src="js/save.js"></script>
+  <script src="js/playerstats.js"></script>
   <script src="js/cadence.js"></script>
   <script src="js/daynight.js"></script>
   <script src="js/player.js"></script>
