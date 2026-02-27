@@ -496,7 +496,7 @@ const Base = {
       ${fenceG}
       <rect x="${cx-72}" y="${ft-2}" width="144" height="16" fill="#0d0d0d" rx="3" opacity="0.85"/>
       <text x="${cx}" y="${ft+10}"
-        font-family="Press Start 2P" font-size="6"
+        font-family="Press Start 2P" font-size="22"
         fill="${labelCol}" text-anchor="middle">${label}</text>
     </g>`;
   },
@@ -899,7 +899,7 @@ const Base = {
     return `<g>
       ${out}
       <text x="${cx}" y="${cy+62}"
-        font-family="Press Start 2P" font-size="6"
+        font-family="Press Start 2P" font-size="22"
         fill="${labelCol}" text-anchor="middle">Lv${lv} ${labels[lv-1]}</text>
     </g>`;
   },
@@ -921,7 +921,7 @@ const Base = {
       <circle cx="${cx}" cy="${cy-h/2+8}" r="7" fill="#1a1a2a" stroke="#5a3018" stroke-width="2"/>
       <ellipse cx="${cx}" cy="${cy+h/2+4}" rx="32" ry="5" fill="rgba(0,0,0,0.2)"/>
       <text x="${cx}" y="${cy+h/2+18}"
-        font-family="Press Start 2P" font-size="6" fill="#9a9a60" text-anchor="middle">FOOD STORE</text>
+        font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">FOOD STORE</text>
     </g>`;
   },
 
@@ -973,7 +973,7 @@ const Base = {
       <path d="M${cx-7} ${cy-18} L${cx-8} ${cy-8} L${cx+8} ${cy-8} L${cx+7} ${cy-18} Z" fill="#4a3a28"/>
       <rect x="${cx-5}" y="${cy-13}" width="10" height="4" fill="${waterCol}" rx="1"/>
       <ellipse cx="${cx}" cy="${cy+12}" rx="28" ry="5" fill="rgba(0,0,0,0.22)"/>
-      <text x="${cx}" y="${cy+24}" font-family="Press Start 2P" font-size="6" fill="#9a9a60" text-anchor="middle">WELL Lv${lvl}</text>
+      <text x="${cx}" y="${cy+48}" font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">WELL Lv${lvl}</text>
     </g>`;
   },
 
@@ -1023,7 +1023,7 @@ const Base = {
       ${drillPress}
       ${masterAura}
       <ellipse cx="${cx}" cy="${cy+20}" rx="32" ry="5" fill="rgba(0,0,0,0.2)"/>
-      <text x="${cx}" y="${cy+32}" font-family="Press Start 2P" font-size="6" fill="#9a9a60" text-anchor="middle">${labelText}</text>
+      <text x="${cx}" y="${cy+56}" font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">${labelText}</text>
     </g>`;
   },
 
@@ -1049,8 +1049,8 @@ const Base = {
       <circle cx="${cx-22}" cy="${cy-24}" r="2" fill="#c8a840"/>
       <circle cx="${cx+22}" cy="${cy-24}" r="2" fill="#c8a840"/>
       <ellipse cx="${cx}" cy="${cy+40}" rx="24" ry="4" fill="rgba(0,0,0,0.2)"/>
-      <text x="${cx}" y="${cy+52}"
-        font-family="Press Start 2P" font-size="6" fill="#9a9a60" text-anchor="middle">WORLD MAP</text>
+      <text x="${cx}" y="${cy+70}"
+        font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">WORLD MAP</text>
     </g>`;
   },
 
@@ -1255,7 +1255,7 @@ const Base = {
       '<line x1="' + (cx-w/2) + '" y1="' + (cy-h/2+h*0.4) + '" x2="' + (cx+w/2) + '" y2="' + (cy-h/2+h*0.4) + '" stroke="' + frameCol + '" stroke-width="1.5" opacity="0.5"/>' +
       plants +
       '<ellipse cx="' + cx + '" cy="' + (cy+h/2+4) + '" rx="28" ry="5" fill="rgba(0,0,0,0.2)"/>' +
-      '<text x="' + cx + '" y="' + (cy+h/2+18) + '" font-family="Press Start 2P" font-size="6" fill="#9a9a60" text-anchor="middle">' + label + ' GREENHOUSE</text>' +
+      '<text x="' + cx + '" y="' + (cy+h/2+42) + '" font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">' + label + ' GREENHOUSE</text>' +
     '</g>';
   },
 
@@ -1279,7 +1279,7 @@ const Base = {
       [0,1,2,3].map(i => '<line x1="' + (cx-w/2+2) + '" y1="' + (cy-h/2+12+i*8) + '" x2="' + (cx+w/2-2) + '" y2="' + (cy-h/2+12+i*8) + '" stroke="#2a1808" stroke-width="2" opacity="0.7"/>').join('') +
       crops +
       '<ellipse cx="' + cx + '" cy="' + (cy+h/2+4) + '" rx="32" ry="5" fill="rgba(0,0,0,0.2)"/>' +
-      '<text x="' + cx + '" y="' + (cy+h/2+18) + '" font-family="Press Start 2P" font-size="6" fill="#9a9a60" text-anchor="middle">Lv' + level + ' CROP FIELD</text>' +
+      '<text x="' + cx + '" y="' + (cy+h/2+42) + '" font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">Lv' + level + ' CROP FIELD</text>' +
     '</g>';
   },
 
@@ -1540,7 +1540,7 @@ const Base = {
       const col = lv >= 9 ? '#3a3a4a' : '#5a5a6a';
       out += `<rect x="${tx-tw/2}" y="${cy-th/2}" width="${tw}" height="${th}" fill="${col}" rx="2" stroke="#4a4a5a" stroke-width="1.5"/>`;
       if (lv === 10) {
-        out += `<text x="${tx}" y="${cy+4}" font-family="Press Start 2P" font-size="4" fill="#ffd600" text-anchor="middle" ${gY}>CARGO</text>`;
+        out += `<text x="${tx}" y="${cy+4}" font-family="Press Start 2P" font-size="14" fill="#ffd600" text-anchor="middle" ${gY}>CARGO</text>`;
       }
       // Trailer hitch
       out += `<line x1="${tx+tw/2}" y1="${cy}" x2="${cx-22}" y2="${cy}" stroke="#5a5a5a" stroke-width="2"/>`;
@@ -1627,7 +1627,7 @@ const Base = {
     return '<g opacity="0.45">' +
       '<rect x="' + (cx-w/2) + '" y="' + (cy-h/2) + '" width="' + w + '" height="' + h +
         '" fill="transparent" stroke="#4a4a2a" stroke-width="2" stroke-dasharray="6,4" rx="3"/>' +
-      '<text x="' + cx + '" y="' + cy + '" font-family="Press Start 2P" font-size="6" fill="#4a4a2a" text-anchor="middle">' + label + '</text>' +
+      '<text x="' + cx + '" y="' + cy + '" font-family="Press Start 2P" font-size="22" fill="#4a4a2a" text-anchor="middle">' + label + '</text>' +
       '<text x="' + cx + '" y="' + (cy+10) + '" font-family="Press Start 2P" font-size="5" fill="#3a3a1a" text-anchor="middle">' + sub + '</text>' +
     '</g>';
   },
@@ -1673,7 +1673,7 @@ const Base = {
       arc +
       // Level label
       '<ellipse cx="' + cx + '" cy="' + (cy+h/2+5) + '" rx="30" ry="5" fill="rgba(0,0,0,0.25)"/>' +
-      '<text x="' + cx + '" y="' + (cy+h/2+20) + '" font-family="Press Start 2P" font-size="6" fill="' + (hasPower ? '#ffd600' : '#7a7a7a') + '" text-anchor="middle">' + (hasPower ? '⚡ POWER Lv' + level : 'NO POWER') + '</text>' +
+      '<text x="' + cx + '" y="' + (cy+h/2+44) + '" font-family="Press Start 2P" font-size="22" fill="' + (hasPower ? '#ffd600' : '#7a7a7a') + '" text-anchor="middle">' + (hasPower ? '⚡ POWER Lv' + level : 'NO POWER') + '</text>' +
     '</g>';
   },
 
@@ -1709,7 +1709,7 @@ const Base = {
       '<rect x="' + (cx-w/2+22) + '" y="' + (cy-h/2-9) + '" width="3" height="7" fill="#5a5a6a" rx="1"/>' +
       cables +
       '<ellipse cx="' + cx + '" cy="' + (cy+h/2+6) + '" rx="28" ry="5" fill="rgba(0,0,0,0.2)"/>' +
-      '<text x="' + cx + '" y="' + (cy+h/2+20) + '" font-family="Press Start 2P" font-size="6" fill="' + (hasPwr ? '#29b6f6' : '#7a7a7a') + '" text-anchor="middle">⚡ BENCH Lv' + level + '</text>' +
+      '<text x="' + cx + '" y="' + (cy+h/2+44) + '" font-family="Press Start 2P" font-size="22" fill="' + (hasPwr ? '#29b6f6' : '#7a7a7a') + '" text-anchor="middle">⚡ BENCH Lv' + level + '</text>' +
     '</g>';
   }
 };
