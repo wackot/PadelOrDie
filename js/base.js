@@ -35,17 +35,26 @@ const Base = {
   _renderBase() {
     this._drawCanvas();
     this._buildSVG();
+    // Scroll to centre of the 1000×1000 world on first load
+    const world = document.getElementById('base-world');
+    if (world) {
+      const vw = world.clientWidth  || window.innerWidth;
+      const vh = world.clientHeight || window.innerHeight;
+      world.scrollLeft = (1000 - vw) / 2;
+      world.scrollTop  = (1000 - vh) / 2;
+    }
   },
 
   // ── Tiled grass + dirt paths on canvas ────
   _drawCanvas() {
     const canvas = document.getElementById('base-canvas');
     if (!canvas || typeof canvas.getContext !== 'function') return;
-    canvas.width  = canvas.offsetWidth  || window.innerWidth;
-    canvas.height = canvas.offsetHeight || window.innerHeight;
+    // Fixed world size — container scrolls around it
+    canvas.width  = 1000;
+    canvas.height = 1000;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const W = canvas.width, H = canvas.height;
+    const W = 1000, H = 1000;
     const T = 28;
 
     // Seeded noise so tiles don't flicker on resize
@@ -88,19 +97,19 @@ const Base = {
     const svg = document.getElementById('base-svg');
     if (!svg) return;
 
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    // Fence boundary box (centred, leaving room for HUD at top)
-    const hudH = 52;
-    const pad  = 14;
-    const fw = Math.min(W - pad*2, 600);
-    const fh = Math.min(H - hudH - pad*2 - 60, 480); // 60 = tooltip space at bottom
-    const fl = (W - fw) / 2;
-    const ft = hudH + pad;
-    const fr = fl + fw;
-    const fb = ft + fh;
-    const cx = fl + fw/2;
-    const cy = ft + fh/2;
+    // Fixed world size — matches canvas, scrollable container
+    const W = 1000;
+    const H = 1000;
+    // Fence boundary: generous margins on all sides
+    const pad  = 40;
+    const fw   = W - pad * 2;   // 920
+    const fh   = H - pad * 2;   // 920
+    const fl   = pad;
+    const ft   = pad;
+    const fr   = fl + fw;
+    const fb   = ft + fh;
+    const cx   = fl + fw / 2;   // 500
+    const cy   = ft + fh / 2;   // 500
 
     const fLvl   = State.data?.base?.buildings?.fence?.level       || 1;
     const hLvl   = State.data?.base?.buildings?.house?.level       || 1;
@@ -118,7 +127,9 @@ const Base = {
                               || State.data?.power?.generators?.coal?.level > 0
                               || State.data?.power?.generators?.solar?.level > 0);
 
-    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('viewBox', `0 0 1000 1000`);
+    svg.setAttribute('width', '1000');
+    svg.setAttribute('height', '1000');
 
     svg.innerHTML = `
       <defs>
@@ -142,40 +153,40 @@ const Base = {
 
       ${this._svgFence(fl, ft, fr, fb, fLvl, dr)}
       ${this._svgYard(fl, ft, fr, fb)}
-      ${this._svgHouse(cx, cy - fh*0.18, hLvl)}
-      ${this._svgBarn(cx + fw*0.30, cy + fh*0.02)}
-      ${this._svgWell(cx - fw*0.30, cy + fh*0.02, wlLvl)}
-      ${this._svgWorkbench(cx + fw*0.12, cy + fh*0.28, wsLvl)}
-      ${this._svgMapBoard(cx - fw*0.28, cy - fh*0.28)}
+      ${this._svgHouse(cx, cy - fh*0.22, hLvl)}
+      ${this._svgBarn(cx + fw*0.32, cy + fh*0.04)}
+      ${this._svgWell(cx - fw*0.32, cy + fh*0.04, wlLvl)}
+      ${this._svgWorkbench(cx + fw*0.12, cy + fh*0.30, wsLvl)}
+      ${this._svgMapBoard(cx - fw*0.30, cy - fh*0.30)}
       ${this._svgGate(cx, fb, fLvl)}
 
       <!-- Conditional: greenhouse and field when built -->
-      ${ghLvl > 0 ? this._svgGreenhouse(cx - fw*0.08, cy + fh*0.30, ghLvl) : this._svgBuildPrompt(cx - fw*0.08, cy + fh*0.30, 'greenhouse')}
-      ${fiLvl > 0 ? this._svgField(cx + fw*0.32, cy - fh*0.18, fiLvl)       : this._svgBuildPrompt(cx + fw*0.32, cy - fh*0.18, 'field')}
+      ${ghLvl > 0 ? this._svgGreenhouse(cx - fw*0.08, cy + fh*0.32, ghLvl) : this._svgBuildPrompt(cx - fw*0.08, cy + fh*0.32, 'greenhouse')}
+      ${fiLvl > 0 ? this._svgField(cx + fw*0.34, cy - fh*0.20, fiLvl)       : this._svgBuildPrompt(cx + fw*0.34, cy - fh*0.20, 'field')}
 
-      <!-- Power house + electric bench (upper-left quadrant area) -->
-      ${phLvl > 0 ? this._svgPowerHouse(cx - fw*0.30, cy - fh*0.16, phLvl, hasPwr) : this._svgBuildPrompt(cx - fw*0.30, cy - fh*0.16, 'powerhouse')}
-      ${ebLvl > 0 ? this._svgElecBench(cx + fw*0.30, cy - fh*0.28, ebLvl)           : this._svgBuildPrompt(cx + fw*0.30, cy - fh*0.28, 'elecbench')}
+      <!-- Power house + electric bench -->
+      ${phLvl > 0 ? this._svgPowerHouse(cx - fw*0.32, cy - fh*0.18, phLvl, hasPwr) : this._svgBuildPrompt(cx - fw*0.32, cy - fh*0.18, 'powerhouse')}
+      ${ebLvl > 0 ? this._svgElecBench(cx + fw*0.32, cy - fh*0.28, ebLvl)           : this._svgBuildPrompt(cx + fw*0.32, cy - fh*0.28, 'elecbench')}
 
       <!-- Storage room — lower-left -->
-      ${this._svgStorage(cx - fw*0.16, cy + fh*0.32, stLvl)}
+      ${this._svgStorage(cx - fw*0.20, cy + fh*0.32, stLvl)}
 
       <!-- Bike rack — lower-right corner -->
-      ${this._svgBike(cx + fw*0.44, cy + fh*0.34, bkLvl)}
+      ${this._svgBike(cx + fw*0.44, cy + fh*0.36, bkLvl)}
 
       <!-- Hit zones — transparent large tap areas -->
-      ${this._hitZone('house',       cx,              cy - fh*0.18,  72, 80,  'SHELTER')}
-      ${this._hitZone('fridge',      cx + fw*0.30,    cy + fh*0.02,  58, 62,  'FOOD STORE')}
-      ${this._hitZone('well',        cx - fw*0.30,    cy + fh*0.02,  50, 58,  'WELL')}
-      ${this._hitZone('table',       cx + fw*0.12,    cy + fh*0.28,  50, 46,  'CRAFTING')}
-      ${this._hitZone('map',         cx - fw*0.28,    cy - fh*0.28,  50, 50,  'WORLD MAP')}
-      ${this._hitZone('fence',       cx,              ft + 10,       100, 28, 'DEFENCES (' + dr + ')')}
-      ${this._hitZone('greenhouse',  cx - fw*0.08,    cy + fh*0.30,  56, 60, 'GREENHOUSE')}
-      ${this._hitZone('field',       cx + fw*0.32,    cy - fh*0.18,  60, 50, 'CROP FIELD')}
-      ${this._hitZone('powerhouse',  cx - fw*0.30,    cy - fh*0.16,  58, 60, '⚡ POWER HOUSE')}
-      ${this._hitZone('elecbench',   cx + fw*0.30,    cy - fh*0.28,  54, 50, '🔬 ELEC BENCH')}
-      ${this._hitZone('storage',     cx - fw*0.16,    cy + fh*0.32,  64, 60, '🗃️ STORAGE Lv' + stLvl)}
-      ${this._hitZone('bike',        cx + fw*0.44,    cy + fh*0.34,  54, 60, '🚴 BIKE Lv' + bkLvl)}
+      ${this._hitZone('house',       cx,              cy - fh*0.22,  90, 100, 'SHELTER')}
+      ${this._hitZone('fridge',      cx + fw*0.32,    cy + fh*0.04,  70, 80,  'FOOD STORE')}
+      ${this._hitZone('well',        cx - fw*0.32,    cy + fh*0.04,  70, 80,  'WELL')}
+      ${this._hitZone('table',       cx + fw*0.12,    cy + fh*0.30,  70, 70,  'CRAFTING')}
+      ${this._hitZone('map',         cx - fw*0.30,    cy - fh*0.30,  70, 70,  'WORLD MAP')}
+      ${this._hitZone('fence',       cx,              ft + 10,       120, 36, 'DEFENCES (' + dr + ')')}
+      ${this._hitZone('greenhouse',  cx - fw*0.08,    cy + fh*0.32,  70, 80, 'GREENHOUSE')}
+      ${this._hitZone('field',       cx + fw*0.34,    cy - fh*0.20,  80, 70, 'CROP FIELD')}
+      ${this._hitZone('powerhouse',  cx - fw*0.32,    cy - fh*0.18,  70, 80, '⚡ POWER HOUSE')}
+      ${this._hitZone('elecbench',   cx + fw*0.32,    cy - fh*0.28,  70, 70, '🔬 ELEC BENCH')}
+      ${this._hitZone('storage',     cx - fw*0.20,    cy + fh*0.32,  80, 80, '🗃️ STORAGE Lv' + stLvl)}
+      ${this._hitZone('bike',        cx + fw*0.44,    cy + fh*0.36,  70, 80, '🚴 BIKE Lv' + bkLvl)}
     `;
 
     // Bind touch + click on hit zones
