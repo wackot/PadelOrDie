@@ -165,11 +165,97 @@ const WorldMap = {
         {id:'lab',text:'🔬 Research lab — unknown experiments.',reward:{chemicals:5,electronics:4},chance:0.10},
         {id:'radio',text:'📡 Radio room — salvaged electronics.',reward:{electronics:6},chance:0.10},
         {id:'tripwire',text:'⚠ Tripwire! Triggered an alarm.',reward:{energy:-25},chance:0.08},
-        {id:'cache',text:'💣 Hidden weapons cache — incredible!',reward:{metal:10,electronics:6,chemicals:4},chance:0.04}
+        {id:'cache',text:'💣 Hidden weapons cache — incredible haul!',reward:{metal:10,electronics:6,chemicals:4},chance:0.04}
       ],
       uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
       foragingScene:'🪖🔫🏗️🚧⚙️🪖🔫🏗️🚧', sceneAction:'🪖 Raiding military stores',
-      unlockAfterExpeditions: 25 }
+      unlockAfterExpeditions: 25 },
+
+    // ── SPECIAL MISSIONS — unlocked by Radio Tower ──────────────────────────
+    { id:'signal_drop', name:'SIGNAL DROP', emoji:'📦', dangerLevel:2, dangerCol:'#42a5f5',
+      desc:'A supply crate was broadcast. Find it before raiders do.',
+      wx: 150,  wy: 120, radius: 60, isMission:true, missionKey:'signal_drop',
+      bgColor:'#0a0d14', bgEmoji:'📦🪂📦🌫️📦🪂',
+      tileColor:'#111820', fogReveal:'#182030',
+      animals:['bird','rat'], encounterChance:0.20,
+      loot:{ common:{resources:['food','medicine','cloth'],weight:40}, rare:{resources:['electronics','food','medicine'],weight:38}, legendary:{resources:['electronics','medicine','chemicals','circuit_board'],weight:22} },
+      events:[
+        {id:'crate',   text:'📦 Supply crate found! Military rations and kit.',    reward:{food:8, medicine:4},        chance:0.30},
+        {id:'drone',   text:'🚁 Automated drone still circling — parts inside!',   reward:{electronics:6, metal:4},    chance:0.18},
+        {id:'trap',    text:'⚠️ Crate rigged! Blast knocked you back.',            reward:{energy:-20},                chance:0.10},
+        {id:'beacon',  text:'📡 Secondary beacon — more loot at the source!',      reward:{electronics:4, rope:3},     chance:0.15}
+      ],
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
+      foragingScene:'📦🪂🌫️📦🔍🪂📦🎖️🌫️', sceneAction:'📡 Tracking signal',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'rescue_beacon', name:'RESCUE BEACON', emoji:'🆘', dangerLevel:3, dangerCol:'#ff6d00',
+      desc:'A survivor beacon. Rescue them and share their supplies.',
+      wx: -350, wy: 180, radius: 65, isMission:true, missionKey:'rescue_beacon',
+      bgColor:'#140808', bgEmoji:'🆘🩸🚑🔦🆘🩸',
+      tileColor:'#1e0e0e', fogReveal:'#280f0f',
+      animals:['zombie_dog','rat'], encounterChance:0.35,
+      loot:{ common:{resources:['medicine','food','cloth'],weight:35}, rare:{resources:['medicine','chemicals','electronics'],weight:40}, legendary:{resources:['antiseptic','medicine','military_chip'],weight:25} },
+      events:[
+        {id:'survivor', text:'🧟 Found a survivor! They share their remaining supplies.',  reward:{food:6, medicine:5, rope:4}, chance:0.25},
+        {id:'medkit',   text:'🩺 Survivor field medkit — stocked!',                    reward:{medicine:8, antiseptic:2},   chance:0.20},
+        {id:'ambush',   text:'🔫 Ambush — raiders waiting!',                        reward:{energy:-25},                 chance:0.12},
+        {id:'cache',    text:'💼 Survivor had a cache buried nearby.',               reward:{food:5, electronics:3},      chance:0.15}
+      ],
+      uniqueMaterial:{key:'antiseptic',name:'Antiseptic',emoji:'🧫'},
+      foragingScene:'🆘🩸🔦🚑🆘🧟🔦🩺🚑', sceneAction:'🔦 Searching for beacon',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'black_market', name:'BLACK MARKET', emoji:'🏴', dangerLevel:3, dangerCol:'#ab47bc',
+      desc:'A hidden trading post. Dangerous — but the rarest goods.',
+      wx: 300,  wy: -480, radius: 70, isMission:true, missionKey:'black_market',
+      bgColor:'#0d0814', bgEmoji:'🏴🕯️💀🏴🗡️💀',
+      tileColor:'#130d1c', fogReveal:'#1a1030',
+      animals:['bird','zombie_dog'], encounterChance:0.30,
+      loot:{ common:{resources:['electronics','chemicals','medicine'],weight:30}, rare:{resources:['circuit_board','military_chip','electronics'],weight:42}, legendary:{resources:['military_chip','circuit_board','chemicals','electronics'],weight:28} },
+      events:[
+        {id:'trade',    text:'🤝 Trader accepted resources — rare parts!',               reward:{circuit_board:3, military_chip:1}, chance:0.22},
+        {id:'weapons',  text:'🗡️ Illegal weapons parts — metal and more.',                reward:{metal:10, rope:5},                 chance:0.18},
+        {id:'raid',     text:'🚨 Market raided mid-trade! Run!',                           reward:{energy:-20},                       chance:0.12},
+        {id:'black',    text:'🏴 Found the back room — the real stock.',                   reward:{military_chip:2, circuit_board:4}, chance:0.10}
+      ],
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
+      foragingScene:'🏴💀🕯️🗡️🏴💀🕯️🤝🏴', sceneAction:'🏴 Negotiating trades',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'command_bunker', name:'COMMAND BUNKER', emoji:'🎖️', dangerLevel:4, dangerCol:'#e53935',
+      desc:'Last known command post. Hardened intel and mil-spec supplies.',
+      wx: -620, wy: 620, radius: 80, isMission:true, missionKey:'command_bunker',
+      bgColor:'#050508', bgEmoji:'🎖️🔐💣🎖️🔐💣',
+      tileColor:'#080810', fogReveal:'#0e0e1a',
+      animals:['zombie_dog','boss_mutant'], encounterChance:0.50,
+      loot:{ common:{resources:['metal','electronics','chemicals'],weight:30}, rare:{resources:['military_chip','electronics','chemicals'],weight:40}, legendary:{resources:['military_chip','military_chip','circuit_board','electronics'],weight:30} },
+      events:[
+        {id:'vault',    text:'🔐 Vault cracked — military ration stockpile!',              reward:{food:10, medicine:6, chemicals:4}, chance:0.18},
+        {id:'intel',    text:'📋 Intel on future raids — warning time +60s (this run).',   reward:{energy:10},                         chance:0.20},
+        {id:'mutant',   text:'☣️ Command mutant — massive, powerful!',                     reward:{energy:-30},                        chance:0.15},
+        {id:'chips',    text:'💾 Row of military CPUs still in packaging!',                reward:{military_chip:4, circuit_board:3},   chance:0.12}
+      ],
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
+      foragingScene:'🎖️🔐💣🎖️🔫🔐💣🎖️💾', sceneAction:'🎖️ Breaching command post',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'endgame_transmission', name:'THE TRANSMISSION', emoji:'🌐', dangerLevel:4, dangerCol:'#ffd600',
+      desc:'A signal from beyond the collapse. What is still out there?',
+      wx: 0,    wy: -850, radius: 95, isMission:true, missionKey:'endgame_transmission',
+      bgColor:'#02020a', bgEmoji:'🌐📡💫🌐📡✨',
+      tileColor:'#050510', fogReveal:'#0a0a20',
+      animals:['boss_mutant','bird','zombie_dog'], encounterChance:0.55,
+      loot:{ common:{resources:['electronics','chemicals','military_chip'],weight:25}, rare:{resources:['military_chip','circuit_board','electronics'],weight:38}, legendary:{resources:['military_chip','military_chip','circuit_board','power_core'],weight:37} },
+      events:[
+        {id:'source',   text:'📡 Found the transmission source — alien tech?',              reward:{circuit_board:6, military_chip:3, power_core:2}, chance:0.15},
+        {id:'survivor', text:'📻 Voice on the radio — someone else survived!',             reward:{food:8, medicine:8},                              chance:0.20},
+        {id:'anomaly',  text:'💫 Strange energy field — your gear charges up!',            reward:{energy:40},                                       chance:0.12},
+        {id:'core',     text:'⚡ Power core still active. Incredible!',                    reward:{power_core:3, electronics:6},                     chance:0.10}
+      ],
+      uniqueMaterial:{key:'power_core',name:'Power Core',emoji:'⚡'},
+      foragingScene:'🌐📡💫🌐✨📡💫🌐📡', sceneAction:'🌐 Decoding the transmission',
+      unlockAfterExpeditions: 99999 }
   ],
 
   // ── State ─────────────────────────────────
@@ -466,6 +552,7 @@ const WorldMap = {
   _drawLocationIcons(c) {
     const md = this._mapData;
     const unlocked = State.data.world.unlockedLocations || [];
+    const t = Date.now() / 1000;
 
     md.zones.forEach(zone => {
       const def = this.locationDefs.find(d => d.id === zone.id);
@@ -476,33 +563,62 @@ const WorldMap = {
 
       const { sx, sy } = this._toScreen(zone.wx, zone.wy);
       const isUnlocked = unlocked.includes(zone.id);
+      const isMission  = !!def.isMission;
+      const scaleFactor = this._scale / 0.18;
+
+      // Mission locations: animated pulsing ring + distinctive look
+      if (isMission && isUnlocked) {
+        // Outer slow-pulse aura
+        const pulse = 0.4 + 0.35 * Math.sin(t * 2.5);
+        c.beginPath();
+        c.arc(sx, sy, 28 * scaleFactor, 0, Math.PI*2);
+        c.strokeStyle = def.dangerCol;
+        c.lineWidth = 3;
+        c.globalAlpha = pulse;
+        c.stroke();
+        c.globalAlpha = 1;
+        // Diamond marker
+        const dm = 14 * scaleFactor;
+        c.save();
+        c.translate(sx, sy - dm * 1.8);
+        c.rotate(Math.PI / 4);
+        c.fillStyle = def.dangerCol;
+        c.globalAlpha = 0.85;
+        c.fillRect(-5 * scaleFactor, -5 * scaleFactor, 10 * scaleFactor, 10 * scaleFactor);
+        c.globalAlpha = 1;
+        c.restore();
+      }
 
       // Glow ring
       const glowCol = isUnlocked ? def.dangerCol : '#555';
       c.beginPath();
-      c.arc(sx, sy, 18 * this._scale / 0.18, 0, Math.PI*2);
+      c.arc(sx, sy, 18 * scaleFactor, 0, Math.PI*2);
       c.strokeStyle = glowCol;
-      c.lineWidth = 2;
-      c.globalAlpha = 0.5;
+      c.lineWidth = isMission && isUnlocked ? 3 : 2;
+      c.globalAlpha = isMission && isUnlocked ? 0.8 : 0.5;
       c.stroke();
       c.globalAlpha = 1;
 
       // Icon
-      c.font = `${Math.max(14, 22 * this._scale / 0.18)}px serif`;
+      c.font = Math.max(14, 22 * scaleFactor) + 'px serif';
       c.textAlign = 'center';
       c.textBaseline = 'middle';
       c.fillText(isUnlocked ? def.emoji : '❓', sx, sy);
 
       // Name label below
       if (this._scale > 0.12) {
-        c.font = `bold ${Math.max(8, 10 * this._scale / 0.18)}px 'VT323', monospace`;
-        c.fillStyle = isUnlocked ? '#d4d4a0' : '#555';
-        c.fillText(def.name, sx, sy + 20 * this._scale / 0.18);
+        c.font = 'bold ' + Math.max(8, 10 * scaleFactor) + "px 'VT323', monospace";
+        c.fillStyle = isUnlocked ? (isMission ? def.dangerCol : '#d4d4a0') : '#555';
+        c.fillText(def.name, sx, sy + 20 * scaleFactor);
 
-        if (!isUnlocked) {
-          c.fillStyle = '#e53935';
-          c.font = `${Math.max(8, 9 * this._scale / 0.18)}px 'VT323', monospace`;
-          c.fillText('🔒 LOCKED', sx, sy + 30 * this._scale / 0.18);
+        if (isMission && isUnlocked) {
+          c.fillStyle = def.dangerCol;
+          c.font = Math.max(7, 8 * scaleFactor) + "px 'VT323', monospace";
+          c.fillText('◆ MISSION ◆', sx, sy + 30 * scaleFactor);
+        } else if (!isUnlocked) {
+          c.fillStyle = isMission ? '#555' : '#e53935';
+          c.font = Math.max(8, 9 * scaleFactor) + "px 'VT323', monospace";
+          c.fillText(isMission ? '📡 Radio Tower needed' : '🔒 LOCKED', sx, sy + 30 * scaleFactor);
         }
       }
     });
@@ -1283,17 +1399,35 @@ const WorldMap = {
   // ── Unlock progression ────────────────────
   _checkUnlocks() {
     const n = State.data.stats.totalExpeditions;
+    const unlockedMissions = State.data.world.unlockedMissions || [];
     const unlock = (id) => {
       if (!State.data.world.unlockedLocations.includes(id)) {
         State.data.world.unlockedLocations.push(id);
         const def = this.locationDefs.find(d => d.id === id);
-        if (def) Utils.toast(`🗺 ${def.emoji} ${def.name} unlocked!`, 'good', 4000);
+        if (def) Utils.toast('🗺 ' + def.emoji + ' ' + def.name + ' unlocked!', 'good', 4000);
         Audio.sfxUnlock?.();
       }
     };
     this.locationDefs.forEach(def => {
-      if (n >= def.unlockAfterExpeditions) unlock(def.id);
+      // Regular locations: unlock by expedition count
+      if (!def.isMission && n >= def.unlockAfterExpeditions) unlock(def.id);
+      // Special missions: unlock by radio tower level
+      if (def.isMission && def.missionKey && unlockedMissions.includes(def.missionKey)) {
+        unlock(def.id);
+      }
     });
+  },
+
+  // Check and show mission count badge on world map icon
+  getMissionCount() {
+    const missions = State.data.world.unlockedMissions || [];
+    return missions.length;
+  },
+
+  // Returns true if id is a special mission location
+  isMission(id) {
+    const def = this.locationDefs.find(d => d.id === id);
+    return !!(def && def.isMission);
   }
 };
 

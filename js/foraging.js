@@ -489,6 +489,7 @@ const Foraging = {
       });
       this._log_(`✅ ${animal.emoji} defeated!${dropStr}`, 'good');
       State.data.stats.raidsRepelled = (State.data.stats.raidsRepelled || 0) + 1;
+      State.data.stats.animalsDefeated = (State.data.stats.animalsDefeated || 0) + 1;
     } else {
       Audio.sfxDefeat();
       // Lose 25% gathered on forced retreat
@@ -496,6 +497,7 @@ const Foraging = {
         this._gathered[r] = Math.floor(this._gathered[r] * 0.75);
       });
       this._log_(`💀 Forced to retreat! Lost 25% of gathered loot.`, 'danger');
+      State.data.stats.animalsFled = (State.data.stats.animalsFled || 0) + 1;
     }
     this._renderResources();
   },

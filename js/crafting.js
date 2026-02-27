@@ -472,16 +472,19 @@ const Crafting = {
     },
     // ── NEW BUILDINGS (unlocked by shelter level) ──────
     rain_collector: {
-      name:'Rain Collector', icon:'🌧️', maxLevel:3, unlockReq:3,
+      name:'Rain Collector', icon:'🌧️', maxLevel:10, unlockReq:3,
       levels:[
-        { desc:'Lv0 — Not built. Passively collect water during expeditions.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Basic barrel. +1 water/day passively.',
-          cost:{ wood:10, rope:4, metal:2 } },
-        { desc:'Lv2 — Gutter system. +2 water/day.',
-          cost:{ wood:16, metal:6, rope:4 } },
-        { desc:'Lv3 — Tank array. +4 water/day. Never run dry.',
-          cost:{ metal:15, electronics:3, rope:6 } }
+        { desc:'Lv0 — Not built yet.',                                                    cost:{ wood:0 },                                        passiveWater:0  },
+        { desc:'Lv1 — Wooden barrel with funnel. +1 water/day.',                          cost:{ wood:10, rope:4, metal:2 },                      passiveWater:1  },
+        { desc:'Lv2 — Two barrels and a roof gutter. +2 water/day.',                      cost:{ wood:14, metal:4, rope:4 },                      passiveWater:2  },
+        { desc:'Lv3 — Barrel row with downspouts. +3 water/day.',                         cost:{ wood:20, metal:8, rope:5 },                      passiveWater:3  },
+        { desc:'Lv4 — Metal tank with filter. +5 water/day. Water never runs out.',       cost:{ metal:14, rope:5, chemicals:2 },                  passiveWater:5  },
+        { desc:'Lv5 — Twin tanks and a pump. +7 water/day.',                              cost:{ metal:22, chemicals:3, rope:6 },                  passiveWater:7  },
+        { desc:'Lv6 — Elevated cistern. +10 water/day. Gravity-fed to well.',             cost:{ metal:30, electronics:4, chemicals:4 },           passiveWater:10 },
+        { desc:'Lv7 — Underground reservoir. +13 water/day. Raid-proof storage.',         cost:{ metal:40, electronics:8, chemicals:6 },           passiveWater:13 },
+        { desc:'Lv8 — Purification tower. +16 water/day. Clean water bonus.',             cost:{ metal:50, electronics:12, chemicals:8 },          passiveWater:16 },
+        { desc:'Lv9 — Full water plant. +20 water/day. Effectively unlimited.',           cost:{ metal:62, electronics:16, chemicals:12 },         passiveWater:20 },
+        { desc:'Lv10 — Pressurised hydro system. +25 water/day. Feeds all buildings.',   cost:{ metal:78, electronics:22, chemicals:16, circuit_board:4 }, passiveWater:25 },
       ]
     },
     compost_bin: {
@@ -547,14 +550,19 @@ const Crafting = {
       ]
     },
     radio_tower: {
-      name:'Radio Tower', icon:'📡', maxLevel:2, unlockReq:7,
+      name:'Radio Tower', icon:'📡', maxLevel:10, unlockReq:7,
       levels:[
-        { desc:'Lv0 — Not built. Intercept raid frequencies.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Radio tower. Raid chance reduced 15%.',
-          cost:{ metal:15, electronics:8, rope:5 } },
-        { desc:'Lv2 — Encrypted radio. Raid chance -30%. Rare material drops +20%.',
-          cost:{ metal:20, electronics:15, military_chip:2 } }
+        { desc:'Lv0 — Not built. Intercept raids, unlock special missions.',           cost:{ wood:0 },                                                              buildSecs:0,   raidReduce:0,    signalRange:0   },
+        { desc:'Lv1 — Wooden mast + antenna. Raid chance -10%.',                       cost:{ wood:20, metal:10, rope:8 },                                           buildSecs:30,  raidReduce:0.10, signalRange:1   },
+        { desc:'Lv2 — Signal dish. Raid chance -18%. Unlocks Signal Drop missions.',   cost:{ metal:18, electronics:8, rope:6 },                                     buildSecs:55,  raidReduce:0.18, signalRange:2   },
+        { desc:'Lv3 — Repeater array. Raid chance -25%. Signal range increased.',      cost:{ metal:26, electronics:12, rope:6 },                                    buildSecs:85,  raidReduce:0.25, signalRange:3   },
+        { desc:'Lv4 — Encrypted channel. Raid chance -32%. Unlocks Rescue Beacon.',    cost:{ metal:36, electronics:18, chemicals:4 },                               buildSecs:120, raidReduce:0.32, signalRange:4   },
+        { desc:'Lv5 — Directional array. Raid chance -38%. Rare drops +15%.',          cost:{ metal:48, electronics:24, chemicals:6, circuit_board:2 },               buildSecs:165, raidReduce:0.38, signalRange:5   },
+        { desc:'Lv6 — Hardened broadcast. Raid chance -44%. Unlocks Black Market.',    cost:{ metal:62, electronics:32, chemicals:8, circuit_board:4 },               buildSecs:220, raidReduce:0.44, signalRange:6   },
+        { desc:'Lv7 — Spectrum scanner. Raid chance -50%. Enemy alerts +30s.',         cost:{ metal:78, electronics:42, chemicals:10, circuit_board:6, military_chip:2 }, buildSecs:285, raidReduce:0.50, signalRange:7   },
+        { desc:'Lv8 — Military band. Raid chance -55%. Unlocks Command Bunker mission.',cost:{ metal:96, electronics:54, chemicals:14, circuit_board:8, military_chip:4 }, buildSecs:360, raidReduce:0.55, signalRange:8   },
+        { desc:'Lv9 — Quantum antenna. Raid chance -60%. All raid types pre-warned.',   cost:{ metal:120, electronics:68, chemicals:18, circuit_board:12, military_chip:6 },buildSecs:450, raidReduce:0.60, signalRange:9   },
+        { desc:'Lv10 — Global array. Raid chance -65%. Unlocks Endgame Transmission.', cost:{ metal:150, electronics:88, chemicals:24, circuit_board:18, military_chip:10},buildSecs:560, raidReduce:0.65, signalRange:10  },
       ]
     },
     alarm_system: {
@@ -582,14 +590,19 @@ const Crafting = {
       ]
     },
     solar_station: {
-      name:'Solar Station', icon:'☀️', maxLevel:2, unlockReq:9,
+      name:'Solar Station', icon:'☀️', maxLevel:10, unlockReq:9,
       levels:[
-        { desc:'Lv0 — Not built. Boost solar power generation.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Solar station. Solar array generates 20% more power.',
-          cost:{ electronics:12, metal:10, rope:4 } },
-        { desc:'Lv2 — Optimised array. Solar +40% more power. Battery charges overnight 1Wh.',
-          cost:{ electronics:20, metal:16, military_chip:2 } }
+        { desc:'Lv0 — Not built yet.',                                                          cost:{ wood:0 },                                                        solarMult:1.0, nightPower:0  },
+        { desc:'Lv1 — Single panel on stand. Solar output +20%.',                               cost:{ electronics:10, metal:8, rope:4 },                               solarMult:1.2, nightPower:1  },
+        { desc:'Lv2 — Two panels and tracker. Solar +35%. +2 Wh stored overnight.',             cost:{ electronics:14, metal:12, rope:4 },                              solarMult:1.35,nightPower:2  },
+        { desc:'Lv3 — Four-panel array. Solar +50%. +3 Wh overnight.',                          cost:{ electronics:18, metal:16, chemicals:2 },                         solarMult:1.5, nightPower:3  },
+        { desc:'Lv4 — Tracking array. Solar +65%. +4 Wh overnight.',                            cost:{ electronics:25, metal:22, chemicals:3 },                         solarMult:1.65,nightPower:4  },
+        { desc:'Lv5 — Eight-panel grid. Solar +80%. +6 Wh overnight. Powers fence.',            cost:{ electronics:33, metal:28, chemicals:5, circuit_board:2 },         solarMult:1.8, nightPower:6  },
+        { desc:'Lv6 — High-efficiency cells. Solar x2.0. +8 Wh overnight.',                     cost:{ electronics:43, metal:35, chemicals:6, circuit_board:3 },         solarMult:2.0, nightPower:8  },
+        { desc:'Lv7 — Concentrator array. Solar x2.5. +12 Wh overnight.',                       cost:{ electronics:55, metal:44, chemicals:8, circuit_board:5, military_chip:2 }, solarMult:2.5, nightPower:12 },
+        { desc:'Lv8 — Bifacial panels. Solar x3.0. +16 Wh overnight.',                          cost:{ electronics:70, metal:55, chemicals:10, circuit_board:8, military_chip:3 }, solarMult:3.0, nightPower:16 },
+        { desc:'Lv9 — Thermal-hybrid system. Solar x4.0. +22 Wh overnight.',                    cost:{ electronics:88, metal:68, chemicals:14, circuit_board:12, military_chip:5 },solarMult:4.0, nightPower:22 },
+        { desc:'Lv10 — Micro power station. Solar x5.0. +30 Wh overnight. Always powered.',     cost:{ electronics:110, metal:85, chemicals:20, circuit_board:18, military_chip:8 },solarMult:5.0, nightPower:30 },
       ]
     },
     bunker: {
@@ -1300,8 +1313,11 @@ const Crafting = {
       if (amt > 0) State.consumeResource(res, amt);
     });
 
-    // DEV: all build times = 10s. Adjust per building/level later.
-    const buildSecs = 10;
+    // Build time: use per-level buildSecs if defined, else scale by level
+    const levelDef = upg.levels ? (upg.levels[currentLevel] || {}) : {};
+    const buildSecs = levelDef.buildSecs
+      ? levelDef.buildSecs
+      : Math.max(10, 10 + (currentLevel * 8));
 
     State.data.activeBuild = {
       key:       buildingKey,
@@ -1463,9 +1479,14 @@ const Crafting = {
         break;
       case 'powerhouse':
         break;
-      case 'rain_collector':
-        b.passiveWater = (b.passiveWater || 0) + [1, 2, 4][newLevel - 1] || 0;
+      case 'rain_collector': {
+        const rcDef = this.baseUpgrades.rain_collector.levels[newLevel] || {};
+        b.passiveWater = rcDef.passiveWater || 0;
+        if (newLevel === 4)  Utils.toast('💧 Water never runs out!', 'good', 3500);
+        if (newLevel === 6)  Utils.toast('🌊 Cistern now gravity-feeds the well!', 'good', 3500);
+        if (newLevel === 10) Utils.toast('🏭 Pressurised hydro system online!', 'good', 4000);
         break;
+      }
       case 'compost_bin':
         b.passiveFood = (b.passiveFood || 0) + [1, 2][newLevel - 1] || 0;
         break;
@@ -1486,9 +1507,27 @@ const Crafting = {
         b.foodPreserveMult = [2, 3][newLevel - 1] || 1;
         b.passiveFood = (b.passiveFood || 0) + (newLevel >= 2 ? 2 : 0);
         break;
-      case 'radio_tower':
-        b.raidChanceReduction = (b.raidChanceReduction || 0) + [0.15, 0.30][newLevel - 1] || 0;
+      case 'radio_tower': {
+        const rtDef = this.baseUpgrades.radio_tower.levels[newLevel] || {};
+        b.raidChanceReduction = rtDef.raidReduce || 0;
+        b.radioSignalRange    = rtDef.signalRange || 0;
+        if (newLevel >= 5)  b.radioRareDropBonus  = 0.15;
+        if (newLevel >= 7)  b.radioAlertBonus     = 30;
+        if (newLevel >= 9)  b.radioPrewarnAll     = true;
+        // Unlock special missions at key levels
+        const missionUnlocks = { 2:'signal_drop', 4:'rescue_beacon', 6:'black_market', 8:'command_bunker', 10:'endgame_transmission' };
+        if (missionUnlocks[newLevel]) {
+          if (!State.data.world.unlockedMissions) State.data.world.unlockedMissions = [];
+          if (!State.data.world.unlockedMissions.includes(missionUnlocks[newLevel])) {
+            State.data.world.unlockedMissions.push(missionUnlocks[newLevel]);
+            const mNames = { signal_drop:'Signal Drop', rescue_beacon:'Rescue Beacon', black_market:'Black Market', command_bunker:'Command Bunker', endgame_transmission:'Endgame Transmission' };
+            Utils.toast('📡 Mission unlocked: ' + mNames[missionUnlocks[newLevel]] + '!', 'good', 5000);
+          }
+        }
+        const toasts = { 3:'📡 Signal range extended!', 7:'⚠️ Enemy alerts now 30s earlier!', 9:'🔊 ALL raid types pre-warned!', 10:'🌍 Global array online — 65% raid reduction!' };
+        if (toasts[newLevel]) Utils.toast(toasts[newLevel], 'good', 4000);
         break;
+      }
       case 'alarm_system':
         b.raidDamageReduction = (b.raidDamageReduction || 0) + [0.15, 0.30][newLevel - 1] || 0;
         break;
@@ -1496,9 +1535,14 @@ const Crafting = {
         b.medEfficiency = [1.25, 1.50, 2.0][newLevel - 1] || 1;
         if (newLevel >= 2) b.passiveMed = (b.passiveMed || 0) + 1;
         break;
-      case 'solar_station':
-        b.solarBoost = [1.20, 1.40][newLevel - 1] || 1;
+      case 'solar_station': {
+        const ssDef = this.baseUpgrades.solar_station.levels[newLevel] || {};
+        b.solarBoost      = ssDef.solarMult   || 1.0;
+        b.solarNightPower = ssDef.nightPower  || 0;
+        if (newLevel === 5)  Utils.toast('⚡ Solar now powers your electric fence!', 'good', 3500);
+        if (newLevel === 10) Utils.toast('☀️ Micro power station — you are always powered!', 'good', 4000);
         break;
+      }
       case 'bunker':
         b.defenceRating += [50, 80][newLevel - 1] || 0;
         b.raidDamageReduction = (b.raidDamageReduction || 0) + [0.40, 0.60][newLevel - 1] || 0;

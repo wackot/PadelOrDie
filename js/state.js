@@ -172,13 +172,30 @@ const State = {
     },
 
     stats: {
+      // Survival
       totalSessions:          0,
       totalClicksAllTime:     0,
       totalExpeditions:       0,
       totalResourcesGathered: 0,
       highestDay:             1,
       raidsRepelled:          0,
-      raidsFailed:            0
+      raidsFailed:            0,
+      animalsDefeated:        0,
+      animalsFled:            0,
+      // Fitness
+      totalPedalMinutes:      0,   // cumulative pedalling time in minutes
+      totalCaloriesBurned:    0,   // estimated calories
+      totalDistanceKm:        0,   // estimated km ridden
+      bestCPM:                0,   // all-time peak CPM in any session
+      avgCPM:                 0,   // running average CPM across all sessions
+      sessionCPMSum:          0,   // sum of session avg CPMs (for rolling avg)
+      sessionCount:           0,   // sessions with actual pedalling
+      // This session
+      sessionStartTime:       0,   // timestamp when current session began
+      sessionPedalSecs:       0,   // pedalling seconds this session
+      sessionBestCPM:         0,   // best CPM this session
+      // Milestones (day first achieved)
+      milestones: {}
     },
 
     meta: {

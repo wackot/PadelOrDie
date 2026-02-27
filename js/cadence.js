@@ -47,6 +47,18 @@ const Cadence = {
     this._clickTimes.push(now);
     State.data.cadence.sessionClicks++;
     State.data.stats.totalClicksAllTime++;
+    // Fitness: estimate stats from clicks
+    // 1 click ≈ 1 pedal stroke; at 60 CPM = 1 rev/sec; ~0.003 km/click at 18km/h
+    const st = State.data.stats;
+    const cpm = State.data.cadence.clicksPerMinute || 60;
+    st.bestCPM = Math.max(st.bestCPM || 0, cpm);
+    st.sessionBestCPM = Math.max(st.sessionBestCPM || 0, cpm);
+    // 1 pedal click ≈ 3.5 cal/min ÷ 60 CPM ≈ 0.058 cal per click (scaled by intensity)
+    const calPerClick = (3.5 + (cpm - 60) * 0.04) / 60;
+    st.totalCaloriesBurned = (st.totalCaloriesBurned || 0) + Math.max(0.04, calPerClick);
+    // distance: ~18km/h at 60CPM, scales with CPM
+    const kmPerClick = (18 + (cpm - 60) * 0.1) / 60 / 60;
+    st.totalDistanceKm = (st.totalDistanceKm || 0) + kmPerClick;
 
     // Prune old clicks outside the window
     this._prune();

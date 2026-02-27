@@ -65,6 +65,7 @@ const DayNight = {
     if (hour === 6 && wasNight) {
       this._onDawn();
     } else if (hour === 20 && !wasNight) {
+    if (typeof PlayerStats !== 'undefined') PlayerStats.checkMilestones();
       this._onDusk();
     }
 
@@ -77,6 +78,11 @@ const DayNight = {
     const target = Cadence.getTargetCPM() || 60;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
     const isForaging = typeof Foraging !== 'undefined' && Foraging._active;
+    // Fitness: track pedalling time (each tick = 1 game-hour = ~_tickMs ms real time)
+    if (cpm > 10) {
+      const minPerTick = (this._tickMs || 6000) / 60000;
+      State.data.stats.totalPedalMinutes = (State.data.stats.totalPedalMinutes || 0) + minPerTick;
+    }
     // Drain multiplier: pedalling reduces hunger/thirst by up to 65%
     const drainMult = isForaging ? Utils.clamp(1.0 - ratio * 0.43, 0.35, 1.0) : 1.0;
     State.tickSurvival(0.5 * drainMult);

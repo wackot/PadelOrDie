@@ -21,7 +21,10 @@ const Base = {
     greenhouse: { id:'greenhouse',  title:'Greenhouse',     desc:'Passive food production. Upgrade in Crafting.',         action:'upgrades'   },
     field:      { id:'field',       title:'Crop Field',     desc:'Daily crop harvest. Upgrade in Crafting.',              action:'upgrades'   },
     powerhouse: { id:'powerhouse',  title:'Power House',    desc:'Manage your generators and battery bank.',              action:'power'      },
-    elecbench:  { id:'elecbench',   title:'Electric Bench', desc:'Craft electrical components and advanced upgrades.',    action:'elecbench'  },
+    elecbench:      { id:'elecbench',      title:'Electric Bench',   desc:'Craft electrical components and advanced upgrades.',  action:'elecbench'  },
+    radio_tower:    { id:'radio_tower',    title:'Radio Tower',    desc:'Intercept raids. Unlock special world missions.',      action:'upgrades'   },
+    rain_collector: { id:'rain_collector', title:'Rain Collector',   desc:'Passively collects rainwater every day.',              action:'upgrades'   },
+    solar_station:  { id:'solar_station',  title:'Solar Station',    desc:'Boosts solar power output and stores overnight.',      action:'upgrades'   },
   },
 
   // ── Init ──────────────────────────────────
@@ -163,46 +166,260 @@ const Base = {
   _drawCanvas() {
     const canvas = document.getElementById('base-canvas');
     if (!canvas || typeof canvas.getContext !== 'function') return;
-    // Fixed world size — container scrolls around it
     canvas.width  = 1000;
     canvas.height = 1000;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const W = 1000, H = 1000;
-    const T = 28;
 
-    // Seeded noise so tiles don't flicker on resize
-    const noise = (x, y) => {
-      let n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-      return n - Math.floor(n);
-    };
+    const hLvl = Math.max(1, Math.min(10, State.data?.base?.buildings?.house?.level || 1));
 
-    // Grass tiles
-    const grasses = ['#1e2a0e','#243210','#202e0c','#1a2808','#263410'];
+    // ── Seeded noise helpers ──────────────────────────────────────────────
+    const noise  = (x, y) => { let n = Math.sin(x*127.1+y*311.7)*43758.5453; return n-Math.floor(n); };
+    const noise2 = (x, y) => { let n = Math.sin(x*93.4+y*217.3)*31415.926; return n-Math.floor(n); };
+
+    // ── Base ground colour (gets better per level) ───────────────────────
+    const groundPalettes = [
+      ['#111a07','#141f08','#0e1806','#121a06'],  // Lv1 — scraggly dark wasteland
+      ['#151e09','#182209','#131c07','#162008'],  // Lv2
+      ['#1a2a0b','#1e2e0d','#18280a','#1c2c0c'],  // Lv3
+      ['#1e2f0e','#223410','#1c2d0c','#20320f'],  // Lv4
+      ['#21330f','#253811','#1f300d','#233510'],  // Lv5
+      ['#243712','#283c14','#213412','#263a13'],  // Lv6 — lush green
+      ['#273b13','#2b4015','#253913','#294014'],  // Lv7
+      ['#2a3f15','#2e4417','#283d14','#2c4216'],  // Lv8
+      ['#2d4317','#314818','#2b4116','#2f4618'],  // Lv9
+      ['#304618','#35491a','#2e4417','#32471a'],  // Lv10 — vivid green lawn
+    ];
+    const gPal = groundPalettes[hLvl - 1];
+    const T = 24;
+
+    // ── Ground tiles ──────────────────────────────────────────────────────
     for (let y = 0; y < H; y += T) {
       for (let x = 0; x < W; x += T) {
-        ctx.fillStyle = grasses[Math.floor(noise(x/T, y/T) * grasses.length)];
+        const n = noise(x/T, y/T);
+        ctx.fillStyle = gPal[Math.floor(n * gPal.length)];
         ctx.fillRect(x, y, T, T);
-        // Occasional darker patch
-        if (noise(x/T + 0.5, y/T + 0.3) < 0.12) {
-          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        // Dark mud patches (fewer at higher levels)
+        const mudChance = Math.max(0.01, 0.18 - hLvl * 0.016);
+        if (noise(x/T+0.5, y/T+0.3) < mudChance) {
+          ctx.fillStyle = hLvl >= 7 ? 'rgba(0,60,0,0.12)' : 'rgba(0,0,0,0.22)';
           ctx.fillRect(x+2, y+2, T-4, T-4);
+        }
+        // Bright grass tufts (more at higher levels)
+        const tuftChance = 0.04 + hLvl * 0.012;
+        if (noise2(x/T+0.2, y/T+0.8) < tuftChance) {
+          ctx.fillStyle = hLvl >= 6 ? '#3a5a18' : '#1e3010';
+          ctx.fillRect(x+T*0.3, y+T*0.1, T*0.15, T*0.5);
+          ctx.fillRect(x+T*0.55, y+T*0.05, T*0.12, T*0.6);
         }
       }
     }
 
-    // Dirt paths (cross shape through base area)
-    const px = W * 0.48, py = H * 0.55;
-    ctx.fillStyle = '#3a2e18';
-    // Vertical path
-    for (let y = 0; y < H; y += T) {
-      ctx.fillStyle = noise(99, y/T) < 0.5 ? '#3a2e18' : '#332812';
-      ctx.fillRect(px - T, y, T*2, T);
+    // ── Compound interior yard (gets paved/gravel per level) ─────────────
+    const pad = 40;
+    const yl  = 500;  // yard left edge (world centre - 460)
+    const yt  = 500;
+    const yardW = 920, yardH = 920;
+    const yardX = pad, yardY = pad;
+
+    // Inner courtyard — dirt then gravel then paving stones
+    if (hLvl >= 2) {
+      // Yard fills
+      const yardFills = [
+        null,              // 1 — just raw ground
+        '#2a1e10',         // 2 — bare dirt
+        '#2e2214',         // 3 — worn dirt
+        '#312516',         // 4 — packed earth
+        '#3a2e1a',         // 5 — gravel mix
+        '#3e3220',         // 6 — fine gravel
+        '#444038',         // 7 — grey gravel
+        '#4a4640',         // 8 — pea gravel
+        '#52504c',         // 9 — flagstone
+        '#5a5854',         // 10 — proper courtyard paving
+      ];
+      if (yardFills[hLvl - 1]) {
+        // Draw inner yard
+        const iy = yardX + 60, ix = yardY + 60, iw = yardW - 120, ih = yardH - 120;
+        for (let y = ix; y < ix+ih; y += T) {
+          for (let x = iy; x < iy+iw; x += T) {
+            const n = noise(x/T+10, y/T+10);
+            ctx.fillStyle = yardFills[hLvl - 1];
+            ctx.fillRect(x, y, T, T);
+            // Stone joints at high levels
+            if (hLvl >= 8) {
+              const jcol = hLvl >= 10 ? '#3a3835' : '#3e3c38';
+              if (Math.round(x/T) % 3 === 0) { ctx.fillStyle = jcol; ctx.fillRect(x, y, 1, T); }
+              if (Math.round(y/T) % 2 === 0) { ctx.fillStyle = jcol; ctx.fillRect(x, y, T, 1); }
+            } else if (hLvl >= 6) {
+              // Gravel variation
+              if (n < 0.3) { ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(x+2,y+2,T-4,T-4); }
+              if (n > 0.7) { ctx.fillStyle = 'rgba(0,0,0,0.08)'; ctx.fillRect(x+2,y+2,T-4,T-4); }
+            }
+          }
+        }
+      }
     }
-    // Horizontal path
+
+    // ── Paths (upgrade from muddy dirt → cobblestone → lit path) ─────────
+    const cx = 500, cy = 500;
+    // Path colours per level
+    const pathCols = [
+      ['#2a1e0e','#251a0c'],   // 1 dirt
+      ['#2e2210','#292010'],   // 2
+      ['#32260f','#2e2210'],   // 3
+      ['#36280e','#32260e'],   // 4 darker packed
+      ['#3c2c12','#382a10'],   // 5 earthy
+      ['#484030','#403a28'],   // 6 light gravel
+      ['#504a3a','#484234'],   // 7 gravel
+      ['#5a5448','#524e42'],   // 8 pale stone
+      ['#686260','#605c58'],   // 9 flagstone
+      ['#747068','#6c6860'],   // 10 cobblestone
+    ];
+    const [pc1, pc2] = pathCols[hLvl - 1];
+    const pW = hLvl >= 7 ? 52 : hLvl >= 4 ? 44 : 36;
+
+    // Main vertical path — house to gate
+    for (let y = 0; y < H; y += T) {
+      ctx.fillStyle = noise(55, y/T) < 0.5 ? pc1 : pc2;
+      ctx.fillRect(cx - pW/2, y, pW, T);
+      // Path edge stones at higher levels
+      if (hLvl >= 6) {
+        ctx.fillStyle = hLvl >= 9 ? '#3a3028' : '#302818';
+        ctx.fillRect(cx - pW/2, y, 3, T);
+        ctx.fillRect(cx + pW/2 - 3, y, 3, T);
+      }
+    }
+    // Horizontal path — well to barn
+    const pathY = cy + 20;
     for (let x = 0; x < W; x += T) {
-      ctx.fillStyle = noise(x/T, 88) < 0.5 ? '#3a2e18' : '#332812';
-      ctx.fillRect(x, py - T*0.5, T, T*1.5);
+      ctx.fillStyle = noise(x/T, 77) < 0.5 ? pc1 : pc2;
+      ctx.fillRect(x, pathY - pW*0.4, T, pW*0.8);
+      if (hLvl >= 6) {
+        ctx.fillStyle = hLvl >= 9 ? '#3a3028' : '#302818';
+        ctx.fillRect(x, pathY - pW*0.4, T, 3);
+        ctx.fillRect(x, pathY + pW*0.4 - 3, T, 3);
+      }
+    }
+
+    // ── Garden beds (appear at lv4+, grow per level) ─────────────────────
+    if (hLvl >= 4) {
+      const bedCount = Math.min(hLvl - 3, 4);
+      const bedDefs = [
+        { x: cx - 200, y: cy - 60, w: 70, h: 40 },
+        { x: cx + 130, y: cy - 60, w: 70, h: 40 },
+        { x: cx - 200, y: cy + 30, w: 70, h: 40 },
+        { x: cx + 130, y: cy + 30, w: 70, h: 40 },
+      ];
+      const bedSoilCols = ['#2a1a08','#301e0a','#2e1c0a','#321e0c'];
+      const plantCols   = ['#1a4a10','#1e5412','#224e14','#185016'];
+      for (let b = 0; b < Math.min(bedCount, bedDefs.length); b++) {
+        const bd = bedDefs[b];
+        // Bed border
+        ctx.fillStyle = '#4a3820';
+        ctx.fillRect(bd.x - 3, bd.y - 3, bd.w + 6, bd.h + 6);
+        // Soil
+        ctx.fillStyle = bedSoilCols[b % bedSoilCols.length];
+        ctx.fillRect(bd.x, bd.y, bd.w, bd.h);
+        // Rows of crops / plants
+        const rows = hLvl >= 7 ? 3 : 2;
+        for (let r = 0; r < rows; r++) {
+          const py2 = bd.y + 6 + r * ((bd.h - 8) / rows);
+          for (let p = 0; p < 5; p++) {
+            const px2 = bd.x + 6 + p * ((bd.w - 8) / 5);
+            ctx.fillStyle = plantCols[(b+r+p) % plantCols.length];
+            ctx.beginPath();
+            ctx.arc(px2, py2, hLvl >= 7 ? 4 : 3, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    // ── Decorative flower borders (lv6+) ──────────────────────────────────
+    if (hLvl >= 6) {
+      const flowerSpacing = 28;
+      const flowerCols = ['#ff6b6b','#ffd600','#ff9a3c','#a0e060','#60b0ff'];
+      // Around the house front area
+      const fx0 = cx - 120, fy0 = cy - 60;
+      for (let i = 0; i < 8; i++) {
+        const fn = noise(i * 3.7, 42.1);
+        ctx.fillStyle = flowerCols[Math.floor(fn * flowerCols.length)];
+        const fxx = fx0 + i * flowerSpacing + noise(i*1.1, 5.5) * 12;
+        const fyy = fy0 + noise(i*2.3, 8.8) * 10;
+        ctx.beginPath(); ctx.arc(fxx, fyy, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#1e3a0a';
+        ctx.fillRect(fxx - 1, fyy + 3, 2, 8);
+      }
+    }
+
+    // ── Small pond (lv7+) ─────────────────────────────────────────────────
+    if (hLvl >= 7) {
+      const pdx = cx + 220, pdy = cy + 200;
+      // Pond edge
+      ctx.fillStyle = '#2a4030';
+      ctx.beginPath(); ctx.ellipse(pdx, pdy, 38, 28, 0, 0, Math.PI*2); ctx.fill();
+      // Water
+      const wGrad = ctx.createRadialGradient(pdx-5, pdy-5, 0, pdx, pdy, 34);
+      wGrad.addColorStop(0, '#1a4a6a');
+      wGrad.addColorStop(0.7, '#0e3050');
+      wGrad.addColorStop(1, '#0a2038');
+      ctx.fillStyle = wGrad;
+      ctx.beginPath(); ctx.ellipse(pdx, pdy, 33, 24, 0, 0, Math.PI*2); ctx.fill();
+      // Ripple
+      ctx.strokeStyle = 'rgba(100,180,220,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(pdx, pdy, 18, 10, 0, 0, Math.PI*2); ctx.stroke();
+      // Lily pad
+      ctx.fillStyle = '#2a6020';
+      ctx.beginPath(); ctx.arc(pdx+8, pdy-4, 5, 0, Math.PI*2); ctx.fill();
+    }
+
+    // ── Stone / brick border walls (lv8+) ─────────────────────────────────
+    if (hLvl >= 8) {
+      const brickH = 12, brickW = 28;
+      const wallY = yardY + 45;
+      const wallX = yardX + 45;
+      const wallR = yardX + yardW - 45;
+      const wallB = yardY + yardH - 45;
+      // Top wall section
+      ctx.fillStyle = '#5a5048';
+      for (let x = wallX; x < wallR; x += brickW + 2) {
+        const rowOff = Math.round(x / (brickW+2)) % 2 === 0 ? 0 : brickW/2;
+        ctx.fillRect(x + rowOff, wallY, Math.min(brickW, wallR - x - rowOff), brickH);
+        ctx.fillStyle = '#4a4040';
+        ctx.fillRect(x + rowOff, wallY, Math.min(brickW, wallR - x - rowOff), 2);
+        ctx.fillStyle = '#5a5048';
+      }
+    }
+
+    // ── Path lamps / lighting posts (lv9+) ────────────────────────────────
+    if (hLvl >= 9) {
+      const lampPositions = [
+        { x: cx - 30, y: cy - 180 }, { x: cx + 30, y: cy - 180 },
+        { x: cx - 180, y: cy + 18 }, { x: cx + 180, y: cy + 18 },
+      ];
+      lampPositions.forEach(lp => {
+        // Glow pool on ground
+        const grd = ctx.createRadialGradient(lp.x, lp.y, 0, lp.x, lp.y, 30);
+        grd.addColorStop(0, 'rgba(255,220,100,0.22)');
+        grd.addColorStop(1, 'rgba(255,220,100,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(lp.x, lp.y, 30, 0, Math.PI*2); ctx.fill();
+      });
+    }
+
+    // ── Lv10: decorative tile mosaic in front of gate ─────────────────────
+    if (hLvl >= 10) {
+      const mx = cx - 60, my = cy + 380;
+      const mosaicCols = ['#7a6a5a','#6a5a4a','#8a7a6a','#5a4a3a'];
+      for (let dy = 0; dy < 60; dy += 12) {
+        for (let dx = 0; dx < 120; dx += 12) {
+          const mn = noise(dx/12+50, dy/12+50);
+          ctx.fillStyle = mosaicCols[Math.floor(mn * mosaicCols.length)];
+          ctx.fillRect(mx + dx, my + dy, 11, 11);
+        }
+      }
     }
   },
 
@@ -235,6 +452,9 @@ const Base = {
     const bkLvl  = State.data?.base?.buildings?.bike?.level        || 1;
     const wlLvl  = State.data?.base?.buildings?.well?.level        || 1;
     const wsLvl  = State.data?.base?.buildings?.workshop?.level    || 0;
+    const rcLvl  = State.data?.base?.buildings?.rain_collector?.level || 0;
+    const rtLvl  = State.data?.base?.buildings?.radio_tower?.level    || 0;
+    const ssLvl  = State.data?.base?.buildings?.solar_station?.level  || 0;
     const dr     = State.data?.base?.defenceRating || 0;
     const hasPwr= phLvl > 0 && (State.data?.power?.generators?.bike?.level > 0
                               || State.data?.power?.generators?.woodburner?.level > 0
@@ -244,6 +464,64 @@ const Base = {
     svg.setAttribute('viewBox', `0 0 1000 1000`);
     svg.setAttribute('width', '1000');
     svg.setAttribute('height', '1000');
+
+    // ── Per-level layout offsets ─────────────────────────────────────────
+    // House level progressively spaces and repositions buildings
+    // giving the base a "growing settlement" feel
+    const houseX = cx;
+    const houseY = cy - fh * (hLvl >= 6 ? 0.26 : 0.22);
+
+    // Barn/food-store — starts right-centre, moves upper-right at high lv
+    const barnX  = cx + fw * (hLvl >= 7 ? 0.30 : 0.32);
+    const barnY  = cy + fh * (hLvl >= 7 ? -0.02 : 0.04);
+
+    // Well — starts left-centre, stays roughly same
+    const wellX  = cx - fw * 0.32;
+    const wellY  = cy + fh * 0.04;
+
+    // Workshop/crafting — moves to dedicated corner at high lv
+    const wsX    = cx + fw * (hLvl >= 5 ? 0.16 : 0.12);
+    const wsY    = cy + fh * (hLvl >= 5 ? 0.34 : 0.30);
+
+    // Map board — upper-left
+    const mapX   = cx - fw * (hLvl >= 4 ? 0.26 : 0.30);
+    const mapY   = cy - fh * (hLvl >= 4 ? 0.26 : 0.30);
+
+    // Storage — lower left, expands outward with level
+    const stX    = cx - fw * (hLvl >= 5 ? 0.24 : 0.20);
+    const stY    = cy + fh * 0.32;
+
+    // Bike — lower right corner
+    const bkX    = cx + fw * 0.44;
+    const bkY    = cy + fh * 0.36;
+
+    // Greenhouse — lower-centre, shifts right at high lv
+    const ghX    = cx - fw * (hLvl >= 6 ? 0.04 : 0.08);
+    const ghY    = cy + fh * 0.32;
+
+    // Field — upper right
+    const fiX    = cx + fw * 0.34;
+    const fiY    = cy - fh * (hLvl >= 6 ? 0.24 : 0.20);
+
+    // Power house — left side
+    const phX    = cx - fw * 0.32;
+    const phY    = cy - fh * (hLvl >= 5 ? 0.22 : 0.18);
+
+    // Electric bench — upper right inner
+    const ebX    = cx + fw * 0.32;
+    const ebY    = cy - fh * 0.28;
+
+    // Radio tower — far upper left
+    const rtX    = cx - fw * (hLvl >= 5 ? 0.36 : 0.40);
+    const rtY    = cy - fh * 0.38;
+
+    // Rain collector — left mid
+    const rcX    = cx - fw * 0.44;
+    const rcY    = cy - fh * 0.12;
+
+    // Solar station — upper right
+    const ssX    = cx + fw * (hLvl >= 5 ? 0.16 : 0.20);
+    const ssY    = cy - fh * (hLvl >= 5 ? 0.40 : 0.38);
 
     svg.innerHTML = `
       <defs>
@@ -267,40 +545,53 @@ const Base = {
 
       ${this._svgFence(fl, ft, fr, fb, fLvl, dr)}
       ${this._svgYard(fl, ft, fr, fb)}
-      ${this._svgHouse(cx, cy - fh*0.22, hLvl)}
-      ${this._svgBarn(cx + fw*0.32, cy + fh*0.04)}
-      ${this._svgWell(cx - fw*0.32, cy + fh*0.04, wlLvl)}
-      ${this._svgWorkbench(cx + fw*0.12, cy + fh*0.30, wsLvl)}
-      ${this._svgMapBoard(cx - fw*0.30, cy - fh*0.30)}
+
+      ${this._svgGroundDecor(cx, cy, fw, fh, hLvl)}
+
+      ${this._svgHouse(houseX, houseY, hLvl)}
+      ${this._svgBarn(barnX, barnY)}
+      ${this._svgWell(wellX, wellY, wlLvl)}
+      ${this._svgWorkbench(wsX, wsY, wsLvl)}
+      ${this._svgMapBoard(mapX, mapY)}
       ${this._svgGate(cx, fb, fLvl)}
 
       <!-- Conditional: greenhouse and field when built -->
-      ${ghLvl > 0 ? this._svgGreenhouse(cx - fw*0.08, cy + fh*0.32, ghLvl) : this._svgBuildPrompt(cx - fw*0.08, cy + fh*0.32, 'greenhouse')}
-      ${fiLvl > 0 ? this._svgField(cx + fw*0.34, cy - fh*0.20, fiLvl)       : this._svgBuildPrompt(cx + fw*0.34, cy - fh*0.20, 'field')}
+      ${ghLvl > 0 ? this._svgGreenhouse(ghX, ghY, ghLvl) : this._svgBuildPrompt(ghX, ghY, 'greenhouse')}
+      ${fiLvl > 0 ? this._svgField(fiX, fiY, fiLvl)       : this._svgBuildPrompt(fiX, fiY, 'field')}
 
       <!-- Power house + electric bench -->
-      ${phLvl > 0 ? this._svgPowerHouse(cx - fw*0.32, cy - fh*0.18, phLvl, hasPwr) : this._svgBuildPrompt(cx - fw*0.32, cy - fh*0.18, 'powerhouse')}
-      ${ebLvl > 0 ? this._svgElecBench(cx + fw*0.32, cy - fh*0.28, ebLvl)           : this._svgBuildPrompt(cx + fw*0.32, cy - fh*0.28, 'elecbench')}
+      ${phLvl > 0 ? this._svgPowerHouse(phX, phY, phLvl, hasPwr) : this._svgBuildPrompt(phX, phY, 'powerhouse')}
+      ${ebLvl > 0 ? this._svgElecBench(ebX, ebY, ebLvl)           : this._svgBuildPrompt(ebX, ebY, 'elecbench')}
 
-      <!-- Storage room — lower-left -->
-      ${this._svgStorage(cx - fw*0.20, cy + fh*0.32, stLvl)}
+      <!-- Storage room -->
+      ${this._svgStorage(stX, stY, stLvl)}
 
-      <!-- Bike rack — lower-right corner -->
-      ${this._svgBike(cx + fw*0.44, cy + fh*0.36, bkLvl)}
+      <!-- Bike rack -->
+      ${this._svgBike(bkX, bkY, bkLvl)}
 
-      <!-- Hit zones — transparent large tap areas -->
-      ${this._hitZone('house',       cx,              cy - fh*0.22,  90, 100, 'SHELTER')}
-      ${this._hitZone('fridge',      cx + fw*0.32,    cy + fh*0.04,  70, 80,  'FOOD STORE')}
-      ${this._hitZone('well',        cx - fw*0.32,    cy + fh*0.04,  70, 80,  'WELL')}
-      ${this._hitZone('table',       cx + fw*0.12,    cy + fh*0.30,  70, 70,  'CRAFTING')}
-      ${this._hitZone('map',         cx - fw*0.30,    cy - fh*0.30,  70, 70,  'WORLD MAP')}
-      ${this._hitZone('fence',       cx,              ft + 10,       120, 36, 'DEFENCES (' + dr + ')')}
-      ${this._hitZone('greenhouse',  cx - fw*0.08,    cy + fh*0.32,  70, 80, 'GREENHOUSE')}
-      ${this._hitZone('field',       cx + fw*0.34,    cy - fh*0.20,  80, 70, 'CROP FIELD')}
-      ${this._hitZone('powerhouse',  cx - fw*0.32,    cy - fh*0.18,  70, 80, '⚡ POWER HOUSE')}
-      ${this._hitZone('elecbench',   cx + fw*0.32,    cy - fh*0.28,  70, 70, '🔬 ELEC BENCH')}
-      ${this._hitZone('storage',     cx - fw*0.20,    cy + fh*0.32,  80, 80, '🗃️ STORAGE Lv' + stLvl)}
-      ${this._hitZone('bike',        cx + fw*0.44,    cy + fh*0.36,  70, 80, '🚴 BIKE Lv' + bkLvl)}
+      <!-- Radio tower -->
+      ${rtLvl > 0 ? this._svgRadioTower(rtX, rtY, rtLvl) : this._svgBuildPrompt(rtX, rtY, 'radio_tower')}
+
+      <!-- Rain collector and solar station -->
+      ${rcLvl > 0 ? this._svgRainCollector(rcX, rcY, rcLvl) : this._svgBuildPrompt(rcX, rcY, 'rain_collector')}
+      ${ssLvl > 0 ? this._svgSolarStation(ssX, ssY, ssLvl)  : this._svgBuildPrompt(ssX, ssY, 'solar_station')}
+
+      <!-- Hit zones -->
+      ${this._hitZone('house',          houseX, houseY, 90,  100, 'SHELTER')}
+      ${this._hitZone('fridge',         barnX,  barnY,  70,  80,  'FOOD STORE')}
+      ${this._hitZone('well',           wellX,  wellY,  70,  80,  'WELL')}
+      ${this._hitZone('table',          wsX,    wsY,    70,  70,  'CRAFTING')}
+      ${this._hitZone('map',            mapX,   mapY,   70,  70,  'WORLD MAP')}
+      ${this._hitZone('fence',          cx,     ft+10,  120, 36,  'DEFENCES (' + dr + ')')}
+      ${this._hitZone('greenhouse',     ghX,    ghY,    70,  80,  'GREENHOUSE')}
+      ${this._hitZone('field',          fiX,    fiY,    80,  70,  'CROP FIELD')}
+      ${this._hitZone('powerhouse',     phX,    phY,    70,  80,  '⚡ POWER HOUSE')}
+      ${this._hitZone('elecbench',      ebX,    ebY,    70,  70,  '🔬 ELEC BENCH')}
+      ${this._hitZone('storage',        stX,    stY,    80,  80,  '🗃️ STORAGE Lv' + stLvl)}
+      ${this._hitZone('bike',           bkX,    bkY,    70,  80,  '🚴 BIKE Lv' + bkLvl)}
+      ${this._hitZone('radio_tower',    rtX,    rtY,    90,  100, '📡 RADIO Lv' + rtLvl)}
+      ${this._hitZone('rain_collector', rcX,    rcY,    80,  90,  '🌧️ RAIN Lv' + rcLvl)}
+      ${this._hitZone('solar_station',  ssX,    ssY,    90,  80,  '☀️ SOLAR Lv' + ssLvl)}
     `;
 
     // Bind touch + click on hit zones
@@ -310,6 +601,238 @@ const Base = {
       el.addEventListener('click',    handler);
       el.addEventListener('touchend', handler, { passive: false });
     });
+  },
+
+  // ── Ground decorations — evolve per house level ─────────────────────
+  // Trees, rocks, path lights, flower borders, fountain
+  // Uses string concatenation — no nested template literals
+  _svgGroundDecor(cx, cy, fw, fh, hLvl) {
+    const parts = [];
+    const lv = Math.max(1, hLvl || 1);
+
+    // ── Helper: pixel tree ──────────────────────────────────────────────
+    const tree = (x, y, h, trunkCol, leafCol, leafR) => {
+      parts.push('<rect x="' + (x-3) + '" y="' + (y-h*0.3) + '" width="6" height="' + (h*0.35) + '" fill="' + trunkCol + '" rx="2"/>');
+      parts.push('<circle cx="' + x + '" cy="' + (y-h*0.3) + '" r="' + leafR + '" fill="' + leafCol + '"/>');
+    };
+
+    // ── Helper: rock cluster ────────────────────────────────────────────
+    const rock = (x, y, r, col) => {
+      parts.push('<ellipse cx="' + x + '" cy="' + y + '" rx="' + (r*1.4) + '" ry="' + (r*0.7) + '" fill="' + col + '" opacity="0.85"/>');
+    };
+
+    // ── Helper: lamp post ───────────────────────────────────────────────
+    const lamp = (x, y) => {
+      parts.push('<rect x="' + (x-2) + '" y="' + (y-40) + '" width="4" height="42" fill="#5a5060" rx="2"/>');
+      parts.push('<rect x="' + (x-8) + '" y="' + (y-44) + '" width="16" height="6" fill="#4a4058" rx="2"/>');
+      parts.push('<circle cx="' + x + '" cy="' + (y-47) + '" r="7" fill="#ffd600" opacity="0.9" filter="url(#glow-yellow)"/>');
+      parts.push('<circle cx="' + x + '" cy="' + (y-47) + '" r="14" fill="rgba(255,214,0,0.12)" filter="url(#glow-yellow)"/>');
+    };
+
+    // ── Helper: decorative bush ─────────────────────────────────────────
+    const bush = (x, y, col) => {
+      parts.push('<circle cx="' + (x-7) + '" cy="' + y + '" r="8" fill="' + col + '"/>');
+      parts.push('<circle cx="' + (x+7) + '" cy="' + y + '" r="8" fill="' + col + '"/>');
+      parts.push('<circle cx="' + x + '" cy="' + (y-5) + '" r="9" fill="' + col + '"/>');
+    };
+
+    // ── Helper: flower ──────────────────────────────────────────────────
+    const flower = (x, y, col) => {
+      parts.push('<circle cx="' + x + '" cy="' + y + '" r="4" fill="' + col + '" opacity="0.9"/>');
+      parts.push('<circle cx="' + x + '" cy="' + (y+1) + '" r="2" fill="#ffd600" opacity="0.8"/>');
+      parts.push('<line x1="' + x + '" y1="' + (y+4) + '" x2="' + x + '" y2="' + (y+14) + '" stroke="#2a5010" stroke-width="1.5"/>');
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV1: bare wasteland — just a couple of dead trees and rocks
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 1) {
+      // Dead trees in corners
+      tree(cx - fw*0.42, cy - fh*0.44, 50, '#3a2a10', '#2a2010', 14);
+      tree(cx + fw*0.42, cy - fh*0.44, 46, '#3a2a10', '#252010', 12);
+      // Rocks scattered
+      rock(cx - fw*0.38, cy + fh*0.40, 10, '#3a3830');
+      rock(cx + fw*0.38, cy + fh*0.38, 8,  '#353432');
+      rock(cx - fw*0.10, cy + fh*0.44, 7,  '#302e2c');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV2+: small bushes appear near house
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 2) {
+      bush(cx - fw*0.14, cy - fh*0.08, '#1e4010');
+      bush(cx + fw*0.14, cy - fh*0.08, '#1e3a0e');
+      // Rocks become smaller / more placed
+      rock(cx + fw*0.20, cy + fh*0.44, 9, '#3a3830');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV3+: live trees start appearing, paths more defined
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 3) {
+      tree(cx - fw*0.44, cy + fh*0.28, 52, '#5a3a18', '#1e4010', 18);
+      tree(cx + fw*0.44, cy + fh*0.22, 48, '#5a3a18', '#244a12', 16);
+      // Small stone markers along path
+      parts.push('<rect x="' + (cx-fw*0.06) + '" y="' + (cy+fh*0.42) + '" width="8" height="6" fill="#4a4238" rx="1"/>');
+      parts.push('<rect x="' + (cx+fw*0.06) + '" y="' + (cy+fh*0.42) + '" width="8" height="6" fill="#4a4238" rx="1"/>');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV4+: more trees, start of garden corner
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 4) {
+      tree(cx - fw*0.42, cy - fh*0.14, 60, '#5a3a18', '#1e4a0e', 20);
+      tree(cx + fw*0.42, cy - fh*0.14, 56, '#5a3a18', '#234e10', 18);
+      // Corner flower patches
+      flower(cx - fw*0.18, cy + fh*0.28, '#ff8a80');
+      flower(cx - fw*0.14, cy + fh*0.28, '#ff6b6b');
+      flower(cx + fw*0.16, cy + fh*0.28, '#ffd600');
+      // Low stone border along fence inside
+      for (let sx = 80; sx < 900; sx += 30) {
+        parts.push('<rect x="' + (sx+2) + '" y="' + (cy + fh*0.44+2) + '" width="18" height="6" fill="#4a4038" rx="1" opacity="0.7"/>');
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV5+: symmetrical tree line either side of front path
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 5) {
+      // Tree avenue flanking main path
+      const treePositions = [
+        { x: cx - 68, y: cy + fh*0.14 },
+        { x: cx + 68, y: cy + fh*0.14 },
+        { x: cx - 68, y: cy + fh*0.26 },
+        { x: cx + 68, y: cy + fh*0.26 },
+      ];
+      treePositions.forEach(tp => {
+        tree(tp.x, tp.y, 58, '#5a3a18', '#1e5010', 20);
+      });
+      // More pronounced bushes framing house
+      bush(cx - fw*0.18, cy - fh*0.34, '#1a4a0c');
+      bush(cx + fw*0.18, cy - fh*0.34, '#1a4a0c');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV6+: rich garden — flowers, taller trees, tended borders
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 6) {
+      // Flower borders along central path
+      const flowerCols = ['#ff6b6b','#ffd600','#ff9a3c','#a0e060','#80c0ff','#f080ff'];
+      for (let i = 0; i < 6; i++) {
+        flower(cx - 80 + i * 28, cy + fh*0.38, flowerCols[i % flowerCols.length]);
+        flower(cx + 80 - i * 28, cy + fh*0.38, flowerCols[(i+2) % flowerCols.length]);
+      }
+      // Taller trees in back corners
+      tree(cx - fw*0.42, cy - fh*0.40, 74, '#5a3a18', '#1a5c0e', 26);
+      tree(cx + fw*0.42, cy - fh*0.40, 70, '#5a3a18', '#1e5c10', 24);
+      // Hedge-style bushes along fence
+      for (let bx = fl + 80; bx < fr - 80; bx += 48) {
+        if (Math.abs(bx - cx) > 60) { // gap at gate
+          bush(bx, fb - 28, '#1e4a10');
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV7+: lamp posts appear, pond SVG layer, more decor
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 7) {
+      // Path lamps
+      lamp(cx - 36, cy + fh*0.08);
+      lamp(cx + 36, cy + fh*0.08);
+      lamp(cx - 36, cy + fh*0.28);
+      lamp(cx + 36, cy + fh*0.28);
+      // Ornamental pond (SVG layer — drawn on top of canvas pond for details)
+      const pdx = cx + 222, pdy = cy + 200;
+      parts.push('<ellipse cx="' + pdx + '" cy="' + pdy + '" rx="36" ry="26" fill="none" stroke="#3a7a50" stroke-width="4"/>');
+      parts.push('<ellipse cx="' + pdx + '" cy="' + pdy + '" rx="26" ry="16" fill="rgba(30,80,110,0.5)"/>');
+      // Lily pads
+      parts.push('<circle cx="' + (pdx+10) + '" cy="' + (pdy-5) + '" r="6" fill="#2a6020" opacity="0.9"/>');
+      parts.push('<circle cx="' + (pdx-10) + '" cy="' + (pdy+4) + '" r="5" fill="#2a6020" opacity="0.8"/>');
+      parts.push('<circle cx="' + (pdx+10) + '" cy="' + (pdy-5) + '" r="2" fill="#ff6060" opacity="0.8"/>');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV8+: more elaborate — sculpted hedges, flower rings, extra lamps
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 8) {
+      // Corner hedge squares
+      const hedgeCorners = [
+        { x: fl + 68, y: ft + 68 },
+        { x: fr - 68, y: ft + 68 },
+        { x: fl + 68, y: fb - 68 },
+        { x: fr - 68, y: fb - 68 },
+      ];
+      hedgeCorners.forEach(hc => {
+        parts.push('<rect x="' + (hc.x-16) + '" y="' + (hc.y-16) + '" width="32" height="32" fill="#1a4a0c" rx="4"/>');
+        parts.push('<rect x="' + (hc.x-12) + '" y="' + (hc.y-12) + '" width="24" height="24" fill="#244e10" rx="3"/>');
+        parts.push('<circle cx="' + hc.x + '" cy="' + hc.y + '" r="8" fill="#2a5810"/>');
+      });
+      // Flower ring around house base
+      const ringCount = 12;
+      for (let i = 0; i < ringCount; i++) {
+        const ang = (i / ringCount) * Math.PI * 2;
+        const houseX2 = cx;
+        const houseY2 = cy - fh * 0.26;
+        const rx = houseX2 + Math.cos(ang) * 80;
+        const ry = houseY2 + Math.sin(ang) * 60;
+        const fcol = ['#ff6b6b','#ffd600','#ff9a3c','#f080ff'][i % 4];
+        flower(rx, ry, fcol);
+      }
+      // Extra lamps
+      lamp(cx - fw*0.26, cy - fh*0.06);
+      lamp(cx + fw*0.26, cy - fh*0.06);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV9+: fountain in courtyard centre, shaped tree line
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 9) {
+      // Courtyard fountain
+      const fnx = cx, fny = cy + fh*0.14;
+      parts.push('<circle cx="' + fnx + '" cy="' + fny + '" r="24" fill="#2a4a3a" opacity="0.8"/>');
+      parts.push('<circle cx="' + fnx + '" cy="' + fny + '" r="18" fill="rgba(30,80,110,0.7)"/>');
+      parts.push('<circle cx="' + fnx + '" cy="' + fny + '" r="6" fill="#4a8a8a"/>');
+      // Water jets
+      for (let i = 0; i < 4; i++) {
+        const ang = i * Math.PI/2 + Math.PI/4;
+        const jx = fnx + Math.cos(ang) * 10;
+        const jy = fny + Math.sin(ang) * 10;
+        parts.push('<line x1="' + jx + '" y1="' + jy + '" x2="' + (jx + Math.cos(ang)*6) + '" y2="' + (jy - 10) + '" stroke="#80c0e0" stroke-width="2" opacity="0.8"/>');
+        parts.push('<circle cx="' + (jx + Math.cos(ang)*6) + '" cy="' + (jy-10) + '" r="2" fill="#a0d0f0" opacity="0.7" filter="url(#glow-blue)"/>');
+      }
+      // Radial tree pattern around fountain
+      const rTrees = [
+        { x: fnx - 60, y: fny }, { x: fnx + 60, y: fny },
+        { x: fnx, y: fny - 50 }, { x: fnx, y: fny + 50 },
+      ];
+      rTrees.forEach(rt => tree(rt.x, rt.y, 42, '#4a3014', '#1e5c10', 14));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LV10: ultimate estate — elaborate fountain, neon trim, full gardens
+    // ─────────────────────────────────────────────────────────────────────
+    if (lv >= 10) {
+      // Enhanced fountain with outer ring
+      const fnx = cx, fny = cy + fh*0.14;
+      parts.push('<circle cx="' + fnx + '" cy="' + fny + '" r="32" fill="none" stroke="#4a7a6a" stroke-width="3"/>');
+      parts.push('<circle cx="' + fnx + '" cy="' + fny + '" r="8" fill="#60a0a0" filter="url(#glow-blue)"/>');
+      // Electric blue trim lines along inner path edges
+      parts.push('<line x1="' + (cx - 28) + '" y1="' + (cy - fh*0.44) + '" x2="' + (cx - 28) + '" y2="' + (cy + fh*0.44) + '" stroke="rgba(100,200,255,0.18)" stroke-width="3"/>');
+      parts.push('<line x1="' + (cx + 28) + '" y1="' + (cy - fh*0.44) + '" x2="' + (cx + 28) + '" y2="' + (cy + fh*0.44) + '" stroke="rgba(100,200,255,0.18)" stroke-width="3"/>');
+      // Majestic tall trees at compound corners
+      [
+        { x: fl+70, y: ft+70 }, { x: fr-70, y: ft+70 },
+        { x: fl+70, y: fb-70 }, { x: fr-70, y: fb-70 },
+      ].forEach(ct => tree(ct.x, ct.y, 80, '#4a3014', '#1a6010', 30));
+      // Full flower strip across the back
+      for (let i = 0; i < 20; i++) {
+        const fcol = ['#ff6b6b','#ffd600','#f080ff','#80c0ff','#ff9a3c'][i%5];
+        flower(fl + 80 + i * 40, cy - fh*0.46, fcol);
+      }
+    }
+
+    return '<g>' + parts.join('') + '</g>';
   },
 
   // ── Fence perimeter — 10 levels ─────────────────
@@ -1204,111 +1727,405 @@ const Base = {
     </g>`;
   },
 
-  // ── Building tapped ───────────────────────
+
+  // ── Building window ───────────────────────
+  // Direct tap → open dedicated window, no tooltip step
+  // ═══════════════════════════════════════════
+  // BUILDING SCREENS
+  // Click any building → go directly to its
+  // own full screen. No tooltip confirm step.
+  // ═══════════════════════════════════════════
+
   _onBuildingClick(id) {
-    const b = this.buildings[id];
-    if (!b) return;
-
-    // Dynamic descriptions for upgradeable buildings
-    if (id === 'fence') {
-      b.desc = `Defence: ${State.data.base.defenceRating}. Upgrade in Crafting → Upgrades.`;
-    } else if (id === 'storage') {
-      const stLvl  = State.data.base.buildings?.storage?.level || 1;
-      const capA   = State.data.base.storageCapA || 50;
-      const capB   = State.data.base.storageCapB || 0;
-      const capC   = State.data.base.storageCapC || 0;
-      const capD   = State.data.base.storageCapD || 0;
-      const tierBStr = capB > 0 ? ` | Tier B: ${capB}` : ' | Tier B: LOCKED (Lv3)';
-      const tierCStr = capC > 0 ? ` | Tier C: ${capC}` : ' | Tier C: LOCKED (Lv5)';
-      const tierDStr = capD > 0 ? ` | Tier D: ${capD}` : ' | Tier D: LOCKED (Lv8)';
-      b.desc = `Lv${stLvl} — Max per resource: Basics: ${capA}${tierBStr}${tierCStr}${tierDStr}. Upgrade in Crafting.`;
-    } else if (id === 'bike') {
-      const bkLvl   = State.data.base.buildings?.bike?.level || 1;
-      const carry   = 20 + bkLvl * 13;
-      const hasLt   = State.data.base.bikeHasLight ? '💡 Light mounted' : '🌑 No light (Lv3 unlocks)';
-      const nMult   = State.data.base.bikeNightMult || 1.0;
-      const nightStr= State.data.base.bikeHasLight ? ` Night rewards ×${nMult.toFixed(1)}` : '';
-      b.desc = `Lv${bkLvl} — Carry cap: ${carry}. ${hasLt}.${nightStr} Upgrade in Crafting.`;
-    } else if (id === 'powerhouse') {
-      const phLvl = State.data.base.buildings.powerhouse?.level || 0;
-      if (phLvl === 0) {
-        b.desc = 'No power house yet. Build it in Crafting → Upgrades.';
-      } else {
-        const gen = Power.getGenerationRate();
-        const stor = Math.round(Power.getStored());
-        const max  = Power.getMaxStorage();
-        b.desc = `⚡ ${gen}W generating. 🔋 ${stor}/${max} Wh stored. Tap to manage.`;
-      }
-    } else if (id === 'elecbench') {
-      const ebLvl = State.data.base.buildings.elecbench?.level || 0;
-      b.desc = ebLvl === 0
-        ? 'Not built. Craft the Electric Bench at the Crafting Table.'
-        : Power.hasPowerForCrafting(1)
-          ? '⚡ Powered! Craft electrical components and upgrades.'
-          : '🔌 No power. Build a generator first.';
-    } else if (id === 'well') {
-      const wlLvl = State.data.base.buildings.well?.level || 1;
-      const wpd   = State.data.base.waterPerDraw || 5;
-      const pw    = State.data.base.wellPassiveWater || 0;
-      const passStr = pw > 0 ? ` +${pw} water/day passively.` : '';
-      b.desc = `Lv${wlLvl} — Draws ${wpd} water per use.${passStr} Upgrade in Crafting → Upgrades.`;
-    } else if (id === 'workshop') {
-      const wsLvl = State.data.base.buildings.workshop?.level || 0;
-      if (wsLvl === 0) {
-        b.desc = 'Not built. Unlock at Shelter Lv5, then build in Crafting → Upgrades.';
-      } else {
-        const disc  = Math.round((1 - (State.data.base.craftCostMult || 1)) * 100);
-        const bike  = Math.round(((State.data.base.bikeEfficiency || 1) - 1) * 100);
-        b.desc = `Lv${wsLvl} — Crafting costs -${disc}%. Bike efficiency +${bike}%. Upgrade in Crafting.`;
-      }
-    }
-
-    document.getElementById('tooltip-title').textContent = b.title;
-    document.getElementById('tooltip-desc').textContent  = b.desc;
-    const btn = document.getElementById('tooltip-action');
-    btn.textContent = 'ENTER';
-    btn.onclick = () => this._enterBuilding(b.action);
-    Utils.show('building-tooltip');
+    this.goToBuilding(id);
   },
 
-  _bindTooltip() {
-    document.getElementById('base-world')?.addEventListener('click', e => {
-      if (!e.target.closest('[data-bid]') && !e.target.closest('#building-tooltip')) {
-        Utils.hide('building-tooltip');
-      }
-    });
-  },
-
-  _enterBuilding(action) {
-    Utils.hide('building-tooltip');
-    switch (action) {
-      case 'shelter':   Game.goTo('shelter'); break;
-      case 'fridge':    Player.renderFridge(); Game.goTo('fridge'); break;
-      case 'well':
-        document.getElementById('well-water-count').textContent = State.data.inventory.water;
-        Game.goTo('well'); break;
-      case 'crafting':  Game.goTo('crafting'); Crafting.render(); break;
-      case 'map':       Game.goTo('map'); WorldMap.render(); break;
-      case 'defence':
-      case 'upgrades':  Game.goTo('crafting'); Crafting.render();
-        setTimeout(() => Crafting._switchTab?.('upgrades'), 120); break;
-      case 'power':
-        Game.goTo('power');
-        Power.renderPanel();
+  goToBuilding(id) {
+    switch (id) {
+      case 'house':       Game.goTo('shelter');                                                         break;
+      case 'fridge':      Player.renderFridge(); Game.goTo('fridge');                                  break;
+      case 'well':        document.getElementById('well-water-count').textContent = State.data.inventory.water; Game.goTo('well'); break;
+      case 'powerhouse':  Game.goTo('power'); Power.renderPanel();                                     break;
+      case 'table':       Game.goTo('crafting'); Crafting.render();                                    break;
+      case 'map':         Game.goTo('map'); WorldMap.render();                                         break;
+      case 'radio_tower':
+      case 'rain_collector':
+      case 'solar_station':
+        this.renderBuildingScreen(id);
+        Game.goTo('screen-bld-' + id);
         break;
-      case 'elecbench':
-        // If not built, go to upgrades. If built, go to electric crafting.
-        if ((State.data.base.buildings.elecbench?.level || 0) === 0) {
-          Game.goTo('crafting'); Crafting.render();
-          setTimeout(() => Crafting._switchTab?.('craft'), 120);
-          Utils.toast('🔬 Build the Electric Bench first! Crafting → Base → Electric Bench', 'warn', 4000);
-        } else {
-          Game.goTo('crafting'); Crafting.render();
-          setTimeout(() => { Crafting._selectCat?.('electric'); Crafting._switchTab?.('craft'); }, 120);
+
+      default:
+        if (document.getElementById('screen-bld-' + id)) {
+          this.renderBuildingScreen(id);
+          Game.goTo('screen-bld-' + id);
         }
         break;
     }
   },
+
+  // ── Render a building's dedicated screen ───
+  renderBuildingScreen(id) {
+    const el = document.getElementById('bld-' + id + '-content');
+    if (!el) return;
+
+    const s   = State.data;
+    const bld = s.base.buildings;
+    const inv = s.inventory;
+
+    let visual = '', title = '', statsRows = '', actionBtn = '';
+
+    switch (id) {
+      case 'storage': {
+        const lv   = bld.storage?.level || 1;
+        const capA = s.base.storageCapA || 50;
+        const capB = s.base.storageCapB || 0;
+        const capC = s.base.storageCapC || 0;
+        const capD = s.base.storageCapD || 0;
+        title  = '🗃️ STORAGE ROOM';
+        visual = `<svg width="110" height="90" viewBox="0 0 110 90">
+          <rect x="10" y="10" width="90" height="65" fill="#2a2018" rx="3"/>
+          <rect x="10" y="10" width="90" height="12" fill="#3a3028" rx="3"/>
+          <rect x="15" y="26" width="80" height="10" fill="#332820" rx="1"/>
+          <rect x="15" y="40" width="80" height="10" fill="#3a3028" rx="1"/>
+          <rect x="15" y="54" width="80" height="10" fill="#332820" rx="1"/>
+          <circle cx="55" cy="16" r="3" fill="#888"/>
+          <text x="55" y="84" text-anchor="middle" font-size="10" fill="#888">Level ${lv}</text>
+        </svg>`;
+        statsRows = `
+          <div class="bsc-row"><span>Level</span><span>${lv} / 10</span></div>
+          <div class="bsc-row"><span>Basic resources cap</span><span>${capA} each</span></div>
+          <div class="bsc-row ${capB>0?'ok':'locked'}"><span>Advanced cap</span><span>${capB > 0 ? capB+' each' : '🔒 Unlocks at Lv3'}</span></div>
+          <div class="bsc-row ${capC>0?'ok':'locked'}"><span>Rare materials cap</span><span>${capC > 0 ? capC+' each' : '🔒 Unlocks at Lv5'}</span></div>
+          <div class="bsc-row ${capD>0?'ok':'locked'}"><span>Tech parts cap</span><span>${capD > 0 ? capD+' each' : '🔒 Unlocks at Lv8'}</span></div>`;
+        break;
+      }
+      case 'bike': {
+        const lv    = bld.bike?.level || 1;
+        const carry = 20 + lv * 13;
+        const light = s.base.bikeHasLight;
+        const nMult = s.base.bikeNightMult || 1.0;
+        const eff   = Math.round(((s.base.bikeEfficiency||1)-1)*100);
+        title  = '🚴 YOUR BIKE';
+        visual = `<svg width="140" height="90" viewBox="0 0 140 90">
+          <circle cx="30" cy="65" r="22" fill="none" stroke="#555" stroke-width="5"/>
+          <circle cx="110" cy="65" r="22" fill="none" stroke="#555" stroke-width="5"/>
+          <circle cx="30" cy="65" r="7" fill="#444"/>
+          <circle cx="110" cy="65" r="7" fill="#444"/>
+          <line x1="30" y1="65" x2="70" y2="32" stroke="#666" stroke-width="3"/>
+          <line x1="70" y1="32" x2="110" y2="65" stroke="#666" stroke-width="3"/>
+          <line x1="70" y1="32" x2="70" y2="55" stroke="#666" stroke-width="3"/>
+          <ellipse cx="70" cy="57" rx="9" ry="4" fill="#555"/>
+          <line x1="58" y1="32" x2="82" y2="32" stroke="#777" stroke-width="4"/>
+          <rect x="64" y="22" width="12" height="12" fill="#444" rx="2"/>
+          ${light ? '<ellipse cx="22" cy="58" rx="7" ry="5" fill="#ffd600" opacity="0.7"/>' : ''}
+        </svg>`;
+        statsRows = `
+          <div class="bsc-row"><span>Level</span><span>${lv} / 10</span></div>
+          <div class="bsc-row"><span>Carry capacity</span><span>${carry} items</span></div>
+          <div class="bsc-row"><span>Headlight</span><span>${light ? '💡 Mounted' : '🌑 None (unlocks Lv3)'}</span></div>
+          <div class="bsc-row"><span>Night loot bonus</span><span>${light ? '×'+nMult.toFixed(1) : 'N/A'}</span></div>
+          <div class="bsc-row"><span>Efficiency bonus</span><span>+${eff}%</span></div>`;
+        break;
+      }
+      case 'fence': {
+        const lv        = bld.fence?.level || 1;
+        const dr        = s.base.defenceRating || 0;
+        const daysSince = s.world?.daysSinceLastRaid || 0;
+        title  = '🚧 DEFENCES';
+        visual = `<svg width="130" height="75" viewBox="0 0 130 75">
+          ${[8,28,48,68,88,108].map(x=>`
+            <rect x="${x}" y="8" width="14" height="50" fill="#4a3018" rx="2"/>
+            <polygon points="${x},8 ${x+7},1 ${x+14},8" fill="#5a4020"/>
+          `).join('')}
+          <rect x="8" y="28" width="114" height="8" fill="#3a2410" rx="1"/>
+          <rect x="8" y="42" width="114" height="8" fill="#3a2410" rx="1"/>
+          ${lv >= 5 ? '<rect x="8" y="18" width="114" height="4" fill="#8a6a30" rx="1" opacity="0.7"/>' : ''}
+          ${lv >= 9 ? '<rect x="8" y="18" width="114" height="4" fill="#ffd600" rx="1" opacity="0.3"/>' : ''}
+        </svg>`;
+        statsRows = `
+          <div class="bsc-row"><span>Level</span><span>${lv} / 10</span></div>
+          <div class="bsc-row"><span>Defence rating</span><span>${dr}</span></div>
+          <div class="bsc-row"><span>Days since last raid</span><span>${daysSince}</span></div>
+          <div class="bsc-row"><span>Upgrade status</span><span>${lv>=9?'⚡ Electrified':lv>=5?'🪝 Spiked':lv>=3?'🔩 Reinforced':'Basic wood'}</span></div>`;
+        break;
+      }
+      case 'greenhouse': {
+        const lv = bld.greenhouse?.level || 0;
+        const pf = s.base.passiveFood || 0;
+        title  = '🌿 GREENHOUSE';
+        visual = `<svg width="120" height="90" viewBox="0 0 120 90">
+          <polygon points="10,55 60,8 110,55" fill="rgba(80,180,80,0.12)" stroke="#3a7a3a" stroke-width="2"/>
+          <line x1="60" y1="8" x2="60" y2="55" stroke="#3a7a3a" stroke-width="1" opacity="0.5"/>
+          <line x1="10" y1="35" x2="110" y2="35" stroke="#3a7a3a" stroke-width="1" opacity="0.4"/>
+          <rect x="15" y="55" width="90" height="25" fill="#2a2018" rx="2"/>
+          ${lv>0 ? Array.from({length:3},(_,i)=>`
+            <rect x="${22+i*30}" y="58" width="18" height="18" fill="#1a4a1a" rx="1"/>
+            <text x="${31+i*30}" y="${52}" font-size="14" text-anchor="middle">${['🌱','🌿','🌱'][i]}</text>
+          `).join('') : '<text x="60" y="42" text-anchor="middle" font-size="11" fill="#555">— empty —</text>'}
+        </svg>`;
+        statsRows = lv === 0
+          ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 5</span></div>
+             <div class="bsc-row ok"><span>Passive food per day</span><span>+${pf}</span></div>`;
+        break;
+      }
+      case 'field': {
+        const lv = bld.field?.level || 0;
+        const cy = s.base.cropYield || 0;
+        title  = '🌾 CROP FIELD';
+        visual = `<svg width="120" height="80" viewBox="0 0 120 80">
+          <rect x="5" y="45" width="110" height="25" fill="#2a1808" rx="2"/>
+          <rect x="5" y="40" width="110" height="8" fill="#3a2010" rx="1"/>
+          ${lv>0 ? Array.from({length:7},(_,i)=>`
+            <line x1="${13+i*16}" y1="42" x2="${13+i*16}" y2="${28}" stroke="#5a8a20" stroke-width="2"/>
+            <text x="${13+i*16}" y="${24}" font-size="12" text-anchor="middle">🌾</text>
+          `).join('') : '<text x="60" y="35" text-anchor="middle" font-size="10" fill="#555">— not planted —</text>'}
+        </svg>`;
+        statsRows = lv === 0
+          ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 5</span></div>
+             <div class="bsc-row ok"><span>Food per harvest</span><span>+${cy}</span></div>`;
+        break;
+      }
+      case 'workshop': {
+        const lv   = bld.workshop?.level || 0;
+        const disc = Math.round((1-(s.base.craftCostMult||1))*100);
+        const beff = Math.round(((s.base.bikeEfficiency||1)-1)*100);
+        title  = '🔧 WORKSHOP';
+        visual = `<svg width="120" height="90" viewBox="0 0 120 90">
+          <rect x="10" y="28" width="100" height="52" fill="#2a2018" rx="3"/>
+          <rect x="10" y="28" width="100" height="14" fill="#3a2820" rx="3"/>
+          <rect x="20" y="48" width="22" height="24" fill="#1a1610"/>
+          <rect x="52" y="52" width="16" height="12" fill="#3a2810" rx="1"/>
+          <rect x="78" y="46" width="24" height="22" fill="#1a1610" rx="1"/>
+          <text x="31" y="44" font-size="14" text-anchor="middle">🔧</text>
+          <text x="90" y="44" font-size="14" text-anchor="middle">🪛</text>
+          <text x="60" y="84" text-anchor="middle" font-size="9" fill="#888">${lv>0?'Lv'+lv:'Not built'}</text>
+        </svg>`;
+        statsRows = lv === 0
+          ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 10</span></div>
+             <div class="bsc-row ok"><span>Crafting discount</span><span>-${disc}%</span></div>
+             <div class="bsc-row ok"><span>Bike efficiency</span><span>+${beff}%</span></div>`;
+        break;
+      }
+      case 'elecbench': {
+        const lv      = bld.elecbench?.level || 0;
+        const powered = Power.hasPowerForCrafting?.(1);
+        title  = '🔬 ELECTRIC BENCH';
+        visual = `<svg width="120" height="90" viewBox="0 0 120 90">
+          <rect x="10" y="38" width="100" height="42" fill="#1a1a2a" rx="3"/>
+          <rect x="10" y="38" width="100" height="12" fill="#2a2a3a" rx="3"/>
+          ${lv>0&&powered ? '<text x="60" y="34" text-anchor="middle" font-size="11" fill="#ffd600">⚡ POWERED ⚡</text>' : ''}
+          <rect x="18" y="56" width="20" height="18" fill="#0d0d1a" rx="1"/>
+          <rect x="50" y="52" width="28" height="22" fill="#0d0d1a" rx="1"/>
+          <rect x="88" y="58" width="16" height="16" fill="#0d0d1a" rx="1"/>
+          <text x="60" y="86" text-anchor="middle" font-size="9" fill="#888">${lv>0?'Lv'+lv:'Not built'}</text>
+        </svg>`;
+        statsRows = lv === 0
+          ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 5</span></div>
+             <div class="bsc-row ${powered?'ok':'locked'}"><span>Power supply</span><span>${powered?'⚡ Online':'❌ No power — build generator'}</span></div>`;
+        if (lv > 0) actionBtn = `<button class="bsc-action-btn" onclick="Game.goTo('crafting'); Crafting.render(); setTimeout(()=>{Crafting._selectCat?.('electric');Crafting._switchTab?.('craft');},120)">🔬 CRAFT ELECTRONICS</button>`;
+        break;
+      }
+
+      case 'radio_tower': {
+        const lv       = bld.radio_tower?.level || 0;
+        const rr       = s.base.raidChanceReduction || 0;
+        const missions = (s.world.unlockedMissions || []);
+        const sigRange = s.base.radioSignalRange || 0;
+        const mNames   = { signal_drop:'Signal Drop', rescue_beacon:'Rescue Beacon', black_market:'Black Market', command_bunker:'Command Bunker', endgame_transmission:'Endgame Transmission' };
+        const missionHtml = ['signal_drop','rescue_beacon','black_market','command_bunker','endgame_transmission'].map(mk => {
+          const got = missions.includes(mk);
+          return '<div class="bsc-row ' + (got ? 'ok' : 'locked') + '"><span>' + (got ? '✓' : '🔒') + ' ' + mNames[mk] + '</span><span>' + (got ? 'UNLOCKED' : '...') + '</span></div>';
+        }).join('');
+        title = '📡 RADIO TOWER';
+        visual = this._svgRadioTowerScreen(lv);
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : '<div class="bsc-row"><span>Level</span><span>' + lv + ' / 10</span></div>' +
+            '<div class="bsc-row ok"><span>Raid chance reduced</span><span>' + Math.round(rr*100) + '%</span></div>' +
+            '<div class="bsc-row"><span>Signal range</span><span>' + sigRange + ' / 10</span></div>' +
+            '<div class="bsc-row"><span>Missions unlocked</span><span>' + missions.length + ' / 5</span></div>' +
+            missionHtml;
+        if (lv > 0) actionBtn = '<button class="bsc-action-btn" onclick="WorldMap.render();window.Game.goTo(String.fromCharCode(109,97,112))">🌍 WORLD MAP</button>';
+        break;
+      }
+
+      case 'rain_collector': {
+        const lv      = bld.rain_collector?.level || 0;
+        const pw      = s.base.passiveWater || 0;
+        const noEmpty = s.base.waterNeverEmpty || false;
+        title = '\u{1F327}\uFE0F RAIN COLLECTOR';
+        visual = this._svgRainCollectorScreen(lv);
+        const eCls = noEmpty ? 'ok' : '';
+        const eStr = noEmpty ? '\u2713 Never runs dry' : 'Standard';
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>\uD83D\uDD12 Not yet built</span></div>'
+          : '<div class="bsc-row"><span>Level</span><span>' + lv + ' / 10</span></div>' +
+            '<div class="bsc-row ok"><span>Passive water / day</span><span>+' + pw + ' \uD83D\uDCA7</span></div>' +
+            '<div class="bsc-row ' + eCls + '"><span>Water reserve</span><span>' + eStr + '</span></div>' +
+            '<div class="bsc-row"><span>Current water</span><span>' + (inv.water || 0) + ' \uD83D\uDCA7</span></div>';
+        break;
+      }
+
+      case 'solar_station': {
+        const lv      = bld.solar_station?.level || 0;
+        const boost   = s.base.solarBoost || 1.0;
+        const nPwr    = s.base.solarNightPower || 0;
+        const fPwr    = s.base.solarNightPower >= 6;
+        title = '\u2600\uFE0F SOLAR STATION';
+        visual = this._svgSolarStationScreen(lv);
+        const fCls = fPwr ? 'ok' : 'locked';
+        const fStr = fPwr ? '\u26A1 Yes' : '\uD83D\uDD12 Lv5+';
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>\uD83D\uDD12 Not yet built</span></div>'
+          : '<div class="bsc-row"><span>Level</span><span>' + lv + ' / 10</span></div>' +
+            '<div class="bsc-row ok"><span>Solar output boost</span><span>x' + boost.toFixed(2) + '</span></div>' +
+            '<div class="bsc-row ok"><span>Stored overnight</span><span>+' + nPwr + ' Wh</span></div>' +
+            '<div class="bsc-row ' + fCls + '"><span>Powers fence</span><span>' + fStr + '</span></div>';
+        break;
+      }
+    }
+
+    // ── Upgrade section ───────────────────────
+    const upgKey = id;   // keys match except no remapping needed here
+    const upg    = Crafting.baseUpgrades?.[upgKey];
+    let upgradeSection = '';
+
+    if (upg) {
+      const shelterLv = bld.house?.level || 1;
+      const reqLv     = upg.unlockReq || 0;
+      const isLocked  = reqLv > shelterLv;
+      const stKey     = upgKey;
+      const curLv     = bld[stKey]?.level || 0;
+      const isMax     = curLv >= upg.maxLevel;
+      const ab        = s.activeBuild;
+      const isBuilding= ab && ab.key === upgKey;
+      const otherBld  = ab && ab.key !== upgKey;
+      const nextDef   = (!isMax && !isLocked) ? upg.levels[curLv] : null;
+      const canAfford = nextDef ? Crafting._canAffordUpgrade(nextDef.cost) : false;
+
+      const pips = Array.from({length: upg.maxLevel}, (_,i) =>
+        `<span class="bsc-pip ${i<curLv?'filled':''}" ></span>`).join('');
+
+      let upgradeBody = '';
+      if (isMax) {
+        upgradeBody = '<div class="bsc-upgrade-status maxed">✅ MAXIMUM LEVEL REACHED</div>';
+      } else if (isLocked) {
+        upgradeBody = `<div class="bsc-upgrade-status locked">🔒 Requires Shelter Lv${reqLv}</div>`;
+      } else if (isBuilding) {
+        const pct = Math.round(((ab.secsTotal - ab.secsLeft) / ab.secsTotal) * 100);
+        upgradeBody = `
+          <div class="bsc-build-progress">
+            <div class="bsc-build-label">🏗 BUILDING… ${Math.ceil(ab.secsLeft)}s remaining</div>
+            <div class="bsc-bar-wrap"><div class="bsc-bar" id="bsc-bar-${id}" style="width:${pct}%"></div></div>
+            <div class="bsc-build-sub">🚴 Pedal faster to reduce build time</div>
+          </div>`;
+      } else if (otherBld) {
+        upgradeBody = `<div class="bsc-upgrade-status locked">🚧 Busy building: ${ab.upg.name}</div>`;
+      } else {
+        const nextDesc = nextDef?.desc || '';
+        upgradeBody = `
+          <div class="bsc-next-effect">→ ${nextDesc}</div>
+          <button class="bsc-upgrade-btn ${canAfford?'':' disabled'}"
+            onclick="Base.showUpgradeConfirm('${id}','${upgKey}')"
+            ${canAfford ? '' : 'disabled'}>
+            ${curLv===0 ? '🔨 BUILD THIS' : '▲ UPGRADE TO LV'+(curLv+1)}
+          </button>
+          ${!canAfford ? '<div class="bsc-cant-afford">❌ Not enough resources</div>' : ''}`;
+      }
+
+      upgradeSection = `
+        <div class="bsc-upgrade-section">
+          <div class="bsc-upgrade-title">UPGRADES <span class="bsc-lv-badge">LV ${curLv} / ${upg.maxLevel}</span></div>
+          <div class="bsc-pips">${pips}</div>
+          ${upgradeBody}
+        </div>`;
+    }
+
+    el.innerHTML = `
+      <h2 class="screen-title">${title}</h2>
+      <div class="bsc-visual">${visual}</div>
+      <div class="bsc-stats">${statsRows}</div>
+      ${actionBtn ? `<div class="bsc-actions">${actionBtn}</div>` : ''}
+      ${upgradeSection}
+      <button class="btn-pixel btn-secondary bsc-back" onclick="Game.goTo('base')">← BACK TO BASE</button>
+    `;
+
+    this._startScreenRefresh(id, upgKey);
+  },
+
+  _screenRefreshTimer: null,
+
+  _startScreenRefresh(screenId, upgKey) {
+    clearInterval(this._screenRefreshTimer);
+    const ab = State.data.activeBuild;
+    if (!ab || ab.key !== upgKey) return;
+    this._screenRefreshTimer = setInterval(() => {
+      const cur = State.data.activeBuild;
+      const bar = document.getElementById('bsc-bar-' + screenId);
+      const lbl = document.querySelector('.bsc-build-label');
+      if (cur && cur.key === upgKey) {
+        const pct = Math.round(((cur.secsTotal-cur.secsLeft)/cur.secsTotal)*100);
+        if (bar) bar.style.width = pct + '%';
+        if (lbl) lbl.textContent = `🏗 BUILDING… ${Math.ceil(cur.secsLeft)}s remaining`;
+      } else {
+        clearInterval(this._screenRefreshTimer);
+        this._screenRefreshTimer = null;
+        this.renderBuildingScreen(screenId);
+      }
+    }, 500);
+  },
+
+  // ── Upgrade confirm popup ─────────────────
+  showUpgradeConfirm(screenId, upgKey) {
+    const upg   = Crafting.baseUpgrades?.[upgKey];
+    if (!upg) return;
+    const curLv = State.data.base.buildings[upgKey]?.level || 0;
+    const next  = upg.levels[curLv];
+    if (!next) return;
+
+    const costRows = Object.entries(next.cost)
+      .filter(([,v])=>v>0)
+      .map(([r,v]) => {
+        const have = State.data.inventory[r] || 0;
+        const ok   = have >= v;
+        const em   = Crafting.emojiMap?.[r] || '📦';
+        return `<div class="ucm-cost-row ${ok?'ok':'short'}">
+          <span>${em} ${r}</span><span>${have} / ${v} ${ok?'✓':'✗'}</span></div>`;
+      }).join('') || '<div class="ucm-cost-row ok"><span>Free!</span><span>✓</span></div>';
+
+    document.getElementById('upgrade-confirm-content').innerHTML = `
+      <div class="ucm-title">${upg.icon} ${curLv===0?'BUILD':'UPGRADE'} ${upg.name.toUpperCase()} TO LV${curLv+1}</div>
+      <div class="ucm-effect">${next.desc}</div>
+      <div class="ucm-section-label">RESOURCES NEEDED</div>
+      <div class="ucm-costs">${costRows}</div>
+      <div class="ucm-section-label">BUILD TIME</div>
+      <div class="ucm-time">⏱ 10 seconds &nbsp;&nbsp; 🚴 Pedal to speed up</div>
+      <div class="ucm-buttons">
+        <button class="ucm-yes" onclick="Base.confirmUpgrade('${screenId}','${upgKey}')">✓ YES, BUILD IT</button>
+        <button class="ucm-no"  onclick="Base.closeUpgradeConfirm()">✕ CANCEL</button>
+      </div>`;
+
+    document.getElementById('upgrade-confirm-backdrop').classList.remove('hidden');
+    document.getElementById('upgrade-confirm-modal').classList.remove('hidden');
+  },
+
+  confirmUpgrade(screenId, upgKey) {
+    this.closeUpgradeConfirm();
+    Crafting._upgradeBuilding(upgKey);
+    setTimeout(() => this.renderBuildingScreen(screenId), 60);
+  },
+
+  closeUpgradeConfirm() {
+    document.getElementById('upgrade-confirm-backdrop')?.classList.add('hidden');
+    document.getElementById('upgrade-confirm-modal')?.classList.add('hidden');
+  },
+
+  _bindTooltip() { /* no-op: old tooltip replaced by building screens */ },
 
   updateNight() {
     const overlay = document.getElementById('night-overlay');
@@ -1836,7 +2653,526 @@ const Base = {
       '<ellipse cx="' + cx + '" cy="' + (cy+h/2+6) + '" rx="28" ry="5" fill="rgba(0,0,0,0.2)"/>' +
       '<text x="' + cx + '" y="' + (cy+h/2+44) + '" font-family="Press Start 2P" font-size="22" fill="' + (hasPwr ? '#29b6f6' : '#7a7a7a') + '" text-anchor="middle">⚡ BENCH Lv' + level + '</text>' +
     '</g>';
+  },
+
+  // ══════════════════════════════════════════════════════
+  // RADIO TOWER — 10 level skins (string concat, no
+  // nested template literals)
+  //
+  // Lv1-2  : Wooden pole + small antenna
+  // Lv3-4  : Lattice mast with dish
+  // Lv5-6  : Tall guyed mast, rotating array
+  // Lv7-8  : Military-grade broadcast tower
+  // Lv9-10 : Global array / quantum antenna
+  // ══════════════════════════════════════════════════════
+  _svgRadioTower(cx, cy, level) {
+    const lv = Math.max(1, level || 1);
+    let parts = [];
+
+    // Ground shadow always
+    parts.push('<ellipse cx="' + cx + '" cy="' + (cy+40) + '" rx="24" ry="5" fill="rgba(0,0,0,0.3)"/>');
+
+    if (lv <= 2) {
+      // Lv1: wooden pole, small dipole antenna
+      // Base mount
+      parts.push('<rect x="' + (cx-8) + '" y="' + (cy+24) + '" width="16" height="16" fill="#4a3a20" rx="2"/>');
+      parts.push('<rect x="' + (cx-6) + '" y="' + (cy+22) + '" width="12" height="4" fill="#5a4a28" rx="1"/>');
+      // Pole
+      parts.push('<rect x="' + (cx-3) + '" y="' + (cy-28) + '" width="6" height="52" fill="#7a6a40" rx="2"/>');
+      // Dipole arms
+      parts.push('<line x1="' + (cx-20) + '" y1="' + (cy-24) + '" x2="' + (cx+20) + '" y2="' + (cy-24) + '" stroke="#aaa" stroke-width="2"/>');
+      parts.push('<line x1="' + (cx-14) + '" y1="' + (cy-18) + '" x2="' + (cx+14) + '" y2="' + (cy-18) + '" stroke="#aaa" stroke-width="1.5"/>');
+      // Lv2: add small dish
+      if (lv >= 2) {
+        parts.push('<ellipse cx="' + (cx+14) + '" cy="' + (cy-10) + '" rx="10" ry="7" fill="none" stroke="#aaa" stroke-width="2"/>');
+        parts.push('<line x1="' + (cx+4) + '" y1="' + (cy-10) + '" x2="' + (cx+14) + '" y2="' + (cy-10) + '" stroke="#888" stroke-width="2"/>');
+        parts.push('<circle cx="' + (cx+6) + '" cy="' + (cy-28) + '" r="3" fill="#ffd600" opacity="0.6" filter="url(#glow-yellow)"/>');
+      }
+    } else if (lv <= 4) {
+      // Lv3-4: lattice mast + dish
+      const h = lv >= 4 ? 72 : 62;
+      // Base legs (triangle lattice)
+      parts.push('<line x1="' + (cx-10) + '" y1="' + (cy+24) + '" x2="' + (cx-4) + '" y2="' + (cy-h+14) + '" stroke="#8a8a8a" stroke-width="3"/>');
+      parts.push('<line x1="' + (cx+10) + '" y1="' + (cy+24) + '" x2="' + (cx+4) + '" y2="' + (cy-h+14) + '" stroke="#8a8a8a" stroke-width="3"/>');
+      // Cross braces
+      const braceCount = 3;
+      for (let i = 0; i < braceCount; i++) {
+        const t = (i + 0.5) / (braceCount + 0.5);
+        const by = cy + 24 - t * (h + 14);
+        const bw = 10 * (1 - t * 0.7);
+        parts.push('<line x1="' + (cx-bw) + '" y1="' + by + '" x2="' + (cx+bw) + '" y2="' + by + '" stroke="#666" stroke-width="1.5"/>');
+      }
+      // Top mast
+      parts.push('<rect x="' + (cx-2) + '" y="' + (cy-h-14) + '" width="4" height="28" fill="#9a9a9a" rx="1"/>');
+      // Dish
+      const dx = cx + (lv >= 4 ? 18 : 14);
+      const dy = cy - h * 0.4;
+      parts.push('<path d="M' + dx + ',' + (dy-10) + ' Q' + (dx+16) + ',' + dy + ' ' + dx + ',' + (dy+10) + '" fill="none" stroke="#c0c0c0" stroke-width="2.5"/>');
+      parts.push('<line x1="' + (cx+4) + '" y1="' + dy + '" x2="' + dx + '" y2="' + dy + '" stroke="#888" stroke-width="2"/>');
+      // Signal LED
+      parts.push('<circle cx="' + cx + '" cy="' + (cy-h-16) + '" r="4" fill="#ff4444" opacity="0.8" filter="url(#glow-yellow)"/>');
+      if (lv >= 4) {
+        // Extra side antenna
+        parts.push('<line x1="' + cx + '" y1="' + (cy-h-14) + '" x2="' + (cx-16) + '" y2="' + (cy-h-28) + '" stroke="#aaa" stroke-width="1.5"/>');
+        parts.push('<circle cx="' + (cx-16) + '" cy="' + (cy-h-28) + '" r="3" fill="#ffd600" opacity="0.7" filter="url(#glow-yellow)"/>');
+      }
+    } else if (lv <= 6) {
+      // Lv5-6: tall guyed mast with rotating array
+      const h = lv >= 6 ? 88 : 76;
+      // Guy wires
+      const guyY = cy + 20;
+      parts.push('<line x1="' + (cx-32) + '" y1="' + guyY + '" x2="' + cx + '" y2="' + (cy-h+10) + '" stroke="#666" stroke-width="1.5" stroke-dasharray="3,2"/>');
+      parts.push('<line x1="' + (cx+32) + '" y1="' + guyY + '" x2="' + cx + '" y2="' + (cy-h+10) + '" stroke="#666" stroke-width="1.5" stroke-dasharray="3,2"/>');
+      // Guy wire anchors
+      parts.push('<rect x="' + (cx-35) + '" y="' + (guyY-2) + '" width="8" height="6" fill="#555" rx="1"/>');
+      parts.push('<rect x="' + (cx+27) + '" y="' + (guyY-2) + '" width="8" height="6" fill="#555" rx="1"/>');
+      // Central tubular mast
+      parts.push('<rect x="' + (cx-4) + '" y="' + (cy-h) + '" width="8" height="' + (h+20) + '" fill="#6a6a7a" rx="3"/>');
+      parts.push('<rect x="' + (cx-3) + '" y="' + (cy-h) + '" width="3" height="' + (h+20) + '" fill="rgba(255,255,255,0.06)" rx="1"/>');
+      // Rotating dish array (2 opposing arms)
+      const armLen = lv >= 6 ? 22 : 18;
+      parts.push('<line x1="' + (cx-armLen) + '" y1="' + (cy-h*0.5) + '" x2="' + (cx+armLen) + '" y2="' + (cy-h*0.5) + '" stroke="#c0c0c0" stroke-width="3"/>');
+      parts.push('<path d="M' + (cx-armLen) + ',' + (cy-h*0.5-8) + ' Q' + (cx-armLen-10) + ',' + (cy-h*0.5) + ' ' + (cx-armLen) + ',' + (cy-h*0.5+8) + '" fill="none" stroke="#ddd" stroke-width="2.5"/>');
+      parts.push('<path d="M' + (cx+armLen) + ',' + (cy-h*0.5+8) + ' Q' + (cx+armLen+10) + ',' + (cy-h*0.5) + ' ' + (cx+armLen) + ',' + (cy-h*0.5-8) + '" fill="none" stroke="#ddd" stroke-width="2.5"/>');
+      // Top spike
+      parts.push('<line x1="' + cx + '" y1="' + (cy-h) + '" x2="' + cx + '" y2="' + (cy-h-18) + '" stroke="#aaa" stroke-width="2"/>');
+      parts.push('<circle cx="' + cx + '" cy="' + (cy-h-20) + '" r="5" fill="#ff4444" opacity="0.9" filter="url(#glow-yellow)"/>');
+      // Signal rings at lv6
+      if (lv >= 6) {
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-h-20) + '" r="10" fill="none" stroke="#ff4444" stroke-width="1.5" opacity="0.4"/>');
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-h-20) + '" r="16" fill="none" stroke="#ff4444" stroke-width="1" opacity="0.2"/>');
+      }
+    } else if (lv <= 8) {
+      // Lv7-8: military-grade broadcast tower
+      const h = lv >= 8 ? 100 : 90;
+      // Wide base structure
+      parts.push('<rect x="' + (cx-14) + '" y="' + (cy+12) + '" width="28" height="20" fill="#3a4a3a" rx="2"/>');
+      parts.push('<rect x="' + (cx-10) + '" y="' + (cy+6) + '" width="20" height="8" fill="#4a5a4a" rx="1"/>');
+      // Main tower legs
+      for (let i = 0; i < 4; i++) {
+        const lx = cx + (i < 2 ? -(i === 0 ? 12 : 6) : (i === 2 ? 6 : 12));
+        const lean = i < 2 ? -(12-i*6) : (i-2)*6;
+        parts.push('<line x1="' + lx + '" y1="' + (cy+12) + '" x2="' + (lx+lean) + '" y2="' + (cy-h+20) + '" stroke="#5a6a5a" stroke-width="3"/>');
+      }
+      // Cross braces (4 levels)
+      for (let i = 0; i < 4; i++) {
+        const by = cy + 12 - (i+1) * h / 5;
+        const bw = 12 - i * 2;
+        parts.push('<line x1="' + (cx-bw) + '" y1="' + by + '" x2="' + (cx+bw) + '" y2="' + by + '" stroke="#5a6a5a" stroke-width="2"/>');
+      }
+      // Central spine
+      parts.push('<rect x="' + (cx-3) + '" y="' + (cy-h+20) + '" width="6" height="' + (h-10) + '" fill="#7a8a7a" rx="2"/>');
+      // Dish array — 2 opposing
+      const dh = cy - h * 0.55;
+      parts.push('<line x1="' + (cx-28) + '" y1="' + dh + '" x2="' + (cx+28) + '" y2="' + dh + '" stroke="#9aaa9a" stroke-width="2.5"/>');
+      parts.push('<path d="M' + (cx-28) + ',' + (dh-12) + ' Q' + (cx-40) + ',' + dh + ' ' + (cx-28) + ',' + (dh+12) + '" fill="none" stroke="#c0d0c0" stroke-width="2.5"/>');
+      parts.push('<path d="M' + (cx+28) + ',' + (dh+12) + ' Q' + (cx+40) + ',' + dh + ' ' + (cx+28) + ',' + (dh-12) + '" fill="none" stroke="#c0d0c0" stroke-width="2.5"/>');
+      // Top antenna bundle
+      parts.push('<line x1="' + cx + '" y1="' + (cy-h+20) + '" x2="' + cx + '" y2="' + (cy-h-10) + '" stroke="#9a9a9a" stroke-width="3"/>');
+      parts.push('<line x1="' + (cx-8) + '" y1="' + (cy-h+20) + '" x2="' + (cx-8) + '" y2="' + (cy-h+4) + '" stroke="#888" stroke-width="2"/>');
+      parts.push('<line x1="' + (cx+8) + '" y1="' + (cy-h+20) + '" x2="' + (cx+8) + '" y2="' + (cy-h+4) + '" stroke="#888" stroke-width="2"/>');
+      // Beacon top
+      parts.push('<circle cx="' + cx + '" cy="' + (cy-h-12) + '" r="6" fill="#ff4444" opacity="0.95" filter="url(#glow-yellow)"/>');
+      // Warning stripes on mast
+      for (let i = 0; i < 3; i++) {
+        const wy = cy - h*0.2 - i*20;
+        parts.push('<rect x="' + (cx-3) + '" y="' + wy + '" width="6" height="5" fill="#ff8800" opacity="0.7"/>');
+      }
+      if (lv >= 8) {
+        // Extra signal rings
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-h-12) + '" r="12" fill="none" stroke="#ff4444" stroke-width="1.5" opacity="0.5"/>');
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-h-12) + '" r="20" fill="none" stroke="#ff4444" stroke-width="1" opacity="0.3"/>');
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-h-12) + '" r="30" fill="none" stroke="#ff4444" stroke-width="1" opacity="0.15"/>');
+      }
+    } else {
+      // Lv9-10: global array / quantum antenna
+      const h = lv >= 10 ? 110 : 100;
+      // Massive base platform
+      parts.push('<rect x="' + (cx-20) + '" y="' + (cy+14) + '" width="40" height="24" fill="#2a3a2a" rx="3"/>');
+      parts.push('<rect x="' + (cx-16) + '" y="' + (cy+10) + '" width="32" height="6" fill="#3a4a3a" rx="2"/>');
+      // 6 outer legs
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2 - Math.PI/6;
+        const lx = cx + Math.cos(ang) * 18;
+        const ly = cy + Math.sin(ang) * 6 + 22;
+        parts.push('<line x1="' + lx + '" y1="' + ly + '" x2="' + (cx + Math.cos(ang) * 4) + '" y2="' + (cy-h+30) + '" stroke="#4a6a4a" stroke-width="2"/>');
+      }
+      // Reinforced central column
+      parts.push('<rect x="' + (cx-5) + '" y="' + (cy-h+30) + '" width="10" height="' + (h-20) + '" fill="#5a7a5a" rx="3"/>');
+      parts.push('<rect x="' + (cx-4) + '" y="' + (cy-h+30) + '" width="4" height="' + (h-20) + '" fill="rgba(255,255,255,0.06)" rx="1"/>');
+      // Cross braces (5 levels)
+      for (let i = 0; i < 5; i++) {
+        const by = cy + 20 - i * (h+10) / 5.5;
+        const bw = 16 - i * 2.5;
+        parts.push('<line x1="' + (cx-bw) + '" y1="' + by + '" x2="' + (cx+bw) + '" y2="' + by + '" stroke="#5a6a5a" stroke-width="2"/>');
+        if (i % 2 === 0) {
+          parts.push('<line x1="' + (cx-bw) + '" y1="' + by + '" x2="' + cx + '" y2="' + (by - (h/5.5)) + '" stroke="#4a5a4a" stroke-width="1.5"/>');
+          parts.push('<line x1="' + (cx+bw) + '" y1="' + by + '" x2="' + cx + '" y2="' + (by - (h/5.5)) + '" stroke="#4a5a4a" stroke-width="1.5"/>');
+        }
+      }
+      // Omnidirectional 4-array dishes
+      const aDist = 32;
+      const aH = cy - h * 0.5;
+      for (let i = 0; i < 4; i++) {
+        const ang = i * Math.PI / 2;
+        const ax = cx + Math.cos(ang) * aDist;
+        const ay = aH + Math.sin(ang) * 8;
+        parts.push('<line x1="' + cx + '" y1="' + aH + '" x2="' + ax + '" y2="' + ay + '" stroke="#8aaa8a" stroke-width="2"/>');
+        parts.push('<ellipse cx="' + ax + '" cy="' + ay + '" rx="9" ry="7" fill="none" stroke="#a0c0a0" stroke-width="2" transform="rotate(' + (ang*180/Math.PI) + ' ' + ax + ' ' + ay + ')"/>');
+      }
+      // Top quantum array
+      parts.push('<line x1="' + cx + '" y1="' + (cy-h+30) + '" x2="' + cx + '" y2="' + (cy-h-14) + '" stroke="#a0c0a0" stroke-width="3"/>');
+      // 3 side spikes at top
+      for (let i = 0; i < 3; i++) {
+        const ang = (i / 3) * Math.PI * 2;
+        parts.push('<line x1="' + cx + '" y1="' + (cy-h+8) + '" x2="' + (cx + Math.cos(ang) * 16) + '" y2="' + (cy-h+8 + Math.sin(ang)*10) + '" stroke="#8aaa8a" stroke-width="1.5"/>');
+        parts.push('<circle cx="' + (cx + Math.cos(ang) * 16) + '" cy="' + (cy-h+8 + Math.sin(ang)*10) + '" r="3" fill="#4caf50" opacity="0.9" filter="url(#glow-yellow)"/>');
+      }
+      // Main beacon
+      parts.push('<circle cx="' + cx + '" cy="' + (cy-h-16) + '" r="7" fill="#ff4444" opacity="1.0" filter="url(#glow-yellow)"/>');
+      // Radiating waves
+      for (let i = 1; i <= 4; i++) {
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-h-16) + '" r="' + (i*12) + '" fill="none" stroke="#4caf50" stroke-width="1" opacity="' + (0.5 - i*0.1) + '"/>');
+      }
+      if (lv >= 10) {
+        // GLOBAL label
+        parts.push('<text x="' + cx + '" y="' + (cy-h-42) + '" font-family="Press Start 2P" font-size="5" fill="#4caf50" text-anchor="middle">GLOBAL</text>');
+        // Extra outer glow
+        parts.push('<ellipse cx="' + cx + '" cy="' + (cy-h*0.4) + '" rx="55" ry="' + (h*0.55) + '" fill="#4caf50" opacity="0.04" filter="url(#glow-yellow)"/>');
+      }
+    }
+
+    const labelCol = lv >= 9 ? '#4caf50' : lv >= 7 ? '#66bb6a' : lv >= 5 ? '#ff8800' : lv >= 3 ? '#aaa' : '#8a8a6a';
+    parts.push('<text x="' + cx + '" y="' + (cy+58) + '" font-family="Press Start 2P" font-size="22" fill="' + labelCol + '" text-anchor="middle">RADIO Lv' + lv + '</text>');
+    return '<g filter="url(#shadow)">' + parts.join('') + '</g>';
+  },
+
+  _svgRadioTowerScreen(lv) {
+    if (!lv || lv === 0) return '<div style="font-size:3rem;text-align:center;padding:16px">📡</div>';
+    const mapSvg = this._svgRadioTower(65, 58, lv);
+    return '<svg width="130" height="116" viewBox="0 0 130 116" style="overflow:visible">' +
+           '<defs>' +
+           '<filter id="s3"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.5)"/></filter>' +
+           '<filter id="gy3"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+           '</defs>' +
+           mapSvg.replace('filter="url(#shadow)"','filter="url(#s3)"')
+                 .replace(/filter="url\(#glow-yellow\)"/g,'filter="url(#gy3)"')
+                 .replace(/font-size="22"/g,'font-size="8"') +
+           '</svg>';
+  },
+
+  // ══════════════════════════════════════════════════════
+  // RAIN COLLECTOR  — 10 level skins
+  // Uses string concat (not template literals) to avoid
+  // JS parser issues with nested template expressions.
+  //
+  // Lv1-2  : Wooden barrel(s) with funnel
+  // Lv3-4  : Barrel row with roof gutter
+  // Lv5-6  : Metal tanks with pump
+  // Lv7-8  : Elevated cistern tower
+  // Lv9-10 : Full pressurised water plant
+  // ══════════════════════════════════════════════════════
+  _svgRainCollector(cx, cy, level) {
+    const lv = Math.max(1, level || 1);
+    let parts = [];
+
+    if (lv <= 2) {
+      // Lv1: single barrel  |  Lv2: two barrels
+      const count = lv;
+      const startX = lv === 1 ? cx : cx - 16;
+      for (let i = 0; i < count; i++) {
+        const bx = startX + i * 32;
+        // shadow
+        parts.push('<ellipse cx="' + bx + '" cy="' + (cy+26) + '" rx="13" ry="4" fill="rgba(0,0,0,0.28)"/>');
+        // barrel body
+        parts.push('<rect x="' + (bx-11) + '" y="' + (cy-8) + '" width="22" height="34" fill="#6a4a1e" rx="3"/>');
+        // hoops
+        parts.push('<rect x="' + (bx-12) + '" y="' + (cy-1) + '" width="24" height="3" fill="#8a6a2e" rx="1"/>');
+        parts.push('<rect x="' + (bx-12) + '" y="' + (cy+12) + '" width="24" height="3" fill="#8a6a2e" rx="1"/>');
+        // water fill
+        parts.push('<rect x="' + (bx-10) + '" y="' + (cy+10) + '" width="20" height="14" fill="#1a5a8a" rx="1" opacity="0.75"/>');
+        // funnel
+        parts.push('<polygon points="' + (bx-7) + ',' + (cy-8) + ' ' + (bx+7) + ',' + (cy-8) + ' ' + (bx+4) + ',' + (cy-20) + ' ' + (bx-4) + ',' + (cy-20) + '" fill="#5a5a5a"/>');
+        parts.push('<rect x="' + (bx-9) + '" y="' + (cy-23) + '" width="18" height="4" fill="#7a7a7a" rx="1"/>');
+      }
+      if (lv === 2) {
+        // connecting pipe between barrels
+        parts.push('<line x1="' + cx + '" y1="' + (cy+8) + '" x2="' + (cx+2) + '" y2="' + (cy+8) + '" stroke="#888" stroke-width="2"/>');
+      }
+    } else if (lv <= 4) {
+      // Lv3-4: barrel row with roof gutter
+      const barrels = lv === 3 ? 2 : 3;
+      // roof gutter
+      parts.push('<rect x="' + (cx-36) + '" y="' + (cy-30) + '" width="72" height="5" fill="#7a7a7a" rx="2"/>');
+      parts.push('<rect x="' + (cx-2) + '" y="' + (cy-30) + '" width="4" height="12" fill="#888" rx="1"/>');
+      const bStart = cx - (barrels - 1) * 22 / 2;
+      for (let i = 0; i < barrels; i++) {
+        const bx = bStart + i * 22;
+        parts.push('<ellipse cx="' + bx + '" cy="' + (cy+24) + '" rx="11" ry="3" fill="rgba(0,0,0,0.22)"/>');
+        parts.push('<rect x="' + (bx-10) + '" y="' + (cy-6) + '" width="20" height="30" fill="#5a3a18" rx="3"/>');
+        parts.push('<rect x="' + (bx-11) + '" y="' + (cy-1) + '" width="22" height="3" fill="#7a5a28" rx="1"/>');
+        parts.push('<rect x="' + (bx-11) + '" y="' + (cy+10) + '" width="22" height="3" fill="#7a5a28" rx="1"/>');
+        parts.push('<rect x="' + (bx-9) + '" y="' + (cy+8) + '" width="18" height="14" fill="#1a5a8a" rx="1" opacity="0.8"/>');
+        // downspout from gutter
+        parts.push('<rect x="' + (bx-2) + '" y="' + (cy-25) + '" width="4" height="20" fill="#888" rx="1"/>');
+      }
+      if (lv === 4) {
+        // metal band reinforcement
+        parts.push('<rect x="' + (cx-36) + '" y="' + (cy-4) + '" width="72" height="3" fill="#aaa" rx="1" opacity="0.6"/>');
+      }
+    } else if (lv <= 6) {
+      // Lv5-6: two metal tanks with pump
+      const tw = lv >= 6 ? 26 : 22;
+      const th = lv >= 6 ? 44 : 38;
+      // left tank
+      parts.push('<ellipse cx="' + (cx-20) + '" cy="' + (cy-th/2+5) + '" rx="' + (tw/2) + '" ry="5" fill="#4a6a8a"/>');
+      parts.push('<rect x="' + (cx-20-tw/2) + '" y="' + (cy-th/2+5) + '" width="' + tw + '" height="' + (th-8) + '" fill="#3a5a7a" rx="3"/>');
+      parts.push('<ellipse cx="' + (cx-20) + '" cy="' + (cy+th/2-3) + '" rx="' + (tw/2) + '" ry="5" fill="#2a4a6a"/>');
+      parts.push('<rect x="' + (cx-20-tw/2+3) + '" y="' + (cy-th/2+9) + '" width="4" height="' + (th-16) + '" fill="rgba(255,255,255,0.07)" rx="2"/>');
+      // right tank
+      parts.push('<ellipse cx="' + (cx+20) + '" cy="' + (cy-th/2+5) + '" rx="' + (tw/2) + '" ry="5" fill="#4a6a8a"/>');
+      parts.push('<rect x="' + (cx+20-tw/2) + '" y="' + (cy-th/2+5) + '" width="' + tw + '" height="' + (th-8) + '" fill="#3a5a7a" rx="3"/>');
+      parts.push('<ellipse cx="' + (cx+20) + '" cy="' + (cy+th/2-3) + '" rx="' + (tw/2) + '" ry="5" fill="#2a4a6a"/>');
+      // connecting pipe
+      parts.push('<line x1="' + (cx-20+tw/2) + '" y1="' + (cy+4) + '" x2="' + (cx+20-tw/2) + '" y2="' + (cy+4) + '" stroke="#888" stroke-width="4"/>');
+      // centre pump
+      parts.push('<rect x="' + (cx-7) + '" y="' + (cy-6) + '" width="14" height="20" fill="#5a5a6a" rx="2"/>');
+      parts.push('<rect x="' + (cx-4) + '" y="' + (cy-16) + '" width="8" height="12" fill="#4a4a5a" rx="2"/>');
+      if (lv >= 6) {
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-18) + '" r="4" fill="#ffd600" opacity="0.7" filter="url(#glow-yellow)"/>');
+      }
+    } else if (lv <= 8) {
+      // Lv7-8: elevated cistern tower
+      const h = lv >= 8 ? 56 : 48;
+      // four legs
+      for (let i = 0; i < 4; i++) {
+        const lx = cx - 22 + i * 14;
+        const lean = (i < 2) ? 3 : -3;
+        parts.push('<line x1="' + lx + '" y1="' + (cy+h/2) + '" x2="' + (lx+lean) + '" y2="' + (cy-h/2+16) + '" stroke="#555" stroke-width="4"/>');
+      }
+      // cross brace
+      parts.push('<line x1="' + (cx-22) + '" y1="' + (cy+4) + '" x2="' + (cx+22) + '" y2="' + (cy+4) + '" stroke="#4a4a5a" stroke-width="2"/>');
+      // cistern
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy-h/2+10) + '" rx="28" ry="8" fill="#3a6a9a"/>');
+      parts.push('<rect x="' + (cx-28) + '" y="' + (cy-h/2+10) + '" width="56" height="' + (h-24) + '" fill="#2a5a8a" rx="2"/>');
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+h/2-14) + '" rx="28" ry="8" fill="#1a4a7a"/>');
+      // water level window
+      parts.push('<rect x="' + (cx-22) + '" y="' + (cy-h/2+h-36) + '" width="44" height="16" fill="#29b6f6" rx="1" opacity="0.45"/>');
+      // overflow pipe
+      parts.push('<rect x="' + (cx+28) + '" y="' + (cy-h/2+18) + '" width="6" height="18" fill="#888" rx="1"/>');
+      if (lv >= 8) {
+        parts.push('<circle cx="' + (cx-28) + '" cy="' + (cy-h/2+20) + '" r="4" fill="#ffd600" opacity="0.6" filter="url(#glow-yellow)"/>');
+      }
+    } else {
+      // Lv9-10: pressurised water plant
+      // main large tank
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy-34) + '" rx="34" ry="10" fill="#2a6a9a"/>');
+      parts.push('<rect x="' + (cx-34) + '" y="' + (cy-34) + '" width="68" height="52" fill="#1a5a8a" rx="3"/>');
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+18) + '" rx="34" ry="10" fill="#1a4a7a"/>');
+      // filter tower left
+      parts.push('<rect x="' + (cx-52) + '" y="' + (cy-22) + '" width="16" height="30" fill="#3a5a7a" rx="2"/>');
+      parts.push('<ellipse cx="' + (cx-44) + '" cy="' + (cy-22) + '" rx="8" ry="5" fill="#4a6a8a"/>');
+      // pressure gauge right
+      parts.push('<circle cx="' + (cx+42) + '" cy="' + (cy-18) + '" r="8" fill="#3a4a5a" stroke="#aaa" stroke-width="2"/>');
+      parts.push('<line x1="' + (cx+42) + '" y1="' + (cy-18) + '" x2="' + (cx+45) + '" y2="' + (cy-25) + '" stroke="#ffd600" stroke-width="2"/>');
+      // pipes at bottom
+      parts.push('<line x1="' + (cx-28) + '" y1="' + (cy+6) + '" x2="' + (cx-28) + '" y2="' + (cy+26) + '" stroke="#888" stroke-width="4"/>');
+      parts.push('<line x1="' + (cx+28) + '" y1="' + (cy+6) + '" x2="' + (cx+28) + '" y2="' + (cy+26) + '" stroke="#888" stroke-width="4"/>');
+      parts.push('<line x1="' + (cx-28) + '" y1="' + (cy+26) + '" x2="' + (cx+28) + '" y2="' + (cy+26) + '" stroke="#888" stroke-width="4"/>');
+      // water glow
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy-10) + '" rx="30" ry="20" fill="#29b6f6" opacity="0.1" filter="url(#glow-blue)"/>');
+      if (lv >= 10) {
+        parts.push('<circle cx="' + cx + '" cy="' + (cy-48) + '" r="6" fill="#29b6f6" opacity="0.8" filter="url(#glow-blue)"/>');
+      }
+    }
+
+    // ground shadow
+    parts.push('<ellipse cx="' + cx + '" cy="' + (cy+30) + '" rx="36" ry="6" fill="rgba(0,0,0,0.25)"/>');
+    const labelCol = lv >= 9 ? '#29b6f6' : lv >= 5 ? '#4a9abf' : '#6ab0d0';
+    parts.push('<text x="' + cx + '" y="' + (cy+50) + '" font-family="Press Start 2P" font-size="22" fill="' + labelCol + '" text-anchor="middle">RAIN Lv' + lv + '</text>');
+    return '<g filter="url(#shadow)">' + parts.join('') + '</g>';
+  },
+
+  // Small version used in building info screen
+  _svgRainCollectorScreen(lv) {
+    if (!lv || lv === 0) return '<div style="font-size:3rem;text-align:center;padding:16px">🌧️</div>';
+    // Build a scaled-down standalone SVG by calling the map function at a small scale
+    const mapSvg = this._svgRainCollector(60, 52, lv);
+    return '<svg width="120" height="100" viewBox="0 0 120 100" style="overflow:visible">' +
+           '<defs><filter id="s2"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.5)"/></filter>' +
+           '<filter id="gb2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+           mapSvg.replace('filter="url(#shadow)"', 'filter="url(#s2)"')
+                 .replace('filter="url(#glow-blue)"', 'filter="url(#gb2)"')
+                 .replace('filter="url(#glow-yellow)"', '')
+                 .replace(/font-size="22"/g, 'font-size="8"') +
+           '</svg>';
+  },
+
+  // ══════════════════════════════════════════════════════
+  // SOLAR STATION  — 10 level skins
+  //
+  // Lv1-2  : Single/double panel on post
+  // Lv3-4  : 4-panel array on frame
+  // Lv5-6  : Wide tracking array (8 panels)
+  // Lv7-8  : Tilt-mounted grid (4x3 panels)
+  // Lv9-10 : Full concentrator / micro station
+  // ══════════════════════════════════════════════════════
+  _svgSolarStation(cx, cy, level) {
+    const lv = Math.max(1, level || 1);
+    let parts = [];
+    const panelDark = '#1a3a6a';
+    const panelMid  = '#1e4070';
+    const sunYellow = '#ffd600';
+
+    if (lv <= 2) {
+      // single tilted panel on a pole
+      // pole
+      parts.push('<rect x="' + (cx-3) + '" y="' + (cy-2) + '" width="6" height="28" fill="#666" rx="2"/>');
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+28) + '" rx="7" ry="2.5" fill="rgba(0,0,0,0.3)"/>');
+      // panel (tilted via rotate transform)
+      parts.push('<g transform="rotate(-18 ' + cx + ' ' + cy + ')">');
+      parts.push('<rect x="' + (cx-15) + '" y="' + (cy-26) + '" width="30" height="22" fill="' + panelDark + '" rx="2"/>');
+      // grid lines
+      parts.push('<line x1="' + (cx-5) + '" y1="' + (cy-26) + '" x2="' + (cx-5) + '" y2="' + (cy-4) + '" stroke="#0d1a30" stroke-width="1"/>');
+      parts.push('<line x1="' + (cx+5) + '" y1="' + (cy-26) + '" x2="' + (cx+5) + '" y2="' + (cy-4) + '" stroke="#0d1a30" stroke-width="1"/>');
+      parts.push('<line x1="' + (cx-15) + '" y1="' + (cy-15) + '" x2="' + (cx+15) + '" y2="' + (cy-15) + '" stroke="#0d1a30" stroke-width="1"/>');
+      // reflective sheen
+      parts.push('<rect x="' + (cx-14) + '" y="' + (cy-25) + '" width="4" height="20" fill="rgba(255,255,255,0.08)" rx="1"/>');
+      parts.push('</g>');
+      if (lv >= 2) {
+        parts.push('<circle cx="' + (cx+14) + '" cy="' + (cy-28) + '" r="5" fill="' + sunYellow + '" opacity="0.7" filter="url(#glow-yellow)"/>');
+      }
+    } else if (lv <= 4) {
+      // Lv3: 4 panels  |  Lv4: 4 panels + tracker motor
+      const pCount = 4;
+      const pW = 16, pH = 22, pGap = 4;
+      const totalW = pCount * (pW + pGap) - pGap;
+      const px0 = cx - totalW / 2;
+      // frame bar
+      parts.push('<rect x="' + (px0-4) + '" y="' + (cy-2) + '" width="' + (totalW+8) + '" height="5" fill="#555" rx="2"/>');
+      // support legs
+      parts.push('<line x1="' + (px0+8) + '" y1="' + (cy+3) + '" x2="' + (px0-2) + '" y2="' + (cy+26) + '" stroke="#555" stroke-width="3"/>');
+      parts.push('<line x1="' + (px0+totalW-8) + '" y1="' + (cy+3) + '" x2="' + (px0+totalW+2) + '" y2="' + (cy+26) + '" stroke="#555" stroke-width="3"/>');
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+28) + '" rx="' + (totalW/2+4) + '" ry="4" fill="rgba(0,0,0,0.25)"/>');
+      for (let i = 0; i < pCount; i++) {
+        const bx = px0 + i * (pW + pGap);
+        parts.push('<rect x="' + bx + '" y="' + (cy-22) + '" width="' + pW + '" height="' + pH + '" fill="' + panelMid + '" rx="1"/>');
+        parts.push('<line x1="' + (bx+pW/2) + '" y1="' + (cy-22) + '" x2="' + (bx+pW/2) + '" y2="' + (cy-22+pH) + '" stroke="#0d1a30" stroke-width="0.8"/>');
+        parts.push('<line x1="' + bx + '" y1="' + (cy-22+pH/2) + '" x2="' + (bx+pW) + '" y2="' + (cy-22+pH/2) + '" stroke="#0d1a30" stroke-width="0.8"/>');
+      }
+      if (lv >= 4) {
+        // tracker motor box
+        parts.push('<rect x="' + (cx-8) + '" y="' + (cy+2) + '" width="16" height="10" fill="#444" rx="2"/>');
+        parts.push('<circle cx="' + cx + '" cy="' + (cy+7) + '" r="3" fill="#666"/>');
+        parts.push('<circle cx="' + (cx+totalW/2+8) + '" cy="' + (cy-14) + '" r="6" fill="' + sunYellow + '" opacity="0.85" filter="url(#glow-yellow)"/>');
+      }
+    } else if (lv <= 6) {
+      // Lv5-6: wide tracking array (8 panels, 2 rows)
+      const cols = 4, rows = 2;
+      const pW = 14, pH = 10, pgX = 3, pgY = 4;
+      const totalW = cols * (pW + pgX) - pgX;
+      const totalH = rows * (pH + pgY) - pgY;
+      const startX = cx - totalW / 2;
+      const startY = cy - totalH / 2 - 8;
+      // frame
+      parts.push('<rect x="' + (startX-5) + '" y="' + (startY-4) + '" width="' + (totalW+10) + '" height="' + (totalH+8) + '" fill="#3a3a4a" rx="3" opacity="0.5"/>');
+      // support posts
+      parts.push('<line x1="' + (startX+8) + '" y1="' + (startY+totalH+4) + '" x2="' + (startX-4) + '" y2="' + (cy+28) + '" stroke="#555" stroke-width="4"/>');
+      parts.push('<line x1="' + (startX+totalW-8) + '" y1="' + (startY+totalH+4) + '" x2="' + (startX+totalW+4) + '" y2="' + (cy+28) + '" stroke="#555" stroke-width="4"/>');
+      parts.push('<line x1="' + (startX-4) + '" y1="' + (cy+28) + '" x2="' + (startX+totalW+4) + '" y2="' + (cy+28) + '" stroke="#555" stroke-width="3"/>');
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+30) + '" rx="' + (totalW/2+8) + '" ry="4" fill="rgba(0,0,0,0.25)"/>');
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const bx = startX + c * (pW + pgX);
+          const by = startY + r * (pH + pgY);
+          parts.push('<rect x="' + bx + '" y="' + by + '" width="' + pW + '" height="' + pH + '" fill="' + panelDark + '" rx="1"/>');
+          parts.push('<line x1="' + (bx+pW/2) + '" y1="' + by + '" x2="' + (bx+pW/2) + '" y2="' + (by+pH) + '" stroke="#0d1a30" stroke-width="0.6"/>');
+          parts.push('<line x1="' + bx + '" y1="' + (by+pH/2) + '" x2="' + (bx+pW) + '" y2="' + (by+pH/2) + '" stroke="#0d1a30" stroke-width="0.6"/>');
+        }
+      }
+      // glow at lv6
+      if (lv >= 6) {
+        parts.push('<ellipse cx="' + cx + '" cy="' + (startY+totalH/2) + '" rx="' + (totalW/2) + '" ry="' + (totalH/2) + '" fill="' + sunYellow + '" opacity="0.07" filter="url(#glow-yellow)"/>');
+        parts.push('<circle cx="' + (startX+totalW+16) + '" cy="' + (startY-10) + '" r="7" fill="' + sunYellow + '" opacity="0.9" filter="url(#glow-yellow)"/>');
+      }
+    } else if (lv <= 8) {
+      // Lv7-8: large tilt-mounted grid (5 cols x 3 rows)
+      const cols = lv >= 8 ? 5 : 4;
+      const rows = 3;
+      const pW = 13, pH = 9, pgX = 3, pgY = 3;
+      const totalW = cols * (pW + pgX) - pgX;
+      const totalH = rows * (pH + pgY) - pgY;
+      const startX = cx - totalW / 2;
+      const startY = cy - totalH / 2 - 6;
+      // angled support structure
+      parts.push('<line x1="' + (startX-6) + '" y1="' + (startY+totalH+4) + '" x2="' + (startX+8) + '" y2="' + (cy+28) + '" stroke="#555" stroke-width="4"/>');
+      parts.push('<line x1="' + (startX+totalW+6) + '" y1="' + (startY+totalH+4) + '" x2="' + (startX+totalW-8) + '" y2="' + (cy+28) + '" stroke="#555" stroke-width="4"/>');
+      parts.push('<line x1="' + (startX+8) + '" y1="' + (cy+28) + '" x2="' + (startX+totalW-8) + '" y2="' + (cy+28) + '" stroke="#555" stroke-width="4"/>');
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+30) + '" rx="' + (totalW/2+6) + '" ry="5" fill="rgba(0,0,0,0.25)"/>');
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const bx = startX + c * (pW + pgX);
+          const by = startY + r * (pH + pgY);
+          parts.push('<rect x="' + bx + '" y="' + by + '" width="' + pW + '" height="' + pH + '" fill="' + panelDark + '" rx="1"/>');
+          parts.push('<line x1="' + (bx+pW/2) + '" y1="' + by + '" x2="' + (bx+pW/2) + '" y2="' + (by+pH) + '" stroke="#0d1a30" stroke-width="0.5"/>');
+          parts.push('<line x1="' + bx + '" y1="' + (by+pH/2) + '" x2="' + (bx+pW) + '" y2="' + (by+pH/2) + '" stroke="#0d1a30" stroke-width="0.5"/>');
+        }
+      }
+      parts.push('<circle cx="' + (startX+totalW+14) + '" cy="' + (startY-12) + '" r="8" fill="' + sunYellow + '" filter="url(#glow-yellow)"/>');
+      if (lv >= 8) {
+        parts.push('<ellipse cx="' + cx + '" cy="' + (startY+totalH/2) + '" rx="' + (totalW/2+4) + '" ry="' + (totalH/2+4) + '" fill="' + sunYellow + '" opacity="0.06" filter="url(#glow-yellow)"/>');
+      }
+    } else {
+      // Lv9-10: full solar concentrator / micro power station
+      // parabolic dish
+      parts.push('<path d="M' + (cx-44) + ',' + (cy+14) + ' Q' + cx + ',' + (cy-42) + ' ' + (cx+44) + ',' + (cy+14) + '" fill="none" stroke="#2a5a8a" stroke-width="4"/>');
+      // dish fill sections
+      parts.push('<path d="M' + (cx-44) + ',' + (cy+14) + ' Q' + (cx-22) + ',' + (cy-14) + ' ' + cx + ',' + (cy-28) + ' L' + cx + ',' + (cy+14) + ' Z" fill="#1a3a5a" opacity="0.9"/>');
+      parts.push('<path d="M' + cx + ',' + (cy+14) + ' L' + cx + ',' + (cy-28) + ' Q' + (cx+22) + ',' + (cy-14) + ' ' + (cx+44) + ',' + (cy+14) + ' Z" fill="#1e4468" opacity="0.9"/>');
+      // focal receiver
+      parts.push('<line x1="' + cx + '" y1="' + (cy-28) + '" x2="' + cx + '" y2="' + (cy-10) + '" stroke="#888" stroke-width="2"/>');
+      parts.push('<circle cx="' + cx + '" cy="' + (cy-28) + '" r="7" fill="' + sunYellow + '" filter="url(#glow-yellow)"/>');
+      parts.push('<circle cx="' + cx + '" cy="' + (cy-28) + '" r="3" fill="#fff" opacity="0.9"/>');
+      // side panel arrays
+      parts.push('<rect x="' + (cx-66) + '" y="' + (cy-14) + '" width="18" height="24" fill="' + panelDark + '" rx="2"/>');
+      parts.push('<line x1="' + (cx-57) + '" y1="' + (cy-14) + '" x2="' + (cx-57) + '" y2="' + (cy+10) + '" stroke="#0d1a30" stroke-width="1"/>');
+      parts.push('<line x1="' + (cx-66) + '" y1="' + (cy-2) + '" x2="' + (cx-48) + '" y2="' + (cy-2) + '" stroke="#0d1a30" stroke-width="1"/>');
+      parts.push('<rect x="' + (cx+48) + '" y="' + (cy-14) + '" width="18" height="24" fill="' + panelDark + '" rx="2"/>');
+      parts.push('<line x1="' + (cx+57) + '" y1="' + (cy-14) + '" x2="' + (cx+57) + '" y2="' + (cy+10) + '" stroke="#0d1a30" stroke-width="1"/>');
+      parts.push('<line x1="' + (cx+48) + '" y1="' + (cy-2) + '" x2="' + (cx+66) + '" y2="' + (cy-2) + '" stroke="#0d1a30" stroke-width="1"/>');
+      // base control unit
+      parts.push('<rect x="' + (cx-10) + '" y="' + (cy+10) + '" width="20" height="18" fill="#2a3a4a" rx="2"/>');
+      parts.push('<circle cx="' + cx + '" cy="' + (cy+14) + '" r="4" fill="' + sunYellow + '" opacity="0.75" filter="url(#glow-yellow)"/>');
+      // ground shadow + field glow
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+30) + '" rx="50" ry="8" fill="rgba(0,0,0,0.28)"/>');
+      if (lv >= 10) {
+        parts.push('<ellipse cx="' + cx + '" cy="' + (cy-10) + '" rx="56" ry="38" fill="' + sunYellow + '" opacity="0.06" filter="url(#glow-yellow)"/>');
+        parts.push('<text x="' + cx + '" y="' + (cy-52) + '" font-family="Press Start 2P" font-size="5" fill="' + sunYellow + '" text-anchor="middle">MICRO STATION</text>');
+      }
+    }
+
+    // ground shadow
+    if (lv < 9) {
+      parts.push('<ellipse cx="' + cx + '" cy="' + (cy+30) + '" rx="38" ry="6" fill="rgba(0,0,0,0.25)"/>');
+    }
+    const labelCol = lv >= 9 ? '#ffd600' : lv >= 5 ? '#ffb300' : '#ffa000';
+    parts.push('<text x="' + cx + '" y="' + (cy+50) + '" font-family="Press Start 2P" font-size="22" fill="' + labelCol + '" text-anchor="middle">SOLAR Lv' + lv + '</text>');
+    return '<g filter="url(#shadow)">' + parts.join('') + '</g>';
+  },
+
+  // Small version for building info screen
+  _svgSolarStationScreen(lv) {
+    if (!lv || lv === 0) return '<div style="font-size:3rem;text-align:center;padding:16px">☀️</div>';
+    const mapSvg = this._svgSolarStation(60, 50, lv);
+    return '<svg width="120" height="100" viewBox="0 0 120 100" style="overflow:visible">' +
+           '<defs><filter id="s2"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.5)"/></filter>' +
+           '<filter id="gy2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+           mapSvg.replace('filter="url(#shadow)"', 'filter="url(#s2)"')
+                 .replace(/filter="url\(#glow-yellow\)"/g, 'filter="url(#gy2)"')
+                 .replace(/font-size="22"/g, 'font-size="8"') +
+           '</svg>';
   }
+
 };
 
 // ── PATCH: Power buildings support ────────
