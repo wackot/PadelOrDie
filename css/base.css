@@ -10,23 +10,31 @@
   justify-content: stretch;
 }
 
-/* Scroll container — full viewport minus HUD */
+/* Pan/zoom container — overflow hidden, JS handles transform */
 .base-world {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: scroll;
-  overflow-x: scroll;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  overflow: hidden;
+  touch-action: none;   /* we handle all touch ourselves */
+  cursor: grab;
+  user-select: none;
+}
+.base-world:active { cursor: grabbing; }
+
+/* The world layer — JS sets transform: translate+scale on this */
+#base-world-inner {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1000px;
+  height: 1000px;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
-/* The actual world canvas — fixed large size */
 #base-canvas {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   width: 1000px;
   height: 1000px;
   display: block;
@@ -34,8 +42,7 @@
 
 #base-svg {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   width: 1000px;
   height: 1000px;
   overflow: visible;

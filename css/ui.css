@@ -170,3 +170,32 @@
   border-color: var(--col-yellow);
   color: var(--col-yellow);
 }
+
+/* ── Map zoom buttons (base + world map) ── */
+.map-zoom-controls {
+  position: fixed;
+  bottom: 24px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 100;
+}
+
+.map-zoom-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 1.4rem;
+  font-family: var(--font-mono);
+  background: rgba(13,13,13,0.88);
+  border: 2px solid var(--col-border-hi);
+  color: var(--col-yellow);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  user-select: none;
+}
+.map-zoom-btn:active { background: var(--col-surface); }
