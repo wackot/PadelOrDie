@@ -594,3 +594,201 @@
 .level-pip {
   min-width: 8px;
 }
+
+/* ═══════════════════════════════════════
+   BUILDING GRID + MODAL (new upgrade UI)
+═══════════════════════════════════════ */
+
+/* Building selector grid */
+.bld-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px;
+}
+
+.bld-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  background: var(--col-panel);
+  border: 2px solid var(--col-border);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  touch-action: manipulation;
+  min-height: 90px;
+}
+.bld-tile:active        { background: var(--col-surface); }
+.bld-tile:not(.bld-locked):hover { border-color: var(--col-border-hi); }
+.bld-tile.bld-locked    { opacity: 0.38; cursor: not-allowed; }
+.bld-tile.bld-maxed     { border-color: var(--col-green-dim); }
+.bld-tile.bld-new       { border-color: rgba(76,175,80,0.7); animation: newUnlockPulse 2s ease 3; }
+
+.bld-tile-icon  { font-size: 2rem; line-height: 1; }
+.bld-tile-name  { font-family: var(--font-pixel); font-size: clamp(0.22rem,0.8vw,0.34rem); color: var(--col-text-dim); text-align: center; }
+.bld-tile-lv    { font-family: var(--font-mono); font-size: 0.78rem; color: var(--col-yellow); }
+
+/* Status dots on tiles */
+.bld-dot {
+  position: absolute;
+  top: 4px; right: 4px;
+  font-family: var(--font-pixel);
+  font-size: clamp(0.18rem, 0.65vw, 0.28rem);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+.bld-dot-locked { color: #666; }
+.bld-dot-max    { background: var(--col-green-dim); color: var(--col-green); }
+.bld-dot-new    { background: #4caf50; color: #000; }
+.bld-dot-ready  { background: var(--col-yellow); color: #000; }
+
+/* Backdrop */
+.bld-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 300;
+}
+
+/* Modal window */
+.bld-modal {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  max-height: 70vh;
+  background: var(--col-panel);
+  border-top: 3px solid var(--col-border-hi);
+  z-index: 301;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideUp 0.18s ease;
+}
+@keyframes modalSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.bld-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 2px solid var(--col-border);
+  flex-shrink: 0;
+}
+.bld-modal-icon  { font-size: 2.2rem; flex-shrink: 0; }
+.bld-modal-title-block { flex: 1; min-width: 0; }
+.bld-modal-name  { font-family: var(--font-pixel); font-size: clamp(0.38rem,1.4vw,0.6rem); color: var(--col-yellow); display: block; }
+.bld-modal-sublv { font-family: var(--font-mono); font-size: 0.9rem; color: var(--col-text-dim); }
+.bld-modal-close {
+  font-size: 1.3rem; background: none; border: none;
+  color: var(--col-text-dim); cursor: pointer; padding: 4px 8px;
+  flex-shrink: 0;
+}
+.bld-modal-close:active { color: var(--col-red); }
+
+.bld-modal-pips {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--col-border);
+  flex-shrink: 0;
+}
+
+/* Scrollable section (cost + level list) */
+.bld-modal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Cost box */
+.bld-modal-cost {
+  background: var(--col-surface);
+  border: 1px solid var(--col-border);
+  padding: 8px 10px;
+  border-radius: 2px;
+}
+.bld-modal-cost.locked { color: #666; font-family: var(--font-mono); }
+.bld-modal-cost.maxed  { color: var(--col-green); font-family: var(--font-mono); }
+.bld-modal-cost.ok     { color: var(--col-green); font-family: var(--font-mono); }
+.bld-cost-header { font-family: var(--font-pixel); font-size: clamp(0.22rem,0.8vw,0.32rem); color: var(--col-text-dim); margin-bottom: 6px; }
+.bld-cost-row {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 0.9rem;
+  padding: 2px 0;
+}
+.bld-cost-row.ok   { color: var(--col-green); }
+.bld-cost-row.short{ color: var(--col-red); }
+
+/* Level list */
+.bld-lv-list { display: flex; flex-direction: column; gap: 4px; }
+.bld-lv-row {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 5px 8px;
+  background: var(--col-surface);
+  border-left: 3px solid var(--col-border);
+  font-family: var(--font-mono); font-size: 0.85rem;
+  color: var(--col-text-dim);
+}
+.bld-lv-row.done    { border-color: var(--col-green-dim); color: #555; }
+.bld-lv-row.current { border-color: var(--col-yellow); color: var(--col-text); background: rgba(255,214,0,0.05); }
+.bld-lv-num { font-family: var(--font-pixel); font-size: clamp(0.2rem,0.7vw,0.3rem); color: var(--col-text-dim); flex-shrink: 0; min-width: 16px; margin-top: 2px; }
+.bld-lv-row.done .bld-lv-num    { color: var(--col-green); }
+.bld-lv-row.current .bld-lv-num { color: var(--col-yellow); }
+
+/* Upgrade button at bottom of modal */
+.bld-modal-btn {
+  width: 100%;
+  border-radius: 0;
+  padding: 14px;
+  font-size: clamp(0.38rem,1.4vw,0.55rem);
+  flex-shrink: 0;
+}
+
+/* ── Build timer / construction progress ── */
+.bld-build-progress {
+  background: rgba(255,214,0,0.06);
+  border: 1px solid rgba(255,214,0,0.3);
+  padding: 10px 12px;
+  border-radius: 2px;
+}
+.bld-build-header {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--col-yellow);
+  margin-bottom: 8px;
+}
+.bld-build-bar-wrap {
+  height: 10px;
+  background: var(--col-surface);
+  border: 1px solid var(--col-border);
+  overflow: hidden;
+}
+.bld-build-bar {
+  height: 100%;
+  background: var(--col-yellow);
+  transition: width 0.8s linear;
+  box-shadow: 0 0 6px rgba(255,214,0,0.5);
+}
+.bld-build-time {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--col-text-dim);
+  margin-top: 6px;
+  padding: 4px 0;
+}
+.btn-upgrade.building {
+  background: rgba(255,214,0,0.15);
+  color: var(--col-yellow);
+  border: 2px solid rgba(255,214,0,0.4);
+  animation: buildPulse 1s ease-in-out infinite;
+}
+@keyframes buildPulse {
+  0%,100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
