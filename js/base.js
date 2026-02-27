@@ -31,18 +31,132 @@ const Base = {
     window.addEventListener('resize', () => this._renderBase());
   },
 
+  // ── Pan/zoom state ────────────────────────
+  _panX: 0, _panY: 0, _zoom: 1,
+
   // ── Main render: canvas + SVG overlay ─────
   _renderBase() {
     this._drawCanvas();
     this._buildSVG();
-    // Scroll to centre of the 1000×1000 world on first load
-    const world = document.getElementById('base-world');
-    if (world) {
-      const vw = world.clientWidth  || window.innerWidth;
-      const vh = world.clientHeight || window.innerHeight;
-      world.scrollLeft = (1000 - vw) / 2;
-      world.scrollTop  = (1000 - vh) / 2;
-    }
+    this._initPanZoom();
+  },
+
+  // ── Centre map and bind pan/zoom gestures ─
+  _initPanZoom() {
+    const world  = document.getElementById('base-world');
+    const inner  = document.getElementById('base-world-inner');
+    if (!world || !inner) return;
+
+    const WORLD_W = 1000, WORLD_H = 1000;
+
+    // Fit world to viewport on first load
+    const vw = world.clientWidth  || window.innerWidth;
+    const vh = world.clientHeight || (window.innerHeight - 52);
+    const fitScale = Math.min(vw / WORLD_W, vh / WORLD_H) * 0.92;
+    this._zoom = fitScale;
+    this._panX = (vw - WORLD_W * fitScale) / 2;
+    this._panY = (vh - WORLD_H * fitScale) / 2;
+    this._applyTransform(inner);
+
+    // ── Pointer events (works for mouse + touch) ──
+    let ptrs = {};          // active pointers
+    let lastPinchDist = 0;
+    let panStart = null;    // { panX, panY, midX, midY }
+
+    const getPinchDist = () => {
+      const pts = Object.values(ptrs);
+      if (pts.length < 2) return 0;
+      const dx = pts[0].x - pts[1].x, dy = pts[0].y - pts[1].y;
+      return Math.sqrt(dx*dx + dy*dy);
+    };
+    const getMidpoint = () => {
+      const pts = Object.values(ptrs);
+      if (pts.length < 2) return { x: pts[0].x, y: pts[0].y };
+      return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+    };
+
+    world.addEventListener('pointerdown', e => {
+      world.setPointerCapture(e.pointerId);
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      const mid = getMidpoint();
+      panStart = { panX: this._panX, panY: this._panY, midX: mid.x, midY: mid.y };
+      lastPinchDist = getPinchDist();
+      e.preventDefault();
+    }, { passive: false });
+
+    world.addEventListener('pointermove', e => {
+      if (!ptrs[e.pointerId]) return;
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+
+      if (Object.keys(ptrs).length === 2) {
+        // Pinch zoom
+        const dist = getPinchDist();
+        if (lastPinchDist > 0) {
+          const ratio    = dist / lastPinchDist;
+          const mid      = getMidpoint();
+          const newZoom  = Utils.clamp(this._zoom * ratio, 0.25, 3.0);
+          // Zoom towards pinch midpoint
+          this._panX = mid.x - (mid.x - this._panX) * (newZoom / this._zoom);
+          this._panY = mid.y - (mid.y - this._panY) * (newZoom / this._zoom);
+          this._zoom = newZoom;
+        }
+        lastPinchDist = dist;
+      } else if (panStart) {
+        // Single-finger pan
+        const mid = getMidpoint();
+        this._panX = panStart.panX + (mid.x - panStart.midX);
+        this._panY = panStart.panY + (mid.y - panStart.midY);
+      }
+      this._applyTransform(inner);
+      e.preventDefault();
+    }, { passive: false });
+
+    const endPtr = e => {
+      delete ptrs[e.pointerId];
+      const mid = getMidpoint();
+      panStart = { panX: this._panX, panY: this._panY, midX: mid.x, midY: mid.y };
+      lastPinchDist = getPinchDist();
+    };
+    world.addEventListener('pointerup',     endPtr);
+    world.addEventListener('pointercancel', endPtr);
+
+    // Mouse wheel zoom
+    world.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor  = e.deltaY > 0 ? 0.88 : 1.14;
+      const newZoom = Utils.clamp(this._zoom * factor, 0.25, 3.0);
+      // Zoom towards cursor
+      this._panX = e.offsetX - (e.offsetX - this._panX) * (newZoom / this._zoom);
+      this._panY = e.offsetY - (e.offsetY - this._panY) * (newZoom / this._zoom);
+      this._zoom = newZoom;
+      this._applyTransform(inner);
+    }, { passive: false });
+    // Zoom buttons
+    const zoomBy = factor => {
+      const vw2 = world.clientWidth  || window.innerWidth;
+      const vh2 = world.clientHeight || (window.innerHeight - 52);
+      const cx  = vw2 / 2, cy = vh2 / 2;
+      const newZoom = Utils.clamp(this._zoom * factor, 0.25, 3.0);
+      this._panX = cx - (cx - this._panX) * (newZoom / this._zoom);
+      this._panY = cy - (cy - this._panY) * (newZoom / this._zoom);
+      this._zoom = newZoom;
+      this._applyTransform(inner);
+    };
+    document.getElementById('base-zoom-in') ?.addEventListener('click', () => zoomBy(1.3));
+    document.getElementById('base-zoom-out')?.addEventListener('click', () => zoomBy(0.77));
+    document.getElementById('base-zoom-fit')?.addEventListener('click', () => {
+      const vw3 = world.clientWidth  || window.innerWidth;
+      const vh3 = world.clientHeight || (window.innerHeight - 52);
+      const fs  = Math.min(vw3 / WORLD_W, vh3 / WORLD_H) * 0.92;
+      this._zoom = fs;
+      this._panX = (vw3 - WORLD_W * fs) / 2;
+      this._panY = (vh3 - WORLD_H * fs) / 2;
+      this._applyTransform(inner);
+    });
+  },
+
+  _applyTransform(inner) {
+    if (inner) inner.style.transform = `translate(${this._panX}px, ${this._panY}px) scale(${this._zoom})`;
   },
 
   // ── Tiled grass + dirt paths on canvas ────

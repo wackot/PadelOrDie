@@ -264,6 +264,11 @@ const WorldMap = {
           <span class="wm-title">🗺 WORLD MAP</span>
           <div class="wm-header-right">
             <span class="wm-coords" id="wm-coords">📍 BASE</span>
+            <div class="map-zoom-controls" style="position:static;flex-direction:row;gap:4px;">
+              <button class="map-zoom-btn" id="wm-zoom-in">＋</button>
+              <button class="map-zoom-btn" id="wm-zoom-fit">⊡</button>
+              <button class="map-zoom-btn" id="wm-zoom-out">－</button>
+            </div>
             <button class="btn-pixel btn-secondary" id="btn-back-from-map" style="padding:6px 12px">← BASE</button>
           </div>
         </div>
@@ -288,6 +293,19 @@ const WorldMap = {
         this._roadEncounterActive = false;
         Game.goTo('base');
       });
+
+    // World map zoom buttons
+    document.getElementById('wm-zoom-in') ?.addEventListener('click', () => {
+      this._scale = Utils.clamp(this._scale * 1.3, 0.05, 0.50);
+      this._centreOnPlayer(); this._drawMap();
+    });
+    document.getElementById('wm-zoom-out')?.addEventListener('click', () => {
+      this._scale = Utils.clamp(this._scale * 0.77, 0.05, 0.50);
+      this._centreOnPlayer(); this._drawMap();
+    });
+    document.getElementById('wm-zoom-fit')?.addEventListener('click', () => {
+      this._scale = 0.18; this._centreOnPlayer(); this._drawMap();
+    });
 
     this._setupCanvas();
     this._drawMap();
@@ -591,84 +609,105 @@ const WorldMap = {
     const canvas = this._canvas;
     if (!canvas) return;
 
-    let lastPinchDist = null;
-    let isDragging = false, dragStartX = 0, dragStartY = 0, viewStartX = 0, viewStartY = 0;
+    let ptrs = {};
+    let lastPinchDist = 0;
+    let panStart = null;
+    let tapStart = 0, tapX = 0, tapY = 0;
 
-    // Pinch zoom
-    canvas.addEventListener('touchmove', e => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (lastPinchDist) {
-          const delta = dist / lastPinchDist;
-          this._scale = Utils.clamp(this._scale * delta, 0.06, 0.40);
-          this._centreOnPlayer();
+    const getPinchDist = () => {
+      const pts = Object.values(ptrs);
+      if (pts.length < 2) return 0;
+      const dx = pts[0].x - pts[1].x, dy = pts[0].y - pts[1].y;
+      return Math.sqrt(dx*dx + dy*dy);
+    };
+    const getMid = () => {
+      const pts = Object.values(ptrs);
+      return pts.length < 2
+        ? { x: pts[0].x, y: pts[0].y }
+        : { x: (pts[0].x+pts[1].x)/2, y: (pts[0].y+pts[1].y)/2 };
+    };
+
+    canvas.addEventListener('pointerdown', e => {
+      canvas.setPointerCapture(e.pointerId);
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      const mid = getMid();
+      panStart = { vx: this._viewX, vy: this._viewY, mx: mid.x, my: mid.y };
+      lastPinchDist = getPinchDist();
+      if (Object.keys(ptrs).length === 1) {
+        tapStart = Date.now(); tapX = e.clientX; tapY = e.clientY;
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!ptrs[e.pointerId]) return;
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+
+      if (Object.keys(ptrs).length === 2) {
+        // Pinch zoom — zoom towards pinch midpoint
+        const dist = getPinchDist();
+        if (lastPinchDist > 0) {
+          const ratio = dist / lastPinchDist;
+          const mid   = getMid();
+          const rect  = canvas.getBoundingClientRect();
+          // World coord at midpoint before zoom
+          const wx = (mid.x - rect.left) / this._scale + this._viewX;
+          const wy = (mid.y - rect.top)  / this._scale + this._viewY;
+          this._scale = Utils.clamp(this._scale * ratio, 0.05, 0.50);
+          // Re-anchor so midpoint stays fixed
+          this._viewX = wx - (mid.x - rect.left) / this._scale;
+          this._viewY = wy - (mid.y - rect.top)  / this._scale;
           this._drawMap();
         }
         lastPinchDist = dist;
+      } else if (panStart) {
+        // Pan
+        const mid = getMid();
+        const dx  = (mid.x - panStart.mx) / this._scale;
+        const dy  = (mid.y - panStart.my) / this._scale;
+        this._viewX = panStart.vx - dx;
+        this._viewY = panStart.vy - dy;
+        this._drawMap();
       }
+      e.preventDefault();
     }, { passive: false });
 
-    canvas.addEventListener('touchend', () => { lastPinchDist = null; });
+    const endPtr = e => {
+      const wasSingle = Object.keys(ptrs).length === 1;
+      delete ptrs[e.pointerId];
+      if (wasSingle && !this._travelling) {
+        const elapsed = Date.now() - tapStart;
+        const movedX  = Math.abs(e.clientX - tapX);
+        const movedY  = Math.abs(e.clientY - tapY);
+        if (elapsed < 350 && movedX < 12 && movedY < 12) {
+          const rect = canvas.getBoundingClientRect();
+          this._onTap(e.clientX - rect.left, e.clientY - rect.top);
+        }
+      }
+      if (Object.keys(ptrs).length > 0) {
+        const mid = getMid();
+        panStart = { vx: this._viewX, vy: this._viewY, mx: mid.x, my: mid.y };
+        lastPinchDist = getPinchDist();
+      } else {
+        panStart = null;
+      }
+    };
+    canvas.addEventListener('pointerup',     endPtr);
+    canvas.addEventListener('pointercancel', e => { delete ptrs[e.pointerId]; });
 
-    // Drag to pan
-    canvas.addEventListener('mousedown', e => {
-      isDragging = true;
-      dragStartX = e.clientX; dragStartY = e.clientY;
-      viewStartX = this._viewX; viewStartY = this._viewY;
-    });
-    canvas.addEventListener('mousemove', e => {
-      if (!isDragging) return;
-      const dx = (e.clientX - dragStartX) / this._scale;
-      const dy = (e.clientY - dragStartY) / this._scale;
-      this._viewX = viewStartX - dx;
-      this._viewY = viewStartY - dy;
-      this._drawMap();
-    });
-    canvas.addEventListener('mouseup', () => { isDragging = false; });
-
-    // Mouse wheel zoom
+    // Mouse wheel zoom — zoom towards cursor
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      this._scale = Utils.clamp(this._scale * (e.deltaY > 0 ? 0.9 : 1.1), 0.06, 0.40);
-      this._centreOnPlayer();
+      const rect   = canvas.getBoundingClientRect();
+      const sx     = e.clientX - rect.left;
+      const sy     = e.clientY - rect.top;
+      const wx     = sx / this._scale + this._viewX;
+      const wy     = sy / this._scale + this._viewY;
+      this._scale  = Utils.clamp(this._scale * (e.deltaY > 0 ? 0.88 : 1.14), 0.05, 0.50);
+      this._viewX  = wx - sx / this._scale;
+      this._viewY  = wy - sy / this._scale;
       this._drawMap();
     }, { passive: false });
-
-    // Tap / click — show travel panel
-    let tapStart = 0;
-    canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        tapStart = Date.now();
-        dragStartX = e.touches[0].clientX;
-        dragStartY = e.touches[0].clientY;
-        isDragging = true;
-        viewStartX = this._viewX; viewStartY = this._viewY;
-      }
-    }, { passive: true });
-
-    canvas.addEventListener('touchend', e => {
-      isDragging = false;
-      if (this._travelling) return;
-      const t = e.changedTouches[0];
-      const movedX = Math.abs(t.clientX - dragStartX);
-      const movedY = Math.abs(t.clientY - dragStartY);
-      const elapsed = Date.now() - tapStart;
-      if (elapsed < 400 && movedX < 10 && movedY < 10) {
-        const rect = canvas.getBoundingClientRect();
-        const sx = t.clientX - rect.left;
-        const sy = t.clientY - rect.top;
-        this._onTap(sx, sy);
-      }
-    });
-
-    canvas.addEventListener('click', e => {
-      if (this._travelling) return;
-      const rect = canvas.getBoundingClientRect();
-      this._onTap(e.clientX - rect.left, e.clientY - rect.top);
-    });
   },
 
   // ── Tap on map ────────────────────────────
