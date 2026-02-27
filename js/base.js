@@ -142,40 +142,40 @@ const Base = {
 
       ${this._svgFence(fl, ft, fr, fb, fLvl, dr)}
       ${this._svgYard(fl, ft, fr, fb)}
-      ${this._svgHouse(cx, cy - fh*0.14, hLvl)}
-      ${this._svgBarn(cx + fw*0.28, cy + fh*0.04)}
-      ${this._svgWell(cx - fw*0.28, cy + fh*0.06, wlLvl)}
-      ${this._svgWorkbench(cx + fw*0.14, cy + fh*0.26, wsLvl)}
-      ${this._svgMapBoard(cx - fw*0.26, cy - fh*0.26)}
+      ${this._svgHouse(cx, cy - fh*0.18, hLvl)}
+      ${this._svgBarn(cx + fw*0.30, cy + fh*0.02)}
+      ${this._svgWell(cx - fw*0.30, cy + fh*0.02, wlLvl)}
+      ${this._svgWorkbench(cx + fw*0.12, cy + fh*0.28, wsLvl)}
+      ${this._svgMapBoard(cx - fw*0.28, cy - fh*0.28)}
       ${this._svgGate(cx, fb, fLvl)}
 
       <!-- Conditional: greenhouse and field when built -->
-      ${ghLvl > 0 ? this._svgGreenhouse(cx - fw*0.06, cy + fh*0.28, ghLvl) : this._svgBuildPrompt(cx - fw*0.06, cy + fh*0.28, 'greenhouse')}
-      ${fiLvl > 0 ? this._svgField(cx + fw*0.30, cy - fh*0.15, fiLvl)       : this._svgBuildPrompt(cx + fw*0.30, cy - fh*0.15, 'field')}
+      ${ghLvl > 0 ? this._svgGreenhouse(cx - fw*0.08, cy + fh*0.30, ghLvl) : this._svgBuildPrompt(cx - fw*0.08, cy + fh*0.30, 'greenhouse')}
+      ${fiLvl > 0 ? this._svgField(cx + fw*0.32, cy - fh*0.18, fiLvl)       : this._svgBuildPrompt(cx + fw*0.32, cy - fh*0.18, 'field')}
 
       <!-- Power house + electric bench (upper-left quadrant area) -->
-      ${phLvl > 0 ? this._svgPowerHouse(cx - fw*0.28, cy - fh*0.14, phLvl, hasPwr) : this._svgBuildPrompt(cx - fw*0.28, cy - fh*0.14, 'powerhouse')}
-      ${ebLvl > 0 ? this._svgElecBench(cx + fw*0.28, cy - fh*0.26, ebLvl)           : this._svgBuildPrompt(cx + fw*0.28, cy - fh*0.26, 'elecbench')}
+      ${phLvl > 0 ? this._svgPowerHouse(cx - fw*0.30, cy - fh*0.16, phLvl, hasPwr) : this._svgBuildPrompt(cx - fw*0.30, cy - fh*0.16, 'powerhouse')}
+      ${ebLvl > 0 ? this._svgElecBench(cx + fw*0.30, cy - fh*0.28, ebLvl)           : this._svgBuildPrompt(cx + fw*0.30, cy - fh*0.28, 'elecbench')}
 
       <!-- Storage room — lower-left -->
-      ${this._svgStorage(cx - fw*0.14, cy + fh*0.30, stLvl)}
+      ${this._svgStorage(cx - fw*0.16, cy + fh*0.32, stLvl)}
 
       <!-- Bike rack — lower-right corner -->
-      ${this._svgBike(cx + fw*0.42, cy + fh*0.32, bkLvl)}
+      ${this._svgBike(cx + fw*0.44, cy + fh*0.34, bkLvl)}
 
       <!-- Hit zones — transparent large tap areas -->
-      ${this._hitZone('house',       cx,              cy - fh*0.14,  72, 80,  'SHELTER')}
-      ${this._hitZone('fridge',      cx + fw*0.28,    cy + fh*0.04,  58, 62,  'FOOD STORE')}
-      ${this._hitZone('well',        cx - fw*0.28,    cy + fh*0.06,  50, 58,  'WELL')}
-      ${this._hitZone('table',       cx + fw*0.14,    cy + fh*0.26,  50, 46,  'CRAFTING')}
-      ${this._hitZone('map',         cx - fw*0.26,    cy - fh*0.26,  50, 50,  'WORLD MAP')}
+      ${this._hitZone('house',       cx,              cy - fh*0.18,  72, 80,  'SHELTER')}
+      ${this._hitZone('fridge',      cx + fw*0.30,    cy + fh*0.02,  58, 62,  'FOOD STORE')}
+      ${this._hitZone('well',        cx - fw*0.30,    cy + fh*0.02,  50, 58,  'WELL')}
+      ${this._hitZone('table',       cx + fw*0.12,    cy + fh*0.28,  50, 46,  'CRAFTING')}
+      ${this._hitZone('map',         cx - fw*0.28,    cy - fh*0.28,  50, 50,  'WORLD MAP')}
       ${this._hitZone('fence',       cx,              ft + 10,       100, 28, 'DEFENCES (' + dr + ')')}
-      ${this._hitZone('greenhouse',  cx - fw*0.06,    cy + fh*0.28,  56, 60, 'GREENHOUSE')}
-      ${this._hitZone('field',       cx + fw*0.30,    cy - fh*0.15,  60, 50, 'CROP FIELD')}
-      ${this._hitZone('powerhouse',  cx - fw*0.28,    cy - fh*0.14,  58, 60, '⚡ POWER HOUSE')}
-      ${this._hitZone('elecbench',   cx + fw*0.28,    cy - fh*0.26,  54, 50, '🔬 ELEC BENCH')}
-      ${this._hitZone('storage',     cx - fw*0.14,    cy + fh*0.30,  64, 60, '🗃️ STORAGE Lv' + stLvl)}
-      ${this._hitZone('bike',        cx + fw*0.42,    cy + fh*0.32,  54, 60, '🚴 BIKE Lv' + bkLvl)}
+      ${this._hitZone('greenhouse',  cx - fw*0.08,    cy + fh*0.30,  56, 60, 'GREENHOUSE')}
+      ${this._hitZone('field',       cx + fw*0.32,    cy - fh*0.18,  60, 50, 'CROP FIELD')}
+      ${this._hitZone('powerhouse',  cx - fw*0.30,    cy - fh*0.16,  58, 60, '⚡ POWER HOUSE')}
+      ${this._hitZone('elecbench',   cx + fw*0.30,    cy - fh*0.28,  54, 50, '🔬 ELEC BENCH')}
+      ${this._hitZone('storage',     cx - fw*0.16,    cy + fh*0.32,  64, 60, '🗃️ STORAGE Lv' + stLvl)}
+      ${this._hitZone('bike',        cx + fw*0.44,    cy + fh*0.34,  54, 60, '🚴 BIKE Lv' + bkLvl)}
     `;
 
     // Bind touch + click on hit zones
@@ -867,7 +867,7 @@ const Base = {
         <circle cx="${cx}" cy="${cy-h/2-52}" r="4" fill="#e53935" ${gE}/>
         <rect x="${cx-w/2+4}" y="${cy-h/2-8}" width="${w-8}" height="14" fill="#080814" rx="2" stroke="#29b6f6" stroke-width="1.5" ${gE}/>
         <text x="${cx}" y="${cy-h/2+2}"
-          font-family="Press Start 2P" font-size="5.5"
+          font-family="Press Start 2P" font-size="20"
           fill="#29b6f6" text-anchor="middle" ${gE}>THE END IS NEAR</text>
         <rect x="${cx-w/2+12}" y="${cy-h/2+18}" width="20" height="10" fill="#29b6f6" rx="1" opacity="0.7" ${gE}/>
         <rect x="${cx+w/2-32}" y="${cy-h/2+18}" width="20" height="10" fill="#29b6f6" rx="1" opacity="0.7" ${gE}/>
@@ -1478,7 +1478,7 @@ const Base = {
         <!-- Neon sign -->
         <rect x="${cx-w/2+2}" y="${cy-h/2-8}" width="${w-4}" height="11" fill="#08080e" rx="1" stroke="#ffd600" stroke-width="1" ${gE}/>
         <text x="${cx}" y="${cy-h/2+1}"
-          font-family="Press Start 2P" font-size="4.5"
+          font-family="Press Start 2P" font-size="16"
           fill="#ffd600" text-anchor="middle" ${gE}>APOCALYPSE STORE</text>
         <!-- Glowing loading bays -->
         <rect x="${cx-w/2+4}" y="${cy+h/2-26}" width="20" height="26" fill="#2a2a38" rx="1" stroke="#ffd600" stroke-width="1" ${gE}/>
@@ -1496,8 +1496,8 @@ const Base = {
     const storeLv = State.data?.base?.buildings?.storage?.level || 1;
     return `<g>
       ${out}
-      <text x="${cx}" y="${cy+46}"
-        font-family="Press Start 2P" font-size="5.5"
+      <text x="${cx}" y="${cy+52}"
+        font-family="Press Start 2P" font-size="20"
         fill="${labelCol}" text-anchor="middle">Lv${lv} STORAGE [${capLabels[lv-1]}]</text>
     </g>`;
   },
@@ -1610,8 +1610,8 @@ const Base = {
 
     return `<g>
       ${out}
-      <text x="${cx}" y="${cy+36}"
-        font-family="Press Start 2P" font-size="5.5"
+      <text x="${cx}" y="${cy+52}"
+        font-family="Press Start 2P" font-size="20"
         fill="${labelCol}" text-anchor="middle">Lv${lv} ${bikeLabels[lv-1]}</text>
     </g>`;
   },
