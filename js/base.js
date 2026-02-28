@@ -452,6 +452,12 @@ const Base = {
     const bkLvl  = State.data?.base?.buildings?.bike?.level        || 1;
     const wlLvl  = State.data?.base?.buildings?.well?.level        || 1;
     const wsLvl  = State.data?.base?.buildings?.workshop?.level    || 0;
+    const wtLvl  = State.data?.base?.buildings?.watchtower?.level   || 0;
+    const cbLvl  = State.data?.base?.buildings?.compost_bin?.level  || 0;
+    const shLvl  = State.data?.base?.buildings?.smokehouse?.level   || 0;
+    const alLvl  = State.data?.base?.buildings?.alarm_system?.level || 0;
+    const mkLvl  = State.data?.base?.buildings?.medkit_station?.level || 0;
+    const bnLvl  = State.data?.base?.buildings?.bunker?.level       || 0;
     const rcLvl  = State.data?.base?.buildings?.rain_collector?.level || 0;
     const rtLvl  = State.data?.base?.buildings?.radio_tower?.level    || 0;
     const ssLvl  = State.data?.base?.buildings?.solar_station?.level  || 0;
@@ -523,6 +529,30 @@ const Base = {
     const ssX    = cx + fw * (hLvl >= 5 ? 0.16 : 0.20);
     const ssY    = cy - fh * (hLvl >= 5 ? 0.40 : 0.38);
 
+    // Watchtower — upper left inner (distinct from radio tower far-left)
+    const wtX    = cx - fw * 0.14;
+    const wtY    = cy - fh * 0.40;
+
+    // Compost bin — right of greenhouse, lower centre
+    const cbX    = cx + fw * 0.06;
+    const cbY    = cy + fh * 0.44;
+
+    // Smokehouse — right of barn, lower right
+    const shX    = cx + fw * 0.44;
+    const shY    = cy + fh * 0.14;
+
+    // Alarm system — near fence top, upper centre-right
+    const alX    = cx + fw * 0.28;
+    const alY    = cy - fh * 0.44;
+
+    // Medkit station — lower left, near storage
+    const mkX    = cx - fw * 0.42;
+    const mkY    = cy + fh * 0.28;
+
+    // Bunker — lower centre (underground hatch)
+    const bnX    = cx;
+    const bnY    = cy + fh * 0.44;
+
     svg.innerHTML = `
       <defs>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -576,6 +606,14 @@ const Base = {
       ${rcLvl > 0 ? this._svgRainCollector(rcX, rcY, rcLvl) : this._svgBuildPrompt(rcX, rcY, 'rain_collector')}
       ${ssLvl > 0 ? this._svgSolarStation(ssX, ssY, ssLvl)  : this._svgBuildPrompt(ssX, ssY, 'solar_station')}
 
+      <!-- Watchtower, compost, smokehouse, alarm, medkit, bunker -->
+      ${wtLvl > 0 ? this._svgWatchtower(wtX, wtY, wtLvl)        : this._svgBuildPrompt(wtX, wtY, 'watchtower')}
+      ${cbLvl > 0 ? this._svgCompostBin(cbX, cbY, cbLvl)        : this._svgBuildPrompt(cbX, cbY, 'compost_bin')}
+      ${shLvl > 0 ? this._svgSmokehouse(shX, shY, shLvl)        : this._svgBuildPrompt(shX, shY, 'smokehouse')}
+      ${alLvl > 0 ? this._svgAlarmSystem(alX, alY, alLvl)       : this._svgBuildPrompt(alX, alY, 'alarm_system')}
+      ${mkLvl > 0 ? this._svgMedkitStation(mkX, mkY, mkLvl)     : this._svgBuildPrompt(mkX, mkY, 'medkit_station')}
+      ${bnLvl > 0 ? this._svgBunker(bnX, bnY, bnLvl)            : this._svgBuildPrompt(bnX, bnY, 'bunker')}
+
       <!-- Hit zones -->
       ${this._hitZone('house',          houseX, houseY, 90,  100, 'SHELTER')}
       ${this._hitZone('fridge',         barnX,  barnY,  70,  80,  'FOOD STORE')}
@@ -592,6 +630,12 @@ const Base = {
       ${this._hitZone('radio_tower',    rtX,    rtY,    90,  100, '📡 RADIO Lv' + rtLvl)}
       ${this._hitZone('rain_collector', rcX,    rcY,    80,  90,  '🌧️ RAIN Lv' + rcLvl)}
       ${this._hitZone('solar_station',  ssX,    ssY,    90,  80,  '☀️ SOLAR Lv' + ssLvl)}
+      ${this._hitZone('watchtower',     wtX,    wtY,    70,  100, '🗼 WATCH Lv' + wtLvl)}
+      ${this._hitZone('compost_bin',    cbX,    cbY,    60,  60,  '♻️ COMPOST Lv' + cbLvl)}
+      ${this._hitZone('smokehouse',     shX,    shY,    80,  70,  '🏭 SMOKE Lv' + shLvl)}
+      ${this._hitZone('alarm_system',   alX,    alY,    70,  60,  '🔔 ALARM Lv' + alLvl)}
+      ${this._hitZone('medkit_station', mkX,    mkY,    80,  70,  '🏥 MEDKIT Lv' + mkLvl)}
+      ${this._hitZone('bunker',         bnX,    bnY,    90,  60,  '🏗️ BUNKER Lv' + bnLvl)}
     `;
 
     // Bind touch + click on hit zones
@@ -1999,6 +2043,97 @@ const Base = {
             '<div class="bsc-row ' + fCls + '"><span>Powers fence</span><span>' + fStr + '</span></div>';
         break;
       }
+
+      case 'watchtower': {
+        const lv = bld.watchtower?.level || 0;
+        title = '🗼 WATCHTOWER';
+        visual = lv > 0
+          ? '<svg width="100" height="120" viewBox="0 0 200 240" style="overflow:visible">' + this._svgWatchtower(100, 160, lv) + '</svg>'
+          : '<div style="font-size:2.5rem;text-align:center;padding:16px">🗼</div>';
+        const warnBonus = (bld.watchtower?.level||0) > 0 ? (s.base.raidWarningBonus || 0) : 0;
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 3</span></div>
+             <div class="bsc-row ok"><span>Raid warning bonus</span><span>+${warnBonus}s earlier</span></div>
+             <div class="bsc-row ok"><span>Defence bonus</span><span>+${[10,20,35][lv-1]||0}</span></div>`;
+        break;
+      }
+
+      case 'compost_bin': {
+        const lv = bld.compost_bin?.level || 0;
+        title = '♻️ COMPOST BIN';
+        visual = lv > 0
+          ? '<svg width="90" height="90" viewBox="0 0 180 180" style="overflow:visible">' + this._svgCompostBin(90, 110, lv) + '</svg>'
+          : '<div style="font-size:2.5rem;text-align:center;padding:16px">♻️</div>';
+        const passFood = s.base.passiveFood || 0;
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 2</span></div>
+             <div class="bsc-row ok"><span>Passive food/day</span><span>+${passFood}</span></div>`;
+        break;
+      }
+
+      case 'smokehouse': {
+        const lv = bld.smokehouse?.level || 0;
+        title = '🏭 SMOKEHOUSE';
+        visual = lv > 0
+          ? '<svg width="90" height="100" viewBox="0 0 180 200" style="overflow:visible">' + this._svgSmokehouse(90, 120, lv) + '</svg>'
+          : '<div style="font-size:2.5rem;text-align:center;padding:16px">🏭</div>';
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 2</span></div>
+             <div class="bsc-row ok"><span>Food preservation</span><span>${lv >= 2 ? '3×' : '2×'} longer</span></div>
+             ${lv >= 2 ? '<div class="bsc-row ok"><span>Passive food/day</span><span>+2</span></div>' : ''}`;
+        break;
+      }
+
+      case 'alarm_system': {
+        const lv = bld.alarm_system?.level || 0;
+        title = '🔔 ALARM SYSTEM';
+        visual = lv > 0
+          ? '<svg width="80" height="100" viewBox="0 0 160 200" style="overflow:visible">' + this._svgAlarmSystem(80, 130, lv) + '</svg>'
+          : '<div style="font-size:2.5rem;text-align:center;padding:16px">🔔</div>';
+        const dmgRed = Math.round((s.base.raidDamageReduction || 0) * 100);
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 2</span></div>
+             <div class="bsc-row ok"><span>Raid damage reduction</span><span>-${dmgRed}%</span></div>
+             ${lv >= 2 ? '<div class="bsc-row ok"><span>Auto fence activation</span><span>✅ Active</span></div>' : ''}`;
+        break;
+      }
+
+      case 'medkit_station': {
+        const lv = bld.medkit_station?.level || 0;
+        title = '🏥 MEDICAL STATION';
+        visual = lv > 0
+          ? '<svg width="90" height="100" viewBox="0 0 180 200" style="overflow:visible">' + this._svgMedkitStation(90, 120, lv) + '</svg>'
+          : '<div style="font-size:2.5rem;text-align:center;padding:16px">🏥</div>';
+        const medEff = s.base.medEfficiency || 1.0;
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 3</span></div>
+             <div class="bsc-row ok"><span>Medicine effectiveness</span><span>${medEff.toFixed(2)}×</span></div>
+             ${lv >= 2 ? '<div class="bsc-row ok"><span>Passive medicine/day</span><span>+1</span></div>' : ''}
+             ${lv >= 3 ? '<div class="bsc-row ok"><span>Passive energy heal</span><span>+1/hr</span></div>' : ''}`;
+        break;
+      }
+
+      case 'bunker': {
+        const lv = bld.bunker?.level || 0;
+        title = '🏗️ BUNKER';
+        visual = lv > 0
+          ? '<svg width="120" height="80" viewBox="0 0 240 160" style="overflow:visible">' + this._svgBunker(120, 90, lv) + '</svg>'
+          : '<div style="font-size:2.5rem;text-align:center;padding:16px">🏗️</div>';
+        const defBonus = (lv >= 1 ? [50, 80][lv-1] || 0 : 0);
+        const dmgRed2  = Math.round((s.base.raidDamageReduction || 0) * 100);
+        statsRows = lv === 0
+          ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
+          : `<div class="bsc-row"><span>Level</span><span>${lv} / 2</span></div>
+             <div class="bsc-row ok"><span>Defence bonus</span><span>+${defBonus}</span></div>
+             <div class="bsc-row ok"><span>Raid damage reduction</span><span>-${dmgRed2}%</span></div>
+             ${lv >= 2 ? '<div class="bsc-row ok"><span>Raid chance reduction</span><span>-20%</span></div>' : ''}`;
+        break;
+      }
     }
 
     // ── Upgrade section ───────────────────────
@@ -2584,12 +2719,22 @@ const Base = {
 
   _svgBuildPrompt(cx, cy, type) {
     const configs = {
-      greenhouse: { w:52, h:44, label:'🌿 BUILD', sub:'GREENHOUSE' },
-      field:      { w:60, h:40, label:'🌾 BUILD',  sub:'CROP FIELD' },
-      powerhouse: { w:58, h:60, label:'⚡ BUILD',  sub:'POWER HOUSE' },
-      elecbench:  { w:54, h:50, label:'🔬 BUILD',  sub:'ELEC BENCH' },
+      greenhouse:    { w:52, h:44, label:'🌿 BUILD', sub:'GREENHOUSE' },
+      field:         { w:60, h:40, label:'🌾 BUILD',  sub:'CROP FIELD' },
+      powerhouse:    { w:58, h:60, label:'⚡ BUILD',  sub:'POWER HOUSE' },
+      elecbench:     { w:54, h:50, label:'🔬 BUILD',  sub:'ELEC BENCH' },
+      radio_tower:   { w:44, h:80, label:'📡 BUILD',  sub:'RADIO TOWER' },
+      rain_collector:{ w:50, h:50, label:'🌧️ BUILD',  sub:'RAIN COLL.' },
+      solar_station: { w:70, h:44, label:'☀️ BUILD',  sub:'SOLAR STN' },
+      watchtower:    { w:36, h:90, label:'🗼 BUILD',  sub:'WATCHTOWER' },
+      compost_bin:   { w:44, h:50, label:'♻️ BUILD',  sub:'COMPOST BIN' },
+      smokehouse:    { w:56, h:60, label:'🏭 BUILD',  sub:'SMOKEHOUSE' },
+      alarm_system:  { w:36, h:60, label:'🔔 BUILD',  sub:'ALARM SYS' },
+      medkit_station:{ w:54, h:54, label:'🏥 BUILD',  sub:'MED STATION' },
+      bunker:        { w:70, h:40, label:'🏗️ BUILD',  sub:'BUNKER' },
     };
-    const { w, h, label, sub } = configs[type] || configs.greenhouse;
+    const cfg = configs[type] || { w:50, h:50, label:'🔨 BUILD', sub: type.replace(/_/g,' ').toUpperCase() };
+    const { w, h, label, sub } = cfg;
     return '<g opacity="0.45">' +
       '<rect x="' + (cx-w/2) + '" y="' + (cy-h/2) + '" width="' + w + '" height="' + h +
         '" fill="transparent" stroke="#4a4a2a" stroke-width="2" stroke-dasharray="6,4" rx="3"/>' +
@@ -3195,7 +3340,195 @@ const Base = {
                  .replace(/filter="url\(#glow-yellow\)"/g, 'filter="url(#gy2)"')
                  .replace(/font-size="22"/g, 'font-size="8"') +
            '</svg>';
-  }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  NEW BUILDING SVGs — Watchtower, Compost, Smokehouse,
+  //  Alarm System, Medkit Station, Bunker
+  // ══════════════════════════════════════════════════════════
+
+  // ── Watchtower ─────────────────────────────────────────────
+  _svgWatchtower(cx, cy, lv) {
+    const h = 35 + lv * 12;   // taller each level
+    const col = lv >= 3 ? '#6a7a80' : lv >= 2 ? '#7a6a40' : '#7a5a28';
+    const roofCol = lv >= 3 ? '#4a5a60' : '#5a4020';
+    return '<g filter="url(#shadow)">' +
+      // Shadow
+      '<ellipse cx="' + cx + '" cy="' + (cy+28) + '" rx="22" ry="5" fill="rgba(0,0,0,0.3)"/>' +
+      // Main tower legs (A-frame legs)
+      '<line x1="' + (cx-14) + '" y1="' + (cy+24) + '" x2="' + (cx-6) + '" y2="' + (cy-h+8) + '" stroke="#5a4020" stroke-width="6" stroke-linecap="round"/>' +
+      '<line x1="' + (cx+14) + '" y1="' + (cy+24) + '" x2="' + (cx+6) + '" y2="' + (cy-h+8) + '" stroke="#5a4020" stroke-width="6" stroke-linecap="round"/>' +
+      // Cross-braces
+      '<line x1="' + (cx-13) + '" y1="' + (cy+4)  + '" x2="' + (cx+13) + '" y2="' + (cy-4)  + '" stroke="#4a3018" stroke-width="3"/>' +
+      '<line x1="' + (cx-10) + '" y1="' + (cy-h+18) + '" x2="' + (cx+10) + '" y2="' + (cy-h+10) + '" stroke="#4a3018" stroke-width="2"/>' +
+      // Platform floor
+      '<rect x="' + (cx-16) + '" y="' + (cy-h) + '" width="32" height="8" fill="' + col + '" rx="1"/>' +
+      // Railing posts
+      '<line x1="' + (cx-14) + '" y1="' + (cy-h) + '" x2="' + (cx-14) + '" y2="' + (cy-h-14) + '" stroke="' + col + '" stroke-width="2"/>' +
+      '<line x1="' + (cx+14) + '" y1="' + (cy-h) + '" x2="' + (cx+14) + '" y2="' + (cy-h-14) + '" stroke="' + col + '" stroke-width="2"/>' +
+      '<line x1="' + (cx-14) + '" y1="' + (cy-h-14) + '" x2="' + (cx+14) + '" y2="' + (cy-h-14) + '" stroke="' + col + '" stroke-width="2"/>' +
+      // Roof
+      '<polygon points="' + (cx-18) + ',' + (cy-h-10) + ' ' + cx + ',' + (cy-h-32) + ' ' + (cx+18) + ',' + (cy-h-10) + '" fill="' + roofCol + '"/>' +
+      // Flag on top
+      '<line x1="' + cx + '" y1="' + (cy-h-32) + '" x2="' + cx + '" y2="' + (cy-h-48) + '" stroke="#888" stroke-width="1.5"/>' +
+      '<polygon points="' + cx + ',' + (cy-h-48) + ' ' + (cx+12) + ',' + (cy-h-43) + ' ' + cx + ',' + (cy-h-38) + '" fill="#c04020"/>' +
+      // Watcher figure (small person on platform)
+      (lv >= 1 ? '<circle cx="' + cx + '" cy="' + (cy-h-6) + '" r="4" fill="#8a7060"/>' +
+                 '<rect x="' + (cx-3) + '" y="' + (cy-h-2) + '" width="6" height="8" fill="#5a4030" rx="1"/>' : '') +
+      // Level label
+      '<text x="' + cx + '" y="' + (cy+44) + '" font-family="Press Start 2P" font-size="20" fill="#a0b0a0" text-anchor="middle">Lv' + lv + ' WATCH</text>' +
+    '</g>';
+  },
+
+  // ── Compost Bin ────────────────────────────────────────────
+  _svgCompostBin(cx, cy, lv) {
+    const w = 28 + lv * 6;
+    return '<g filter="url(#shadow)">' +
+      '<ellipse cx="' + cx + '" cy="' + (cy+20) + '" rx="' + (w/2+4) + '" ry="5" fill="rgba(0,0,0,0.25)"/>' +
+      // Main barrel body
+      '<rect x="' + (cx-w/2) + '" y="' + (cy-20) + '" width="' + w + '" height="36" fill="#4a3018" rx="4"/>' +
+      // Wooden slat lines
+      '<line x1="' + (cx-w/2+5) + '" y1="' + (cy-20) + '" x2="' + (cx-w/2+5) + '" y2="' + (cy+16) + '" stroke="#3a2210" stroke-width="2" opacity="0.6"/>' +
+      '<line x1="' + (cx+w/2-5) + '" y1="' + (cy-20) + '" x2="' + (cx+w/2-5) + '" y2="' + (cy+16) + '" stroke="#3a2210" stroke-width="2" opacity="0.6"/>' +
+      // Metal hoops
+      '<rect x="' + (cx-w/2) + '" y="' + (cy-16) + '" width="' + w + '" height="4" fill="#5a5040" rx="1"/>' +
+      '<rect x="' + (cx-w/2) + '" y="' + (cy+8) + '" width="' + w + '" height="4" fill="#5a5040" rx="1"/>' +
+      // Lid (open slightly, showing compost)
+      '<ellipse cx="' + cx + '" cy="' + (cy-20) + '" rx="' + (w/2) + '" ry="5" fill="#5a4020"/>' +
+      '<ellipse cx="' + cx + '" cy="' + (cy-18) + '" rx="' + (w/2-3) + '" ry="4" fill="#3a5010"/>' +
+      // Steam/smell lines
+      '<path d="M' + (cx-4) + ',' + (cy-24) + ' Q' + (cx-8) + ',' + (cy-32) + ' ' + (cx-4) + ',' + (cy-38) + '" fill="none" stroke="#6a8a30" stroke-width="1.5" opacity="0.6" stroke-dasharray="3,2"/>' +
+      '<path d="M' + (cx+4) + ',' + (cy-26) + ' Q' + (cx+8) + ',' + (cy-34) + ' ' + (cx+4) + ',' + (cy-40) + '" fill="none" stroke="#6a8a30" stroke-width="1.5" opacity="0.5" stroke-dasharray="3,2"/>' +
+      // Level label
+      '<text x="' + cx + '" y="' + (cy+38) + '" font-family="Press Start 2P" font-size="20" fill="#6a8a30" text-anchor="middle">COMPOST' + (lv===2?' Lv2':'') + '</text>' +
+    '</g>';
+  },
+
+  // ── Smokehouse ─────────────────────────────────────────────
+  _svgSmokehouse(cx, cy, lv) {
+    const roofH = 22 + lv * 4;
+    const wallH = 28 + lv * 4;
+    const col   = lv >= 2 ? '#5a4a3a' : '#6a5a48';
+    return '<g filter="url(#shadow)">' +
+      '<ellipse cx="' + cx + '" cy="' + (cy+26) + '" rx="30" ry="6" fill="rgba(0,0,0,0.3)"/>' +
+      // Foundation
+      '<rect x="' + (cx-26) + '" y="' + (cy+18) + '" width="52" height="6" fill="#3a2a18" rx="1"/>' +
+      // Walls
+      '<rect x="' + (cx-24) + '" y="' + (cy-wallH+18) + '" width="48" height="' + wallH + '" fill="' + col + '" rx="2"/>' +
+      // Dark wood planks
+      '<line x1="' + (cx-24) + '" y1="' + (cy-wallH+28) + '" x2="' + (cx+24) + '" y2="' + (cy-wallH+28) + '" stroke="#3a2a18" stroke-width="2" opacity="0.5"/>' +
+      '<line x1="' + (cx-24) + '" y1="' + (cy-wallH+38) + '" x2="' + (cx+24) + '" y2="' + (cy-wallH+38) + '" stroke="#3a2a18" stroke-width="2" opacity="0.5"/>' +
+      // Door (small, dark)
+      '<rect x="' + (cx-7) + '" y="' + (cy-2+18) + '" width="14" height="20" fill="#2a1a08" rx="1"/>' +
+      '<circle cx="' + (cx+4) + '" cy="' + (cy+8+18) + '" r="2" fill="#888"/>' +
+      // Roof (peaked)
+      '<polygon points="' + (cx-28) + ',' + (cy-wallH+18) + ' ' + cx + ',' + (cy-wallH-roofH+18) + ' ' + (cx+28) + ',' + (cy-wallH+18) + '" fill="#3a2a18"/>' +
+      // Chimney
+      '<rect x="' + (cx+8) + '" y="' + (cy-wallH-roofH-20+18) + '" width="10" height="' + (roofH+20) + '" fill="#4a3a28" rx="1"/>' +
+      // Smoke puffs
+      '<circle cx="' + (cx+13) + '" cy="' + (cy-wallH-roofH-24+18) + '" r="5" fill="#888" opacity="0.5"/>' +
+      '<circle cx="' + (cx+16) + '" cy="' + (cy-wallH-roofH-34+18) + '" r="7" fill="#777" opacity="0.35"/>' +
+      '<circle cx="' + (cx+12) + '" cy="' + (cy-wallH-roofH-46+18) + '" r="9" fill="#666" opacity="0.2"/>' +
+      // Level label
+      '<text x="' + cx + '" y="' + (cy+46) + '" font-family="Press Start 2P" font-size="20" fill="#9a7a5a" text-anchor="middle">SMOKE Lv' + lv + '</text>' +
+    '</g>';
+  },
+
+  // ── Alarm System ───────────────────────────────────────────
+  _svgAlarmSystem(cx, cy, lv) {
+    const active = lv >= 2;  // Lv2 has electric alert system
+    const bellCol = active ? '#ffd700' : '#c0a020';
+    return '<g filter="url(#shadow)">' +
+      '<ellipse cx="' + cx + '" cy="' + (cy+18) + '" rx="18" ry="4" fill="rgba(0,0,0,0.25)"/>' +
+      // Post
+      '<rect x="' + (cx-3) + '" y="' + (cy-40) + '" width="6" height="56" fill="#5a5040" rx="2"/>' +
+      // Base plate
+      '<rect x="' + (cx-12) + '" y="' + (cy+14) + '" width="24" height="6" fill="#4a4030" rx="2"/>' +
+      // Bell housing
+      '<ellipse cx="' + cx + '" cy="' + (cy-30) + '" rx="14" ry="10" fill="' + bellCol + '"/>' +
+      '<ellipse cx="' + cx + '" cy="' + (cy-36) + '" rx="14" ry="8" fill="' + bellCol + '"/>' +
+      '<path d="M' + (cx-14) + ',' + (cy-30) + ' Q' + (cx-18) + ',' + (cy-22) + ' ' + (cx-10) + ',' + (cy-20) + ' Q' + cx + ',' + (cy-18) + ' Q' + (cx+10) + ',' + (cy-20) + ' Q' + (cx+18) + ',' + (cy-22) + ' ' + (cx+14) + ',' + (cy-30) + '" fill="' + bellCol + '"/>' +
+      // Bell clapper
+      '<circle cx="' + cx + '" cy="' + (cy-20) + '" r="3" fill="#8a7010"/>' +
+      // Electric elements (Lv2+)
+      (active ?
+        '<rect x="' + (cx-10) + '" y="' + (cy-16) + '" width="20" height="10" fill="#2a3a5a" rx="2"/>' +
+        '<circle cx="' + (cx-5) + '" cy="' + (cy-11) + '" r="2" fill="#4040ff" opacity="0.8"/>' +
+        '<circle cx="' + (cx+5) + '" cy="' + (cy-11) + '" r="2" fill="#ff4040" opacity="0.8"/>' +
+        '<text x="' + cx + '" y="' + (cy-3) + '" font-size="8" text-anchor="middle" fill="#ffd700">⚡</text>' : '') +
+      // Trip wires on ground (Lv1+)
+      '<line x1="' + (cx-12) + '" y1="' + (cy+15) + '" x2="' + (cx-24) + '" y2="' + (cy+15) + '" stroke="#8a8060" stroke-width="1.5" stroke-dasharray="3,2"/>' +
+      '<line x1="' + (cx+12) + '" y1="' + (cy+15) + '" x2="' + (cx+24) + '" y2="' + (cy+15) + '" stroke="#8a8060" stroke-width="1.5" stroke-dasharray="3,2"/>' +
+      // Level label
+      '<text x="' + cx + '" y="' + (cy+36) + '" font-family="Press Start 2P" font-size="20" fill="' + bellCol + '" text-anchor="middle">ALARM Lv' + lv + '</text>' +
+    '</g>';
+  },
+
+  // ── Medkit Station ─────────────────────────────────────────
+  _svgMedkitStation(cx, cy, lv) {
+    const tentW = 40 + lv * 6;
+    const tentH = 30 + lv * 4;
+    const tentCol = lv >= 3 ? '#e8e8e8' : '#d0d0d0';
+    return '<g filter="url(#shadow)">' +
+      '<ellipse cx="' + cx + '" cy="' + (cy+18) + '" rx="' + (tentW/2+4) + '" ry="5" fill="rgba(0,0,0,0.25)"/>' +
+      // Tent body
+      '<polygon points="' + cx + ',' + (cy-tentH) + ' ' + (cx-tentW/2) + ',' + (cy+16) + ' ' + (cx+tentW/2) + ',' + (cy+16) + '" fill="' + tentCol + '"/>' +
+      // Tent fabric fold lines
+      '<line x1="' + cx + '" y1="' + (cy-tentH) + '" x2="' + (cx-tentW/4) + '" y2="' + (cy+16) + '" stroke="#b0b0b0" stroke-width="1.5" opacity="0.5"/>' +
+      '<line x1="' + cx + '" y1="' + (cy-tentH) + '" x2="' + (cx+tentW/4) + '" y2="' + (cy+16) + '" stroke="#b0b0b0" stroke-width="1.5" opacity="0.5"/>' +
+      // Red cross on front
+      '<rect x="' + (cx-5) + '" y="' + (cy-tentH/2-6) + '" width="10" height="18" fill="#e53935" rx="1"/>' +
+      '<rect x="' + (cx-9) + '" y="' + (cy-tentH/2-2) + '" width="18" height="10" fill="#e53935" rx="1"/>' +
+      // Tent opening
+      '<polygon points="' + cx + ',' + (cy-8) + ' ' + (cx-8) + ',' + (cy+16) + ' ' + (cx+8) + ',' + (cy+16) + '" fill="#2a2a2a"/>' +
+      // Tent pole
+      '<line x1="' + cx + '" y1="' + (cy-tentH) + '" x2="' + cx + '" y2="' + (cy-tentH-14) + '" stroke="#888" stroke-width="3"/>' +
+      '<circle cx="' + cx + '" cy="' + (cy-tentH-14) + '" r="3" fill="#c0c0c0"/>' +
+      // Stakes
+      '<line x1="' + (cx-tentW/2) + '" y1="' + (cy+16) + '" x2="' + (cx-tentW/2-8) + '" y2="' + (cy+22) + '" stroke="#888" stroke-width="2"/>' +
+      '<line x1="' + (cx+tentW/2) + '" y1="' + (cy+16) + '" x2="' + (cx+tentW/2+8) + '" y2="' + (cy+22) + '" stroke="#888" stroke-width="2"/>' +
+      // Level label
+      '<text x="' + cx + '" y="' + (cy+40) + '" font-family="Press Start 2P" font-size="20" fill="#e53935" text-anchor="middle">MEDKIT Lv' + lv + '</text>' +
+    '</g>';
+  },
+
+  // ── Bunker ─────────────────────────────────────────────────
+  _svgBunker(cx, cy, lv) {
+    const w = 52 + lv * 8;
+    const armoured = lv >= 2;
+    const metalCol = armoured ? '#4a5a6a' : '#5a5a60';
+    return '<g filter="url(#shadow)">' +
+      '<ellipse cx="' + cx + '" cy="' + (cy+16) + '" rx="' + (w/2+6) + '" ry="6" fill="rgba(0,0,0,0.3)"/>' +
+      // Concrete mound
+      '<ellipse cx="' + cx + '" cy="' + (cy+8) + '" rx="' + (w/2+8) + '" ry="14" fill="#3a3830"/>' +
+      '<ellipse cx="' + cx + '" cy="' + (cy+4) + '" rx="' + (w/2+4) + '" ry="12" fill="#454038"/>' +
+      // Reinforcement bands
+      (armoured ?
+        '<ellipse cx="' + cx + '" cy="' + (cy+4) + '" rx="' + (w/2+4) + '" ry="12" fill="none" stroke="#5a6070" stroke-width="3"/>' +
+        '<line x1="' + (cx-w/2-4) + '" y1="' + (cy+4) + '" x2="' + (cx+w/2+4) + '" y2="' + (cy+4) + '" stroke="#5a6070" stroke-width="2" opacity="0.5"/>' : '') +
+      // Hatch door (the key visual)
+      '<ellipse cx="' + cx + '" cy="' + (cy-2) + '" rx="' + (w/2) + '" ry="10" fill="' + metalCol + '"/>' +
+      '<ellipse cx="' + cx + '" cy="' + (cy-2) + '" rx="' + (w/2-4) + '" ry="7" fill="#3a4050"/>' +
+      // Hatch handle
+      '<rect x="' + (cx-8) + '" y="' + (cy-6) + '" width="16" height="6" fill="' + metalCol + '" rx="3"/>' +
+      '<circle cx="' + cx + '" cy="' + (cy-3) + '" r="3" fill="#7a7a80"/>' +
+      // Hatch hinges
+      '<rect x="' + (cx-w/2+2) + '" y="' + (cy-5) + '" width="6" height="4" fill="#7a7a80" rx="1"/>' +
+      '<rect x="' + (cx+w/2-8) + '" y="' + (cy-5) + '" width="6" height="4" fill="#7a7a80" rx="1"/>' +
+      // Ventilation pipes
+      '<rect x="' + (cx-w/2+8) + '" y="' + (cy-16) + '" width="6" height="16" fill="#5a5a60" rx="2"/>' +
+      '<ellipse cx="' + (cx-w/2+11) + '" cy="' + (cy-16) + '" rx="5" ry="3" fill="#6a6a70"/>' +
+      // Armoured version gets extra pipe + antenna
+      (armoured ?
+        '<rect x="' + (cx+w/2-14) + '" y="' + (cy-20) + '" width="6" height="20" fill="#5a5a60" rx="2"/>' +
+        '<ellipse cx="' + (cx+w/2-11) + '" cy="' + (cy-20) + '" rx="5" ry="3" fill="#6a6a70"/>' +
+        '<line x1="' + cx + '" y1="' + (cy-10) + '" x2="' + cx + '" y2="' + (cy-30) + '" stroke="#888" stroke-width="2"/>' +
+        '<circle cx="' + cx + '" cy="' + (cy-30) + '" r="3" fill="#aaa"/>' : '') +
+      // Level label
+      '<text x="' + cx + '" y="' + (cy+36) + '" font-family="Press Start 2P" font-size="20" fill="' + metalCol + '" text-anchor="middle">BUNKER Lv' + lv + '</text>' +
+    '</g>';
+  },
+
 
 };
 
