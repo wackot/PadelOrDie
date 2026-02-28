@@ -1,0 +1,300 @@
+/* ═══════════════════════════════════════════════════
+   PEDAL OR DIE — devmode.css
+   Dev mode panel: dark terminal / hacker aesthetic
+   ═══════════════════════════════════════════════════ */
+
+/* ── HUD button ─────────────────────────────────────── */
+#btn-devmode {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(229,57,53,0.08) 0px,
+    rgba(229,57,53,0.08) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  border-color: rgba(229,57,53,0.35) !important;
+  color: #ef5350 !important;
+  position: relative;
+  animation: dev-hud-pulse 3s ease-in-out infinite;
+}
+@keyframes dev-hud-pulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(229,57,53,0.2); }
+  50%       { box-shadow: 0 0 10px rgba(229,57,53,0.5); }
+}
+#btn-devmode::after {
+  content: 'DEV';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: monospace;
+  font-size: 0.38rem;
+  color: #ef5350;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ── Panel container ─────────────────────────────────── */
+#devmode-panel {
+  position: fixed;
+  top: 0;
+  right: -340px;
+  width: 320px;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: #0a0d06;
+  border-left: 2px solid #ef5350;
+  box-shadow: -4px 0 24px rgba(229,57,53,0.25), -1px 0 0 rgba(255,255,255,0.04);
+  transition: right 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+}
+
+#devmode-panel.devmode-open {
+  right: 0;
+}
+
+/* Scanline overlay */
+#devmode-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.dev-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(229,57,53,0.1);
+  border-bottom: 1px solid rgba(229,57,53,0.3);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.dev-title {
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #ef5350;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(229,57,53,0.5);
+}
+
+.dev-warning {
+  font-size: 0.6rem;
+  color: rgba(229,57,53,0.5);
+  flex: 1;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.dev-close {
+  background: none;
+  border: 1px solid rgba(229,57,53,0.3);
+  color: rgba(229,57,53,0.6);
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.dev-close:hover {
+  border-color: #ef5350;
+  color: #ef5350;
+  background: rgba(229,57,53,0.1);
+}
+
+/* ── Scrollable body ─────────────────────────────────── */
+.dev-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(229,57,53,0.3) transparent;
+}
+.dev-body::-webkit-scrollbar { width: 3px; }
+.dev-body::-webkit-scrollbar-thumb { background: rgba(229,57,53,0.3); border-radius: 2px; }
+
+/* ── Section ─────────────────────────────────────────── */
+.dev-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dev-section-label {
+  font-size: 0.58rem;
+  letter-spacing: 3px;
+  color: rgba(229,57,53,0.6);
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(229,57,53,0.15);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+/* ── Toggle row ──────────────────────────────────────── */
+.dev-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.02);
+  cursor: default;
+  transition: background 0.12s;
+}
+.dev-row:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+}
+
+.dev-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dev-row-label {
+  font-size: 0.75rem;
+  color: #c8c8b8;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.dev-row-desc {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.3);
+  line-height: 1.35;
+  white-space: normal;
+}
+
+/* ── Toggle button ───────────────────────────────────── */
+.dev-toggle {
+  width: 46px;
+  height: 26px;
+  border-radius: 4px;
+  border: 1px solid;
+  font-family: 'Courier New', monospace;
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dev-toggle-off {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.3);
+}
+.dev-toggle-off:hover {
+  border-color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.5);
+}
+
+.dev-toggle-on {
+  background: rgba(76,175,80,0.15);
+  border-color: #4caf50;
+  color: #4caf50;
+  box-shadow: 0 0 8px rgba(76,175,80,0.2);
+  animation: dev-toggle-glow 1.5s ease-in-out infinite alternate;
+}
+@keyframes dev-toggle-glow {
+  from { box-shadow: 0 0 4px rgba(76,175,80,0.2); }
+  to   { box-shadow: 0 0 12px rgba(76,175,80,0.4); }
+}
+
+/* ── Action buttons ──────────────────────────────────── */
+.dev-action-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,215,0,0.2);
+  color: #ffd700;
+  font-family: 'Courier New', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.13s;
+  text-transform: uppercase;
+}
+.dev-action-btn:hover {
+  background: rgba(255,215,0,0.08);
+  border-color: rgba(255,215,0,0.5);
+  transform: translateX(2px);
+}
+.dev-action-btn:active {
+  transform: translateX(4px);
+  background: rgba(255,215,0,0.15);
+}
+
+.dev-action-danger {
+  border-color: rgba(229,57,53,0.3) !important;
+  color: #ef5350 !important;
+}
+.dev-action-danger:hover {
+  background: rgba(229,57,53,0.1) !important;
+  border-color: rgba(229,57,53,0.6) !important;
+}
+
+/* ── Footer ──────────────────────────────────────────── */
+.dev-footer {
+  padding: 8px 14px;
+  border-top: 1px solid rgba(229,57,53,0.15);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.dev-footer-note {
+  font-size: 0.56rem;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  display: block;
+  text-align: center;
+}
+
+/* ── Active flags indicator in HUD ──────────────────── */
+/* When any flag is on, pulse more aggressively */
+#btn-devmode.dev-flags-active {
+  animation: dev-hud-active 0.8s ease-in-out infinite alternate;
+}
+@keyframes dev-hud-active {
+  from { box-shadow: 0 0 6px rgba(229,57,53,0.4); border-color: rgba(229,57,53,0.7) !important; }
+  to   { box-shadow: 0 0 16px rgba(229,57,53,0.8); border-color: rgba(229,57,53,1) !important; }
+}

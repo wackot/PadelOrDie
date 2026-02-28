@@ -1,0 +1,352 @@
+/* ═══════════════════════════════════════════
+   PEDAL OR DIE — farming.css  (v2)
+   Advanced Farming System — earthy pixel aesthetic
+   ═══════════════════════════════════════════ */
+
+#screen-farming { overflow: hidden; }
+
+/* ── Screen wrapper ─────────────────────── */
+.fm-screen {
+  display: flex; flex-direction: column; height: 100%;
+  background: #0e0d08;
+  color: #d8d4c0;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────── */
+.fm-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 12px 16px 10px;
+  background: linear-gradient(180deg, #1a1a0a 0%, #0e0d08 100%);
+  border-bottom: 2px solid #2a3a10;
+  flex-shrink: 0;
+}
+.fm-header-left { display: flex; flex-direction: column; gap: 3px; }
+.fm-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.45rem, 1.6vw, 0.7rem);
+  color: #a0c840;
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px rgba(140,200,40,0.5);
+}
+.fm-subtitle {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+  color: #6a7840;
+}
+.fm-close {
+  background: none; border: 1px solid #2a3a10;
+  color: #6a7840; font-size: 0.95rem;
+  width: 28px; height: 28px; border-radius: 3px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.fm-close:hover { border-color: #ef5350; color: #ef5350; }
+
+/* ── Stats strip ────────────────────────── */
+.fm-stats-strip {
+  display: flex; border-bottom: 1px solid #1a2010;
+  flex-shrink: 0;
+}
+.fm-stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 7px 4px;
+  border-right: 1px solid #1a2010;
+  background: rgba(0,0,0,0.3);
+}
+.fm-stat:last-child { border-right: none; }
+.fm-stat-n {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.5rem, 1.6vw, 0.75rem);
+  line-height: 1.2;
+}
+.fm-stat-l {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(0.52rem, 1.1vw, 0.6rem);
+  color: #4a5a28;
+  letter-spacing: 1px;
+  margin-top: 1px;
+}
+
+/* ── Tabs ────────────────────────────────── */
+.fm-tabs {
+  display: flex; gap: 4px; padding: 8px 10px 6px;
+  background: rgba(0,0,0,0.25); border-bottom: 1px solid #1a2010;
+  flex-shrink: 0;
+}
+.fm-tab {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.2rem, 0.7vw, 0.27rem);
+  padding: 7px 12px; letter-spacing: 1px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid #2a3a10;
+  color: #5a6a30; cursor: pointer; border-radius: 3px;
+  transition: all 0.15s;
+}
+.fm-tab:hover { border-color: #4a6a18; color: #8bc34a; }
+.fm-tab-on {
+  background: rgba(139,195,74,0.1);
+  border-color: #6a9a28;
+  color: #a0c840;
+  box-shadow: 0 0 8px rgba(139,195,74,0.15);
+}
+
+/* ── Body ────────────────────────────────── */
+.fm-body {
+  flex: 1; overflow-y: auto; padding: 10px 10px 4px;
+  scrollbar-width: thin; scrollbar-color: #3a5018 transparent;
+}
+.fm-body::-webkit-scrollbar { width: 3px; }
+.fm-body::-webkit-scrollbar-thumb { background: #3a5018; border-radius: 2px; }
+
+/* ── Plot grid ───────────────────────────── */
+.fm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* ── Plot card ───────────────────────────── */
+.fm-plot {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 8px 8px 10px;
+  border-radius: 5px;
+  border: 1px solid #1e2a0c;
+  background: #13120c;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fm-plot-empty   { border-color: #1e2a0c; }
+.fm-plot-growing { border-color: #3a6020; }
+.fm-plot-ready   {
+  border-color: #c8a000;
+  box-shadow: 0 0 14px rgba(200,160,0,0.25);
+  animation: fm-ready-glow 1.2s ease-in-out infinite alternate;
+}
+@keyframes fm-ready-glow {
+  from { box-shadow: 0 0 6px rgba(200,160,0,0.15); }
+  to   { box-shadow: 0 0 20px rgba(200,160,0,0.4); }
+}
+.fm-plot-locked {
+  border-color: #181810; background: #0e0d08; opacity: 0.4;
+}
+
+.fm-plot-num {
+  position: absolute; top: 5px; left: 7px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.58rem; color: #3a4a18;
+}
+
+.fm-plot-art { width: 100%; }
+.fm-plot-art svg { width: 100%; height: auto; display: block; }
+
+.fm-plot-info {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  width: 100%; min-height: 32px; justify-content: center;
+}
+.fm-plot-empty-lbl { font-family: 'Courier New', monospace; font-size: 0.62rem; color: #2a3a14; }
+.fm-plot-crop-name { font-family: 'Courier New', monospace; font-size: 0.72rem; color: #8bc34a; text-align: center; }
+
+.fm-plot-bar-wrap {
+  width: 100%; height: 4px;
+  background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;
+}
+.fm-plot-bar { height: 100%; border-radius: 2px; transition: width 0.4s; }
+.fm-plot-days { font-family: 'Courier New', monospace; font-size: 0.62rem; color: #5a6a30; }
+.fm-thirsty   { color: #ef5350 !important; }
+
+.fm-plot-ready-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.18rem, 0.65vw, 0.26rem);
+  color: #ffd700; letter-spacing: 2px;
+  animation: fm-blink 0.7s step-end infinite;
+}
+@keyframes fm-blink {
+  0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+}
+
+.fm-plot-btns { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+
+.fm-plot-lock-body {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 18px 0; width: 100%;
+}
+.fm-lock-key  { font-size: 1.2rem; opacity: 0.3; }
+.fm-lock-need { font-family: 'Courier New', monospace; font-size: 0.58rem; color: #2a3a10; }
+
+/* ── Buttons ─────────────────────────────── */
+.fm-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.15rem, 0.6vw, 0.23rem);
+  padding: 5px 8px; border-radius: 3px; cursor: pointer;
+  letter-spacing: 0.5px; border: 1px solid; transition: all 0.12s;
+}
+.fm-btn-plant    { background: rgba(139,195,74,0.08);  border-color: #4a7020; color: #8bc34a; }
+.fm-btn-plant:hover { background: rgba(139,195,74,0.18); }
+.fm-btn-harvest  { background: rgba(200,160,0,0.12); border-color: #8a7000; color: #ffd700; }
+.fm-btn-harvest:hover { background: rgba(200,160,0,0.22); }
+.fm-btn-water    { background: rgba(41,182,246,0.08);  border-color: #1a6080; color: #42a5f5; padding: 5px 7px; font-size: 0.75rem; }
+.fm-btn-water:hover { background: rgba(41,182,246,0.18); }
+.fm-btn-uproot   { background: rgba(229,57,53,0.06);  border-color: #5a2020; color: #ef5350; padding: 5px 6px; font-size: 0.7rem; }
+.fm-btn-uproot:hover { background: rgba(229,57,53,0.14); }
+.fm-btn-plant-ok { background: rgba(139,195,74,0.12); border-color: #5a8020; color: #a0c840; }
+.fm-btn-plant-ok:hover { background: rgba(139,195,74,0.22); }
+
+/* ── Harvest all ─────────────────────────── */
+.fm-harvest-all {
+  display: block; width: 100%; margin-top: 10px; padding: 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.2rem, 0.75vw, 0.3rem);
+  letter-spacing: 2px; background: rgba(200,160,0,0.1);
+  border: 1px solid #8a7000; color: #ffd700;
+  cursor: pointer; border-radius: 4px; transition: all 0.15s;
+}
+.fm-harvest-all:hover { background: rgba(200,160,0,0.2); box-shadow: 0 0 10px rgba(200,160,0,0.2); }
+
+/* ── Seed picker ─────────────────────────── */
+.fm-picker { display: flex; flex-direction: column; gap: 8px; }
+.fm-picker-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 6px; border-bottom: 1px solid #2a3a10;
+}
+.fm-picker-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.22rem, 0.8vw, 0.32rem);
+  color: #8bc34a; letter-spacing: 1px;
+}
+.fm-picker-cancel {
+  background: none; border: 1px solid #2a3a10;
+  color: #5a6a30; font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.18rem, 0.65vw, 0.25rem);
+  padding: 5px 10px; cursor: pointer; border-radius: 3px; letter-spacing: 1px;
+  transition: all 0.13s;
+}
+.fm-picker-cancel:hover { color: #d8d4c0; border-color: #4a6020; }
+
+.fm-pick-list { display: flex; flex-direction: column; gap: 5px; }
+.fm-pick-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px;
+  border-radius: 4px; border: 1px solid; transition: all 0.13s;
+}
+.fm-pick-ok     { border-color: #3a5018; background: rgba(139,195,74,0.04); }
+.fm-pick-ok:hover { border-color: #6a9028; background: rgba(139,195,74,0.08); }
+.fm-pick-none   { border-color: #1a1e0c; background: rgba(0,0,0,0.1); opacity: 0.6; }
+.fm-pick-locked { border-color: #161610; background: rgba(0,0,0,0.1); opacity: 0.4; }
+
+.fm-pick-emoji { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+.fm-pick-info  { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fm-pick-name  {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.2rem, 0.75vw, 0.3rem);
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+}
+.fm-pick-badge {
+  font-family: 'Courier New', monospace; font-size: 0.62rem;
+  padding: 1px 5px; border: 1px solid currentColor;
+  border-radius: 3px; opacity: 0.65;
+}
+.fm-pick-desc  { font-family: 'Courier New', monospace; font-size: 0.65rem; color: #6a7840; line-height: 1.35; }
+.fm-pick-stats { font-family: 'Courier New', monospace; font-size: 0.6rem; color: #4a5a28; }
+
+.fm-pick-right { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.fm-pick-have  {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.35rem, 1.3vw, 0.55rem);
+  color: #8bc34a;
+}
+.fm-pick-zero { color: #2a3a14 !important; }
+.fm-pick-unit { font-family: 'Courier New', monospace; font-size: 0.58rem; color: #4a5a28; }
+
+/* ── Seeds tab ───────────────────────────── */
+.fm-seeds-tab { display: flex; flex-direction: column; gap: 8px; }
+.fm-seeds-hint {
+  font-family: 'Courier New', monospace;
+  font-size: 0.68rem; color: #4a5a28;
+  padding: 7px 10px; border: 1px solid #1e2a0c;
+  background: rgba(0,0,0,0.2); border-radius: 4px; line-height: 1.4;
+}
+.fm-seed-list { display: flex; flex-direction: column; gap: 5px; }
+.fm-seed-card {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px;
+  border: 1px solid #1e2a0c; background: #111008; border-radius: 4px;
+}
+.fm-seed-locked { opacity: 0.4; }
+.fm-seed-emoji { font-size: 1.7rem; flex-shrink: 0; margin-top: 2px; }
+.fm-seed-body  { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fm-seed-name  { font-family: 'Press Start 2P', monospace; font-size: clamp(0.2rem, 0.75vw, 0.3rem); letter-spacing: 0.5px; }
+.fm-seed-rarity { font-family: 'Courier New', monospace; font-size: 0.6rem; color: #4a5a28; text-transform: uppercase; letter-spacing: 1px; }
+.fm-seed-stat  { font-family: 'Courier New', monospace; font-size: 0.64rem; color: #5a6a30; }
+.fm-seed-yield { font-family: 'Courier New', monospace; font-size: 0.65rem; color: #7a8a40; }
+.fm-seed-source { font-family: 'Courier New', monospace; font-size: 0.6rem; color: #4a5028; font-style: italic; }
+.fm-seed-stock {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.35rem, 1.3vw, 0.55rem); color: #8bc34a;
+}
+.fm-seed-zero { color: #2a3214 !important; }
+.fm-seed-lbl  { font-family: 'Courier New', monospace; font-size: 0.58rem; color: #4a5028; }
+
+/* ── Guide tab ───────────────────────────── */
+.fm-guide { display: flex; flex-direction: column; gap: 12px; }
+.fm-guide-section { display: flex; flex-direction: column; gap: 6px; }
+.fm-guide-heading {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.2rem, 0.7vw, 0.28rem);
+  color: #6a9020; letter-spacing: 2px;
+  border-bottom: 1px solid #2a3a10; padding-bottom: 4px;
+}
+.fm-guide-body {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(0.68rem, 1.5vw, 0.76rem);
+  color: #6a7840; line-height: 1.55;
+}
+.fm-guide-body p { margin: 0 0 4px 0; }
+.fm-guide-body strong { color: #8bc34a; font-weight: bold; }
+.fm-guide-table {
+  width: 100%; border-collapse: collapse;
+  font-family: 'Courier New', monospace; font-size: 0.68rem;
+}
+.fm-guide-table th {
+  text-align: left; padding: 5px 8px;
+  color: #4a5a28; border-bottom: 1px solid #2a3a10;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.16rem, 0.6vw, 0.24rem); letter-spacing: 1px;
+}
+.fm-guide-table td { padding: 5px 8px; border-bottom: 1px solid #1a2010; color: #5a6a30; }
+.fm-guide-active td  { color: #8bc34a; }
+.fm-guide-locked td  { opacity: 0.45; }
+.fm-guide-active td:first-child { color: #ffd700; }
+
+.fm-guide-seed-row {
+  display: grid; grid-template-columns: 28px 140px 1fr;
+  gap: 6px; align-items: baseline;
+  padding: 4px 0; border-bottom: 1px solid #141a08;
+  font-family: 'Courier New', monospace; font-size: 0.65rem; color: #5a6040;
+}
+.fm-guide-seed-row:last-child { border-bottom: none; }
+
+/* ── Locked (field not built) ────────────── */
+.fm-locked-screen { background: #0e0d08; }
+.fm-locked-body {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 30px 20px; text-align: center;
+}
+.fm-lock-icon {
+  font-size: 3.5rem; opacity: 0.25;
+  animation: fm-lock-pulse 2s ease-in-out infinite alternate;
+}
+@keyframes fm-lock-pulse { from { opacity: 0.15; } to { opacity: 0.35; } }
+.fm-lock-heading {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.28rem, 1vw, 0.46rem);
+  color: #4a5a28; letter-spacing: 3px;
+}
+.fm-lock-sub {
+  font-family: 'Courier New', monospace;
+  font-size: clamp(0.72rem, 1.6vw, 0.82rem);
+  color: #3a4a18; max-width: 260px; line-height: 1.5;
+}
+
+/* ── Back button ─────────────────────────── */
+.fm-back { flex-shrink: 0; margin: 8px 12px 10px; }
