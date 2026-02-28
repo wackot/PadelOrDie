@@ -274,6 +274,55 @@
   box-shadow: 0 6px 0 var(--col-green-dim), 0 0 20px rgba(76,175,80,0.5);
 }
 
+/* ── Animated arena wrapper (new) ───────── */
+.raid-arena-wrap {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make ca-overlay fill the raid arena wrap rather than absolute over foraging */
+.raid-arena-wrap .ca-overlay {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.raid-arena-wrap .ca-svg {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  max-height: 200px;
+}
+
+/* Info row: timer / defence / CPM */
+.raid-info-row {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  justify-content: space-around;
+  padding: 5px 12px;
+  background: rgba(0,0,0,0.5);
+  border-top: 1px solid #3a0000;
+  border-bottom: 1px solid #3a0000;
+}
+
+.raid-info-cell {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--col-text-dim);
+}
+
+/* Title flash animation */
+.raid-title-flash {
+  animation: raidFlicker 0.4s infinite alternate;
+}
+
 /* ── Raid result overlay ─────────────────── */
 .raid-result {
   position: fixed;
