@@ -16,6 +16,9 @@
   <link rel="stylesheet" href="css/raids.css" />
   <link rel="stylesheet" href="css/world.css" />
   <link rel="stylesheet" href="css/power.css" />
+  <link rel="stylesheet" href="css/achievements.css">
+  <link rel="stylesheet" href="css/devmode.css">
+  <link rel="stylesheet" href="css/farming.css">
 </head>
 <body>
 
@@ -76,8 +79,10 @@
       <span class="hud-res">🥫 <span id="res-food">0</span></span>
       <span class="hud-res">🧴 <span id="res-water">0</span></span>
       <button id="btn-player-stats" class="btn-audio-hud" title="Player Stats" onclick="PlayerStats.open()">👤</button>
+      <button id="btn-achievements" class="btn-audio-hud" title="Achievements" onclick="Achievements.open()">🏆</button>
       <button id="btn-audio-toggle" class="btn-audio-hud" title="Toggle Music">🔊</button>
       <button id="btn-pause" class="btn-audio-hud" title="Pause">⏸</button>
+      <button id="btn-devmode" class="btn-audio-hud btn-devmode-hud" title="Dev Mode" onclick="DevMode.toggle()">🛠</button>
     </div>
   </div>
 
@@ -248,6 +253,20 @@
     <div id="player-stats-content"></div>
   </div>
 
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: ACHIEVEMENTS                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-achievements" class="screen">
+    <div id="achievements-content"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!--  SCREEN: FARMING                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div id="screen-farming" class="screen">
+    <div id="farming-content"></div>
+  </div>
+
   <div id="screen-bld-radio_tower"    class="screen bld-screen"><div class="bld-container" id="bld-radio_tower-content"></div></div>
   <div id="screen-bld-rain_collector" class="screen bld-screen"><div class="bld-container" id="bld-rain_collector-content"></div></div>
   <div id="screen-bld-solar_station"  class="screen bld-screen"><div class="bld-container" id="bld-solar_station-content"></div></div>
@@ -299,6 +318,9 @@
   <script src="js/foraging.js"></script>
   <script src="js/power.js"></script>
   <script src="js/crafting.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/farming.js"></script>
+  <script src="js/devmode.js"></script>
   <script src="js/main.js"></script>
 
 </body>
