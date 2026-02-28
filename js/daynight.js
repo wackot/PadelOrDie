@@ -66,6 +66,7 @@ const DayNight = {
       this._onDawn();
     } else if (hour === 20 && !wasNight) {
     if (typeof PlayerStats !== 'undefined') PlayerStats.checkMilestones();
+    if (typeof Achievements !== 'undefined') Achievements.check();
       this._onDusk();
     }
 
@@ -234,16 +235,8 @@ const DayNight = {
       Utils.toast(`🌿 Greenhouse produced ${b.passiveWater} water!`, 'good', 3000);
     }
 
-    // Crop field yield (every 2nd day for Lv1, every day for Lv2+)
-    const fieldLevel = State.data.base.buildings?.field?.level || 0;
-    const cropYield  = b.cropYield || 0;
-    if (cropYield > 0) {
-      const everyDay = fieldLevel >= 2;
-      if (everyDay || State.data.world.day % 2 === 0) {
-        State.addResource('food', cropYield);
-        Utils.toast(`🌾 Field harvested ${cropYield} food!`, 'good', 3000);
-      }
-    }
+    // Advanced farming system — grow all plots by 1 day, alert when ready
+    if (typeof Farming !== 'undefined') Farming.dailyTick();
 
     HUD.update();
     Base.updateNight();

@@ -118,6 +118,15 @@ const State = {
       // Location-unique materials (only found at specific locations)
       spores:         0,  // Forest
       wild_seeds:     0,  // Abandoned Farm
+      // Farming seeds (start with a few wheat/potato/carrot to get going)
+      seeds_wheat:    3,
+      seeds_potato:   2,
+      seeds_carrot:   2,
+      seeds_beans:    0,
+      seeds_herb:     0,
+      seeds_sunflower:0,
+      seeds_mushroom: 0,
+      seeds_mutant:   0,
       engine_parts:   0,  // Gas Station
       scrap_wire:     0,  // City Ruins
       circuit_board:  0,  // Junkyard
@@ -142,6 +151,8 @@ const State = {
       A: ['wood','metal','food','water','cloth','rope'],
       B: ['electronics','chemicals','gasoline','medicine','coal','glass'],
       C: ['spores','wild_seeds','engine_parts','scrap_wire','circuit_board','antiseptic','cave_crystal','military_chip'],
+      // Farming seeds use tier B storage (accessible early)
+      // (seeds_* are added dynamically by Farming._ensureState)
       D: ['battery_cell','copper_wire','steel_casing','capacitor','power_core']
     },
 
@@ -195,7 +206,17 @@ const State = {
       sessionPedalSecs:       0,   // pedalling seconds this session
       sessionBestCPM:         0,   // best CPM this session
       // Milestones (day first achieved)
-      milestones: {}
+      milestones: {},
+      // Achievement tracking counters
+      totalBuilds:          0,   // cumulative build/upgrade completions
+      totalCrafted:         0,   // cumulative items crafted
+      nightExpeditions:     0,   // expeditions started at night
+      everStarved:          false, // hunger ever reached 0
+      bossKilled:           false,
+      titanKilled:          false,
+      craftedCircuitBoard:  0,
+      craftedMilitaryChip:  0,
+      craftedPowerCore:     0
     },
 
     meta: {
@@ -300,9 +321,10 @@ const State = {
   // Adjust survival stats (hunger/thirst/energy)
   tickSurvival(deltaHours = 1) {
     const p = this.data.player;
-    p.hunger = Utils.clamp(p.hunger - (5  * deltaHours), 0, 100);
-    p.thirst = Utils.clamp(p.thirst - (8  * deltaHours), 0, 100);
-    p.energy = Utils.clamp(p.energy - (3  * deltaHours), 0, 100);
+    const mult = (typeof DevMode !== 'undefined') ? DevMode.survivalMultiplier() : 1;
+    p.hunger = Utils.clamp(p.hunger - (5  * deltaHours * mult), 0, 100);
+    p.thirst = Utils.clamp(p.thirst - (8  * deltaHours * mult), 0, 100);
+    p.energy = Utils.clamp(p.energy - (3  * deltaHours * mult), 0, 100);
   },
 
   // Serialise for saving

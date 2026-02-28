@@ -458,16 +458,20 @@ const Crafting = {
       ]
     },
     field: {
-      name:'Crop Field', icon:'🌾', maxLevel:3,
+      name:'Crop Field', icon:'🌾', maxLevel:5,
       levels: [
         { desc:'Lv0 — Not built. Requires Wild Seeds to plant.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Planted field. +2 food every 2 days. Needs Wild Seeds.',
-          cost:{ wild_seeds:5, wood:8, rope:2 } },
-        { desc:'Lv2 — Cultivated field. +3 food/day. Reduces hunger drain 15%.',
-          cost:{ wild_seeds:10, wood:15, metal:3, rope:4 } },
-        { desc:'Lv3 — Full harvest. +5 food/day. Hunger barely drains at base.',
-          cost:{ wild_seeds:20, wood:20, metal:8, chemicals:3 } }
+          cost:{ wood:0 }, buildSecs:0 },
+        { desc:'Lv1 — 2 plots. Plant Wheat, Potato, Carrot. Basic yields.',
+          cost:{ wild_seeds:5, wood:8, rope:2 }, buildSecs:30 },
+        { desc:'Lv2 — 4 plots. Unlocks Beans + Herb. Build a trellis system.',
+          cost:{ wild_seeds:10, wood:15, metal:4, rope:4 }, buildSecs:60 },
+        { desc:'Lv3 — 6 plots. Unlocks Sunflower. +25% all yields. Irrigation channels.',
+          cost:{ wild_seeds:15, wood:20, metal:8, chemicals:2 }, buildSecs:90 },
+        { desc:'Lv4 — 8 plots. Unlocks Cave Shroom. Automated watering system.',
+          cost:{ wild_seeds:20, metal:15, electronics:4, rope:6 }, buildSecs:120 },
+        { desc:'Lv5 — 10 plots. Unlocks Mutant Crop. +50% all yields. Full agri-lab.',
+          cost:{ wild_seeds:30, metal:25, electronics:8, chemicals:6, circuit_board:2 }, buildSecs:180 },
       ]
     },
     // ── NEW BUILDINGS (unlocked by shelter level) ──────
@@ -936,6 +940,12 @@ const Crafting = {
       HUD.update();
       this._renderDetail();
       this._renderRecipes();
+      State.data.stats.totalCrafted = (State.data.stats.totalCrafted||0) + qty;
+      // Track special crafted items for achievements
+      if (recipe.id === 'circuit_board')  State.data.stats.craftedCircuitBoard  = (State.data.stats.craftedCircuitBoard ||0) + qty;
+      if (recipe.id === 'military_chip')  State.data.stats.craftedMilitaryChip  = (State.data.stats.craftedMilitaryChip ||0) + qty;
+      if (recipe.id === 'power_core')     State.data.stats.craftedPowerCore     = (State.data.stats.craftedPowerCore    ||0) + qty;
+      if (typeof Achievements !== 'undefined') Achievements.check();
       Utils.toast(`🔨 Crafted ${qty}× ${recipe.emoji} ${recipe.name}!`, 'good');
       console.log('[Crafting] Crafted:', recipe.name, '×', qty);
     });
@@ -1315,9 +1325,10 @@ const Crafting = {
 
     // Build time: use per-level buildSecs if defined, else scale by level
     const levelDef = upg.levels ? (upg.levels[currentLevel] || {}) : {};
-    const buildSecs = levelDef.buildSecs
+    let buildSecs = levelDef.buildSecs
       ? levelDef.buildSecs
       : Math.max(10, 10 + (currentLevel * 8));
+    if (typeof DevMode !== 'undefined') buildSecs = DevMode.buildSecs(buildSecs);
 
     State.data.activeBuild = {
       key:       buildingKey,
@@ -1345,6 +1356,7 @@ const Crafting = {
   },
 
   _tickBuild() {
+    if (typeof DevMode !== 'undefined') DevMode.tick();
     const ab = State.data.activeBuild;
     if (!ab) { clearInterval(this._buildTimer); this._buildTimer = null; return; }
 
@@ -1397,6 +1409,8 @@ const Crafting = {
     }
 
     this._applyBuildingUpgrade(ab.key, ab.newLevel);
+    State.data.stats.totalBuilds = (State.data.stats.totalBuilds||0) + 1;
+    if (typeof Achievements !== 'undefined') Achievements.check();
     Utils.toast(`✅ ${ab.upg.name} upgraded to Lv${ab.newLevel}!`, 'good', 4000);
     Audio.sfxVictory?.();
     this._renderUpgradesTab();
@@ -1475,7 +1489,10 @@ const Crafting = {
         b.passiveWater = [0, 0, 1, 2][newLevel - 1] || 0;
         break;
       case 'field':
-        b.cropYield = [0, 2, 3, 5][newLevel - 1] || 0;
+        // Farming system handles yields per-plot — just record level
+        b.cropYield = 0; // legacy: farming.js handles all yields now
+        if (typeof Farming !== 'undefined') Farming._ensureState();
+        Utils.toast('🌾 Field Lv' + newLevel + ' unlocked — ' + Farming._plotsForLevel(newLevel) + ' plots now available!', 'good', 4000);
         break;
       case 'powerhouse':
         break;

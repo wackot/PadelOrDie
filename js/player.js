@@ -24,6 +24,7 @@ const Player = {
 
     if (p.hunger <= 10) {
       Utils.toast('☠ STARVING! Find food immediately!', 'bad', 5000);
+      if (p.hunger <= 0) State.data.stats.everStarved = true;
       // Starving costs energy faster
       p.energy = Utils.clamp(p.energy - 5, 0, 100);
     } else if (p.hunger <= 25) {

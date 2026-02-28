@@ -34,6 +34,7 @@ const Raids = {
     // Never raid while player is away from base — they can't defend
     if (Foraging._active) return;
     if (typeof WorldMap !== 'undefined' && WorldMap._travelling) return;
+    if (typeof DevMode !== 'undefined' && DevMode.raidsBlocked()) return;
     const daysSince  = State.data.world.daysSinceLastRaid;
     const isNight    = State.data.world.isNight;
     const baseChance = Utils.clamp(0.06 + daysSince * 0.04, 0.06, 0.55);

@@ -1752,13 +1752,18 @@ const Base = {
       case 'rain_collector':
       case 'solar_station':
         this.renderBuildingScreen(id);
-        Game.goTo('screen-bld-' + id);
+        Game.goTo('bld-' + id);
+        break;
+
+      case 'field':
+        if (typeof Farming !== 'undefined') { Farming.open(); }
+        else { this.renderBuildingScreen('field'); Game.goTo('bld-field'); }
         break;
 
       default:
         if (document.getElementById('screen-bld-' + id)) {
           this.renderBuildingScreen(id);
-          Game.goTo('screen-bld-' + id);
+          Game.goTo('bld-' + id);
         }
         break;
     }
@@ -1871,21 +1876,27 @@ const Base = {
         break;
       }
       case 'field': {
-        const lv = bld.field?.level || 0;
-        const cy = s.base.cropYield || 0;
+        const lv    = bld.field?.level || 0;
+        const plots = typeof Farming !== 'undefined' ? Farming._plotsForLevel(lv) : lv * 2;
+        const farming = State.data.farming;
+        const ready  = farming ? farming.plots.filter(p=>p.state==='ready').length : 0;
+        const growing= farming ? farming.plots.filter(p=>p.state==='growing').length : 0;
         title  = '🌾 CROP FIELD';
         visual = `<svg width="120" height="80" viewBox="0 0 120 80">
-          <rect x="5" y="45" width="110" height="25" fill="#2a1808" rx="2"/>
-          <rect x="5" y="40" width="110" height="8" fill="#3a2010" rx="1"/>
-          ${lv>0 ? Array.from({length:7},(_,i)=>`
-            <line x1="${13+i*16}" y1="42" x2="${13+i*16}" y2="${28}" stroke="#5a8a20" stroke-width="2"/>
-            <text x="${13+i*16}" y="${24}" font-size="12" text-anchor="middle">🌾</text>
-          `).join('') : '<text x="60" y="35" text-anchor="middle" font-size="10" fill="#555">— not planted —</text>'}
+          <rect x="5" y="48" width="110" height="22" fill="#2a1808" rx="2"/>
+          <rect x="5" y="43" width="110" height="8" fill="#3a2010" rx="1"/>
+          ${lv>0 ? Array.from({length:Math.min(plots,8)},(_,i)=>`
+            <line x1="${10+i*13}" y1="44" x2="${10+i*13}" y2="${26}" stroke="#5a8a20" stroke-width="2"/>
+            <text x="${10+i*13}" y="${22}" font-size="11" text-anchor="middle">🌾</text>
+          `).join('') : '<text x="60" y="36" text-anchor="middle" font-size="9" fill="#555">— not built —</text>'}
         </svg>`;
         statsRows = lv === 0
           ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
           : `<div class="bsc-row"><span>Level</span><span>${lv} / 5</span></div>
-             <div class="bsc-row ok"><span>Food per harvest</span><span>+${cy}</span></div>`;
+             <div class="bsc-row ok"><span>Active plots</span><span>${plots} / 10</span></div>
+             <div class="bsc-row ok"><span>Growing</span><span>${growing} plots</span></div>
+             <div class="bsc-row ${ready>0?'ok':''}" ><span>Ready to harvest</span><span>${ready>0?'✅ '+ready+' ready':'none'}</span></div>`;
+        actionBtn = lv > 0 ? `<button class="bsc-action-btn" onclick="Farming.open()">🌾 MANAGE FARM</button>` : '';
         break;
       }
       case 'workshop': {
@@ -2203,25 +2214,38 @@ const Base = {
 
   // ── SVG: Crop field ────────────────────────
   _svgField(cx, cy, level) {
-    const w = 60, h = 40;
-    const rows = level >= 2 ? 3 : 2;
+    const w = 70, h = 48;
+    const plots = typeof Farming !== 'undefined' ? Farming._plotsForLevel(level) : level * 2;
+    const fdata = State.data?.farming?.plots || [];
+    // Count growing/ready for display
+    const readyCnt  = fdata.filter(p=>p.state==='ready').length;
+    const growCnt   = fdata.filter(p=>p.state==='growing').length;
+    // Show rows based on plot count
+    const cols = 5, rows = Math.ceil(Math.min(plots, 10) / cols) || 1;
     let crops = '';
     for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < 5; c++) {
-        const px = cx - w/2 + 6 + c * 12;
-        const py = cy - h/2 + 10 + r * 12;
-        const tall = level >= 3 ? 14 : level >= 2 ? 10 : 7;
+      for (let c = 0; c < cols; c++) {
+        const idx = r * cols + c;
+        if (idx >= Math.min(plots, 10)) break;
+        const px = cx - w/2 + 7 + c * 13;
+        const py = cy - h/2 + 10 + r * 16;
+        const plot = fdata[idx];
+        const isReady   = plot && plot.state === 'ready';
+        const isGrowing = plot && plot.state === 'growing';
+        const tall = isReady ? 14 : isGrowing ? 10 : 7;
+        const col  = isReady ? '#ffd600' : isGrowing ? '#8aba30' : '#5a8a20';
         crops += '<rect x="' + (px-1.5) + '" y="' + (py-tall) + '" width="3" height="' + tall + '" fill="#5a8a20" rx="1"/>';
-        crops += '<ellipse cx="' + px + '" cy="' + (py-tall) + '" rx="4" ry="3" fill="' + (level>=3 ? '#ffd600':'#8aba30') + '"/>';
+        crops += '<ellipse cx="' + px + '" cy="' + (py-tall) + '" rx="4" ry="3" fill="' + col + '"/>';
       }
     }
+    let badge = '';
+    if (readyCnt > 0) badge = '<text x="' + cx + '" y="' + (cy-h/2+7) + '" font-size="16" text-anchor="middle">✨</text>';
     return '<g filter="url(#shadow)">' +
-      '<rect x="' + (cx-w/2) + '" y="' + (cy-h/2+8) + '" width="' + w + '" height="' + (h-8) + '" fill="#3a2810" rx="2" opacity="0.6"/>' +
-      // Furrows
-      [0,1,2,3].map(i => '<line x1="' + (cx-w/2+2) + '" y1="' + (cy-h/2+12+i*8) + '" x2="' + (cx+w/2-2) + '" y2="' + (cy-h/2+12+i*8) + '" stroke="#2a1808" stroke-width="2" opacity="0.7"/>').join('') +
-      crops +
-      '<ellipse cx="' + cx + '" cy="' + (cy+h/2+4) + '" rx="32" ry="5" fill="rgba(0,0,0,0.2)"/>' +
-      '<text x="' + cx + '" y="' + (cy+h/2+42) + '" font-family="Press Start 2P" font-size="22" fill="#9a9a60" text-anchor="middle">Lv' + level + ' CROP FIELD</text>' +
+      '<rect x="' + (cx-w/2) + '" y="' + (cy-h/2+6) + '" width="' + w + '" height="' + (h-6) + '" fill="#3a2810" rx="2" opacity="0.7"/>' +
+      [0,1,2,3].map(i => '<line x1="' + (cx-w/2+2) + '" y1="' + (cy-h/2+10+i*10) + '" x2="' + (cx+w/2-2) + '" y2="' + (cy-h/2+10+i*10) + '" stroke="#2a1808" stroke-width="1.5" opacity="0.7"/>').join('') +
+      crops + badge +
+      '<ellipse cx="' + cx + '" cy="' + (cy+h/2+4) + '" rx="36" ry="5" fill="rgba(0,0,0,0.2)"/>' +
+      '<text x="' + cx + '" y="' + (cy+h/2+42) + '" font-family="Press Start 2P" font-size="20" fill="#9a9a60" text-anchor="middle">Lv' + level + ' FIELD</text>' +
     '</g>';
   },
 

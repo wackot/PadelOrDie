@@ -327,4 +327,6 @@ const Game = {
 // ── Bootstrap ─────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   Game.init();
+  if (typeof Achievements !== 'undefined') Achievements.init();
+  if (typeof Farming !== 'undefined') Farming._ensureState();
 });

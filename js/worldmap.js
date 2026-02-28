@@ -1071,7 +1071,8 @@ const WorldMap = {
 
       // DEV: fast travel — completes in ~10 real seconds
       const baseSpeed = Utils.lerp(0.08, 0.12, Math.min(totalDist / 900, 1));
-      const speed = this._roadEncounterActive ? 0 : baseSpeed * (0.3 + ratio * 0.85) + this._travelClickBonus;
+      const _devSpeedMult = (typeof DevMode !== 'undefined') ? DevMode.travelSpeedMultiplier() : 1;
+      const speed = this._roadEncounterActive ? 0 : baseSpeed * (0.3 + ratio * 0.85) * _devSpeedMult + this._travelClickBonus;
       this._travelClickBonus = 0;
 
       if (!this._roadEncounterActive) progress = Math.min(1, progress + speed);
