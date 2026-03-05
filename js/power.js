@@ -251,7 +251,7 @@ const Power = {
         <div class="power-section-title">🔌 ACTIVE CONSUMERS</div>
         ${consumers}
 
-        <button class="btn-pixel btn-secondary" onclick="Game.goTo('base')" style="margin-top:12px;max-width:200px">← BACK TO BASE</button>
+        <button class="btn-pixel btn-secondary" data-goto="base" style="margin-top:12px;max-width:200px">← BACK TO BASE</button>
       </div>
     `;
   },
@@ -354,7 +354,7 @@ const Power = {
       Object.entries(parts).map(([res, need]) => {
         const have = State.data.inventory[res] || 0;
         const ok   = have >= need;
-        return `<span class="bat-part ${ok?'have':'missing'}">${Crafting.emojiMap[res]||'📦'} ${res} ${have}/${need} ${ok?'✓':'✗'}</span>`;
+        return `<span class="bat-part ${ok?'have':'missing'}">${Utils.emojiMap[res]||'📦'} ${res} ${have}/${need} ${ok?'✓':'✗'}</span>`;
       }).join('') +
     '</div>';
   },
@@ -399,7 +399,7 @@ const Power = {
 
     Utils.toast(`🔋 Battery Bank upgraded to Level ${nextLevel}! Stores ${newMax} Wh.`, 'good', 4000);
     Audio.sfxCraft();
-    Base.updateNight();
+    Events.emit('map:changed');
     this.renderPanel();
   },
 
@@ -477,7 +477,7 @@ const Power = {
     const names = { bike:'🚴 Bike Dynamo', woodburner:'🪵 Wood Burner', coal:'⛏ Coal Plant', solar:'☀ Solar Array' };
     Utils.toast(`${names[key]} upgraded to Lv${newLevel}! +${this._genOutput[key]}W max`, 'good', 3000);
     Audio.sfxCraft();
-    Base.updateNight();
+    Events.emit('map:changed');
     this.renderPanel();
   },
 
@@ -501,7 +501,7 @@ const Power = {
   _genUpgradeCost(key, level) {
     const c = this._genUpgradeCostObj(key, level);
     return Object.entries(c)
-      .map(([r,v]) => `${Crafting.emojiMap[r]||'📦'}${v}`)
+      .map(([r,v]) => `${Utils.emojiMap[r]||'📦'}${v}`)
       .join(' ');
   },
 
@@ -518,3 +518,27 @@ const Power = {
     Utils.toast(`🔌 ${key} unlocked as power consumer!`, 'good', 3000);
   }
 };
+
+// ── Event subscriptions ────────────────────────────────────────────────────
+// Power owns its own hourly tick and dawn effects — dayNight just emits the signal.
+
+Events.on('tick:hour', () => {
+  if (typeof Power !== 'undefined' && State.data.power) {
+    Power.hourlyTick();
+  }
+});
+
+Events.on('tick:dawn:power', () => {
+  if (typeof Power === 'undefined' || !State.data.power) return;
+  const pw = State.data.power;
+  const b  = State.data.base;
+  // Electric pump — auto-produces water each dawn when powered
+  if (pw?.consumers?.waterPump && Power.hasPowerForCrafting(0.5)) {
+    State.addResource('water', 5);
+    Utils.toast('💧 Electric pump filled 5 water overnight.', 'info', 2500);
+  }
+  // Electric grow lights — bonus food each dawn
+  if (pw?.consumers?.lights && b.passiveFood > 0 && Power.hasPowerForCrafting(0.5)) {
+    State.addResource('food', 1);
+  }
+});

@@ -102,3 +102,47 @@ const Utils = {
   }
 
 };
+
+// ── Event Bus ──────────────────────────────────────────────────────────────
+// Lightweight pub/sub so modules can signal each other without direct imports.
+//
+// Usage:
+//   Events.on('map:changed', () => Base.updateNight());   // subscriber
+//   Events.emit('map:changed');                            // anywhere else
+//
+// Known events:
+//   'map:changed'    — base SVG needs redraw (was: Base.updateNight())
+//   'hud:update'     — HUD bars/resources need refresh (was: HUD.update())
+//
+const Events = {
+  _handlers: {},
+
+  on(event, fn) {
+    if (!this._handlers[event]) this._handlers[event] = [];
+    this._handlers[event].push(fn);
+  },
+
+  off(event, fn) {
+    if (!this._handlers[event]) return;
+    this._handlers[event] = this._handlers[event].filter(f => f !== fn);
+  },
+
+  emit(event, data) {
+    (this._handlers[event] || []).forEach(fn => {
+      try { fn(data); } catch(e) { console.error(`[Events] ${event}:`, e); }
+    });
+  }
+};
+
+// ── Resource emoji lookup ──────────────────────────────────────────────────
+// Shared by Crafting, Power, and any other module that displays resource names.
+// Moved here so Power doesn't need to import Crafting just to show icons.
+Utils.emojiMap = {
+  wood:'🪵', metal:'🔩', gasoline:'⛽', food:'🥫', water:'💧',
+  medicine:'💊', cloth:'🧶', electronics:'📟', rope:'🪢', chemicals:'🧪',
+  spores:'🍄', wild_seeds:'🌱', engine_parts:'⚙️', scrap_wire:'🔌',
+  circuit_board:'💾', antiseptic:'🧫', cave_crystal:'💎', military_chip:'🎖️',
+  coal:'⛏', glass:'🪟',
+  battery_cell:'🔋', copper_wire:'🔌', steel_casing:'🧊', capacitor:'💡', power_core:'⚡',
+  solar_glass:'☀'
+};

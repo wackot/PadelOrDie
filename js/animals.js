@@ -359,8 +359,8 @@ const Animals = {
   getStrength(animalId) {
     const animal = this.types[animalId];
     if (!animal) return 10;
-    const day      = State.data?.world?.day || 1;
-    const scale    = 1 + (day - 1) * 0.08;   // +8% per day
+    const day   = State.data?.world?.day || 1;
+    const scale = Math.min(5.0, 1 + (day - 1) * 0.08);  // +8%/day, capped at 5× (day ~51)
     return Math.round(animal.baseStrength * scale);
   },
 

@@ -32,18 +32,15 @@ const Raids = {
   // ── Probabilistic raid trigger ─────────────
   _maybeRaid() {
     // Never raid while player is away from base — they can't defend
-    if (Foraging._active) return;
+    if (Foraging.isActive()) return;
     if (typeof WorldMap !== 'undefined' && WorldMap._travelling) return;
     if (typeof DevMode !== 'undefined' && DevMode.raidsBlocked()) return;
     const daysSince  = State.data.world.daysSinceLastRaid;
     const isNight    = State.data.world.isNight;
     const baseChance = Utils.clamp(0.06 + daysSince * 0.04, 0.06, 0.55);
     // Night is always 2× — but if player is out foraging at night (with light) even MORE raids
-    const isNightForaging = isNight && Foraging._active && (State.data.base.bikeHasLight || false);
     const nightEncReduction = State.data.base.bikeNightEncounterReduction || 0;
-    let nightMult = isNight ? 2.0 : 1.0;
-    if (isNightForaging) nightMult = 3.0; // extra danger when out at night
-    nightMult *= (1 - nightEncReduction);  // bike upgrade reduces encounter chance
+    const nightMult = (isNight ? 2.0 : 1.0) * (1 - nightEncReduction);
     const chance = baseChance * nightMult;
     if (Math.random() < chance) this.triggerRaid(isNight ? 'night' : 'random');
   },
@@ -285,6 +282,12 @@ const Raids = {
     this._updateCadenceBar();
     this._updateRaidHP();
 
+    // End raid early if base is overrun
+    if (this._playerHealth <= 0) {
+      this._endRaid(false);
+      return;
+    }
+
     // Arena phase animations (mirrors foraging _arenaUpdate)
     const mon    = document.getElementById('ca-monster');
     const player = document.getElementById('ca-player');
@@ -440,7 +443,7 @@ const Raids = {
     document.getElementById('btn-raid-continue')?.addEventListener('click', () => {
       overlay.remove();
       Game.goTo('base');
-      HUD.update();
+      Events.emit('hud:update');
     });
   },
 

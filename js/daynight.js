@@ -54,31 +54,31 @@ const DayNight = {
   // ── Advance one game hour ─────────────────
   _tick() {
     if (this._paused) return;
+    const wasNight = State.data.world.isNight;  // capture BEFORE advanceTime mutates it
     State.advanceTime(1);
-    const hour    = State.data.world.hour;
-    const wasNight = State.data.world.isNight;
+    const hour = State.data.world.hour;
 
     this._applyHour(hour, true);
-    HUD.update();
+    Events.emit('hud:update');
 
     // Transitions
     if (hour === 6 && wasNight) {
       this._onDawn();
     } else if (hour === 20 && !wasNight) {
-    if (typeof PlayerStats !== 'undefined') PlayerStats.checkMilestones();
-    if (typeof Achievements !== 'undefined') Achievements.check();
+      if (typeof PlayerStats !== 'undefined') PlayerStats.checkMilestones();
+      if (typeof Achievements !== 'undefined') Achievements.check();
       this._onDusk();
     }
 
     // Hourly survival drain — reduced when actively pedalling
-    // Being on an expedition (Foraging._active) and pedalling slows consumption.
+    // Being on an expedition (Foraging.isActive()) and pedalling slows consumption.
     // ratio 0 (idle at base): full drain
     // ratio 1.0 (on target):  60% drain
     // ratio 1.5 (hammering):  35% drain
     const cpm    = Cadence.getCPM();
     const target = Cadence.getTargetCPM() || 60;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
-    const isForaging = typeof Foraging !== 'undefined' && Foraging._active;
+    const isForaging = typeof Foraging !== 'undefined' && Foraging.isActive();
     // Fitness: track pedalling time (each tick = 1 game-hour = ~_tickMs ms real time)
     if (cpm > 10) {
       const minPerTick = (this._tickMs || 6000) / 60000;
@@ -89,15 +89,13 @@ const DayNight = {
     State.tickSurvival(0.5 * drainMult);
     Player.checkCritical();
 
-    // Power system hourly tick
-    if (typeof Power !== 'undefined' && State.data.power) {
-      Power.hourlyTick();
-    }
+    // Power system hourly tick — Power subscribes to this in power.js
+    Events.emit('tick:hour');
 
     // Night raid check (higher probability at night)
     if (State.data.world.isNight && !State.data.world.activeRaid) {
       // Don't raid while player is away from base
-      const playerAway = (typeof Foraging !== 'undefined' && Foraging._active)
+      const playerAway = (typeof Foraging !== 'undefined' && Foraging.isActive())
                       || (typeof WorldMap !== 'undefined' && WorldMap._travelling);
       const nightChance = 0.08;
       if (!playerAway && Math.random() < nightChance) {
@@ -212,18 +210,10 @@ const DayNight = {
     State.data.player.energy = Utils.clamp(State.data.player.energy + 5, 0, 100);
 
     const b = State.data.base;
-    const pw = State.data.power;
 
-    // Electric pump — auto-produces water each dawn when powered
-    if (pw?.consumers?.waterPump && Power.hasPowerForCrafting(0.5)) {
-      State.addResource('water', 5);
-      Utils.toast('💧 Electric pump filled 5 water overnight.', 'info', 2500);
-    }
-
-    // Electric grow lights — bonus food each dawn
-    if (pw?.consumers?.lights && b.passiveFood > 0 && Power.hasPowerForCrafting(0.5)) {
-      State.addResource('food', 1); // bonus food from grow lights
-    }
+    // Electric pump + grow lights — Power subscribes to 'tick:dawn' and handles these internally
+    // (Power checks its own consumers state; no need for dayNight to know about Power)
+    Events.emit('tick:dawn:power');
 
     // Greenhouse passive food + water
     if ((b.passiveFood || 0) > 0) {
@@ -236,10 +226,11 @@ const DayNight = {
     }
 
     // Advanced farming system — grow all plots by 1 day, alert when ready
-    if (typeof Farming !== 'undefined') Farming.dailyTick();
+    // Farming subscribes to 'tick:dawn' in farming.js
+    Events.emit('tick:dawn');
 
-    HUD.update();
-    Base.updateNight();
+    Events.emit('hud:update');
+    Events.emit('map:changed');
   },
 
   // ── Dusk event ────────────────────────────
@@ -251,16 +242,27 @@ const DayNight = {
         : '🌙 Night falls. Stay alert — they come in darkness.',
       'warn', 4000
     );
-    Base.updateNight();
+    Events.emit('map:changed');
   },
 
   // ── Skip to morning (used by sleep) ───────
   skipToMorning() {
-    State.data.world.hour   = 8;
+    const prevHour = State.data.world.hour;
+    // If sleeping past midnight (hour >= 20 or < 8), the day should tick over
+    if (prevHour >= 20 || prevHour < 6) {
+      State.data.world.day += 1;
+      State.data.world.daysSinceLastRaid += 1;
+      State.data.stats.highestDay = Math.max(
+        State.data.stats.highestDay, State.data.world.day
+      );
+    }
+    State.data.world.hour    = 8;
     State.data.world.isNight = false;
     this._applyHour(8, true);
-    Base.updateNight();
-    HUD.update();
+    // Fire dawn passives (greenhouse, electric pump, farming) so sleep isn't penalised
+    this._onDawn();
+    Events.emit('map:changed');
+    Events.emit('hud:update');
   },
 
   // ── Get current phase label ───────────────

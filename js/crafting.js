@@ -12,15 +12,9 @@ const Crafting = {
   _craftQty:       1,
 
   // ── Emoji map ─────────────────────────────
-  emojiMap: {
-    wood:'🪵', metal:'🔩', gasoline:'⛽', food:'🥫', water:'💧',
-    medicine:'💊', cloth:'🧶', electronics:'📟', rope:'🪢', chemicals:'🧪',
-    spores:'🍄', wild_seeds:'🌱', engine_parts:'⚙️', scrap_wire:'🔌',
-    circuit_board:'💾', antiseptic:'🧫', cave_crystal:'💎', military_chip:'🎖️',
-    coal:'⛏', glass:'🪟',
-    battery_cell:'🔋', copper_wire:'🔌', steel_casing:'🧊', capacitor:'💡', power_core:'⚡',
-    solar_glass:'☀'
-  },
+  // Canonical definition lives in Utils.emojiMap (shared with Power and others).
+  // This getter keeps any existing Crafting.emojiMap references working.
+  get emojiMap() { return Utils.emojiMap; },
 
   // ── Recipe definitions ────────────────────
   recipes: {
@@ -445,7 +439,7 @@ const Crafting = {
       ]
     },
     greenhouse: {
-      name:'Greenhouse', icon:'🌿', maxLevel:3,
+      name:'Greenhouse', icon:'🌿', maxLevel:10,
       levels: [
         { desc:'Lv0 — Not built. Build to grow food passively.',
           cost:{ wood:0 } },
@@ -458,7 +452,7 @@ const Crafting = {
       ]
     },
     field: {
-      name:'Crop Field', icon:'🌾', maxLevel:5,
+      name:'Crop Field', icon:'🌾', maxLevel:10,
       levels: [
         { desc:'Lv0 — Not built. Requires Wild Seeds to plant.',
           cost:{ wood:0 }, buildSecs:0 },
@@ -492,7 +486,7 @@ const Crafting = {
       ]
     },
     compost_bin: {
-      name:'Compost Bin', icon:'♻️', maxLevel:2, unlockReq:4,
+      name:'Compost Bin', icon:'♻️', maxLevel:10, unlockReq:4,
       levels:[
         { desc:'Lv0 — Not built. Converts waste to soil nutrients.',
           cost:{ wood:0 } },
@@ -503,7 +497,7 @@ const Crafting = {
       ]
     },
     watchtower: {
-      name:'Watchtower', icon:'🗼', maxLevel:3, unlockReq:5,
+      name:'Watchtower', icon:'🗼', maxLevel:10, unlockReq:5,
       levels:[
         { desc:'Lv0 — Not built. Spot raiders before they arrive.',
           cost:{ wood:0 } },
@@ -543,7 +537,7 @@ const Crafting = {
       ]
     },
     smokehouse: {
-      name:'Smokehouse', icon:'🏭', maxLevel:2, unlockReq:6,
+      name:'Smokehouse', icon:'🏭', maxLevel:10, unlockReq:6,
       levels:[
         { desc:'Lv0 — Not built. Preserve food to reduce spoilage.',
           cost:{ wood:0 } },
@@ -570,7 +564,7 @@ const Crafting = {
       ]
     },
     alarm_system: {
-      name:'Alarm System', icon:'🔔', maxLevel:2, unlockReq:8,
+      name:'Alarm System', icon:'🔔', maxLevel:10, unlockReq:8,
       levels:[
         { desc:'Lv0 — Not built. Trigger alarms on breach.',
           cost:{ wood:0 } },
@@ -581,7 +575,7 @@ const Crafting = {
       ]
     },
     medkit_station: {
-      name:'Medical Station', icon:'🏥', maxLevel:3, unlockReq:9,
+      name:'Medical Station', icon:'🏥', maxLevel:10, unlockReq:9,
       levels:[
         { desc:'Lv0 — Not built. Heal faster and use meds more efficiently.',
           cost:{ wood:0 } },
@@ -610,7 +604,7 @@ const Crafting = {
       ]
     },
     bunker: {
-      name:'Bunker', icon:'🏗️', maxLevel:2, unlockReq:10,
+      name:'Bunker', icon:'🏗️', maxLevel:10, unlockReq:10,
       levels:[
         { desc:'Lv0 — Not built. Ultimate protection against raids.',
           cost:{ wood:0 } },
@@ -658,7 +652,7 @@ const Crafting = {
       ]
     },
     powerhouse: {
-      name:'Power House', icon:'⚡', maxLevel:1, unlockReq:6,
+      name:'Power House', icon:'⚡', maxLevel:10, unlockReq:6,
       levels: [
         { desc:'Lv0 — Not built. Build to access the Power Management panel.',
           cost:{ wood:0 } },
@@ -937,7 +931,7 @@ const Crafting = {
       // Apply effects × qty
       Audio.sfxCraft();
       for (let i = 0; i < qty; i++) this._applyEffect(recipe);
-      HUD.update();
+      Events.emit('hud:update');
       this._renderDetail();
       this._renderRecipes();
       State.data.stats.totalCrafted = (State.data.stats.totalCrafted||0) + qty;
@@ -1122,7 +1116,7 @@ const Crafting = {
         ${max > 0 ? `<div class="bat-charge-wrap" style="width:80px;display:inline-block">
           <div class="bat-charge-bar" style="width:${max>0?Math.round((stor/max)*100):0}%;background:#ffd600"></div>
         </div> ${stor}/${max}Wh` : '<span style="color:#666">No battery</span>'}
-        <button class="btn-pixel btn-secondary" onclick="Game.goTo('power')" style="padding:4px 8px;font-size:0.3rem">⚡ POWER PANEL</button>
+        <button class="btn-pixel btn-secondary" data-goto="power" style="padding:4px 8px;font-size:0.3rem">⚡ POWER PANEL</button>
       </div>`;
     })() : '';
 
@@ -1344,7 +1338,7 @@ const Crafting = {
     this._closeBuildingModal();
     this._renderUpgradesTab();
     this._startBuildTimer();
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Build timer ───────────────────────────
@@ -1414,8 +1408,8 @@ const Crafting = {
     Utils.toast(`✅ ${ab.upg.name} upgraded to Lv${ab.newLevel}!`, 'good', 4000);
     Audio.sfxVictory?.();
     this._renderUpgradesTab();
-    HUD.update();
-    Base.updateNight();
+    Events.emit('hud:update');
+    Events.emit('map:changed');
   },
 
   _applyBuildingUpgrade(buildingKey, newLevel) {
@@ -1565,7 +1559,7 @@ const Crafting = {
         b.raidDamageReduction = (b.raidDamageReduction || 0) + [0.40, 0.60][newLevel - 1] || 0;
         break;
     }
-    Base.updateNight(); // Rebuild SVG to show new buildings
+    Events.emit('map:changed'); // Rebuild SVG to show new buildings
   },
 
   // ══════════════════════════════════════════

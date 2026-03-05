@@ -1392,7 +1392,7 @@ const WorldMap = {
     this._playerWY = 0;
     this._mapData.playerWX = 0;
     this._mapData.playerWY = 0;
-    HUD.update();
+    Events.emit('hud:update');
     Audio.play('base');
     setTimeout(() => Game.goTo('base'), 300);
   },

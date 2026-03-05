@@ -170,7 +170,9 @@ const Farming = {
     Object.entries(crop.yield).forEach(function(entry) {
       var res = entry[0], range = entry[1];
       var mn = range[0], mx = range[1];
-      var amt = Math.max(1, Math.round(Utils.randInt(mn, mx) * penalty * bonus));
+      var amt = mn > 0
+        ? Math.max(1, Math.round(Utils.randInt(mn, mx) * penalty * bonus))
+        : Math.round(Utils.randInt(mn, mx) * penalty * bonus);
       State.addResource(res, amt);
       log += ' ' + _farmResEmoji(res) + '+' + amt;
     });
@@ -178,7 +180,7 @@ const Farming = {
     Utils.toast('✅ ' + crop.emoji + ' ' + crop.name + ' harvested!' + log, 'good', 4000);
     plot.state = 'empty'; plot.crop = null; plot.daysLeft = 0; plot.waterDebt = 0;
     if (typeof Achievements !== 'undefined') Achievements.check();
-    HUD.update();
+    Events.emit('hud:update');
     this.render();
   },
 
@@ -197,7 +199,7 @@ const Farming = {
     State.data.inventory.water--;
     plot.waterDebt = Math.max(0, (plot.waterDebt || 0) - 2);
     Utils.toast('💧 Plot ' + (idx+1) + ' watered.', 'good', 1500);
-    HUD.update(); this.render();
+    Events.emit('hud:update'); this.render();
   },
 
   uproot(idx) {
@@ -494,3 +496,9 @@ const Farming = {
 function _farmResEmoji(r) {
   return {food:'🍖',water:'💧',medicine:'💊',chemicals:'⚗️',spores:'🍄',wild_seeds:'🌱',cloth:'🧵',metal:'⚙️',wood:'🪵'}[r]||'📦';
 }
+
+// ── Event subscriptions ────────────────────────────────────────────────────
+// Farming owns its own daily tick — dayNight just emits the signal.
+Events.on('tick:dawn', () => {
+  if (typeof Farming !== 'undefined') Farming.dailyTick();
+});

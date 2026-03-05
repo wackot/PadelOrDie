@@ -82,6 +82,9 @@ const HUD = {
   }
 };
 
+// Subscribe: any module can emit 'hud:update' instead of calling HUD.update() directly
+Events.on('hud:update', () => HUD.update());
+
 // ── Main Game controller ──────────────────
 const Game = {
 
@@ -162,6 +165,11 @@ const Game = {
       DayNight.start();
       NightSky.init();
       SaveSystem.startAutoSave(5);
+      // Resume any build that was in-progress when the game was saved
+      if (State.data.activeBuild) {
+        Crafting._startBuildTimer();
+        Utils.toast('🏗 Resuming build: ' + (State.data.activeBuild.upg?.name || 'building') + '…', 'info', 3000);
+      }
       Utils.toast(`📂 Loaded. Day ${State.data.world.day}. Survive.`, 'info', 3000);
       console.log('[Game] Game loaded');
     } else {
@@ -194,6 +202,24 @@ const Game = {
       const id = btn.id;
       if (id === 'btn-back-from-crafting') this.goTo('base');
     });
+
+    // data-goto delegation: any element with data-goto="screen" navigates without
+    // the rendering module needing to know about Game directly.
+    // Optional data-crafting-tab="tabname" opens a specific crafting tab after navigating.
+    document.body.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-goto]');
+      if (!btn) return;
+      const dest = btn.dataset.goto;
+      this.goTo(dest);
+      const tab = btn.dataset.craftingTab;
+      if (tab && typeof Crafting !== 'undefined') {
+        setTimeout(() => {
+          Crafting.render?.();
+          Crafting._selectCat?.(tab);
+          Crafting._switchTab?.('craft');
+        }, 120);
+      }
+    });
   },
 
   // ── Wire shelter buttons ──────────────────
@@ -202,14 +228,12 @@ const Game = {
       ?.querySelector('button')
       ?.addEventListener('click', () => {
         Player.sleep(8);
-        this.goTo('base');
       });
 
     document.getElementById('shelter-rest')
       ?.querySelector('button')
       ?.addEventListener('click', () => {
         Player.sleep(2);
-        this.goTo('base');
       });
   },
 

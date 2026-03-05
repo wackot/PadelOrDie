@@ -44,7 +44,7 @@ const Player = {
 
     // Update bar colours to reflect urgency
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Update HUD bar colours ─────────────────
@@ -81,7 +81,7 @@ const Player = {
     State.data.player.hunger = Utils.clamp(before + amount, 0, 100);
     Utils.toast(`🍖 Ate food. Hunger +${amount}`, 'good');
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
     return true;
   },
 
@@ -95,14 +95,17 @@ const Player = {
     State.data.player.thirst = Utils.clamp(State.data.player.thirst + amount, 0, 100);
     Utils.toast(`💧 Drank water. Thirst +${amount}`, 'good');
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
     return true;
   },
 
   // ── Sleep ────────────────────────────────
   sleep(hours = 8) {
     Audio.sfxSleep();
-    const energyGain = hours === 8 ? 80 : 25;
+    const wasNight = State.data.world.isNight;
+    const baseGain   = hours === 8 ? 80 : 25;
+    const bonusMult  = 1 + (State.data.base.sleepEnergyBonus || 0);
+    const energyGain = Math.round(baseGain * bonusMult);
     State.data.player.energy = Utils.clamp(State.data.player.energy + energyGain, 0, 100);
 
     // Slower drain while sleeping
@@ -117,13 +120,16 @@ const Player = {
       'info', 4000
     );
 
-    // Night raid chance while sleeping
-    if (hours >= 4 && Math.random() < 0.3) {
+    // Always navigate back to base map after sleeping
+    Game.goTo('base');
+
+    // Night raid only fires if it was actually night when the player went to sleep
+    if (wasNight && hours >= 4 && Math.random() < 0.3) {
       setTimeout(() => Raids.triggerRaid('night'), 2000);
     }
 
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Draw water from well ──────────────────
@@ -132,7 +138,7 @@ const Player = {
     State.addResource('water', amount);
     Audio.sfxWater();
     Utils.toast(`🪣 Drew ${amount} water units`, 'good');
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Public checkCritical ──────────────────
@@ -189,7 +195,7 @@ const Player = {
     State.data.player.energy = Utils.clamp(State.data.player.energy + 30, 0, 100);
     Utils.toast('💊 Medicine used. All stats +boost.', 'good');
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
   }
 
 };

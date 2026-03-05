@@ -263,9 +263,9 @@ const State = {
     const b = this.data.base;
     if (tiers.D.includes(type)) return b.storageCapD > 0 ? b.storageCapD : 0;
     if (tiers.C.includes(type)) return b.storageCapC > 0 ? b.storageCapC : 0;
-    if (tiers.B.includes(type)) return b.storageCapB > 0 ? b.storageCapB : Infinity;
+    if (tiers.B.includes(type)) return b.storageCapB > 0 ? b.storageCapB : 0;
     if (tiers.A.includes(type)) return b.storageCapA > 0 ? b.storageCapA : 50;
-    return Infinity; // unknown resources: no cap
+    return Infinity; // unknown / seed resources: no cap
   },
 
   addResource(type, amount) {

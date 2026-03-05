@@ -30,6 +30,9 @@ const Foraging = {
   _encounterMaxHP:   0,
   _encounterLoseTimer: 0,
   _log:              [],
+
+  // Public API — use this instead of reading Foraging._active directly
+  isActive() { return this._active; },
   _intensityCfg:     null,
 
   // Emoji map covers all resource keys including unique materials
@@ -266,6 +269,10 @@ const Foraging = {
     const tiers = State.defaults?.resourceTiers || {};
     const stCap = State.getStorageCap ? State.getStorageCap(resource) : Infinity;
 
+    if ((tiers.B||[]).includes(resource) && (State.data.base.storageCapB||0) === 0) {
+      this._log_(`🔒 ${resource} needs Storage Lv3 to collect!`, 'warn');
+      return;
+    }
     if ((tiers.C||[]).includes(resource) && (State.data.base.storageCapC||0) === 0) {
       this._log_(`🔒 ${resource} needs Storage Lv5 to collect!`, 'warn');
       return;
@@ -360,7 +367,7 @@ const Foraging = {
   _checkEncounter() {
     const loc = MapScreen.locations[this._locationId];
     if (!loc?.animals?.length) return;
-    const scale  = 1 + (State.data.world.day - 1) * 0.05;
+    const scale  = Math.min(3.0, 1 + (State.data.world.day - 1) * 0.05);
     const intMul = this._intensityCfg?.encounterMult || 1;
     if (Math.random() < loc.encounterChance * scale * intMul * (10/60)) {
       const animal = Animals.randomEncounterAnimal(this._locationId);
@@ -379,39 +386,6 @@ const Foraging = {
   // _spawnDmgFloat   : spawns a floating damage number
   // _arenaShake      : brief screen shake
   // ─────────────────────────────────────────────────────────────────────────
-
-  _startEncounter(animal) {
-    this._encounterActive    = true;
-    this._currentEncounter   = animal;
-    this._encounterHP        = animal.strength * 2;
-    this._encounterMaxHP     = this._encounterHP;
-    this._encounterLoseTimer = 0;
-    this._combatPhase        = 'idle';  // idle | attack | hurt | win | lose
-    this._comboCount         = 0;
-
-    this._log_('⚠ ' + animal.emoji + ' ' + animal.name + ' appears! Pedal +20% faster to fight!', 'danger');
-    Audio.sfxEncounter();
-
-    // ── Hide normal scene elements, show arena ──
-    const charEl = document.getElementById('char-emoji');
-    if (charEl) charEl.style.opacity = '0';
-    const bgEmoji = document.querySelector('.foraging-bg-emoji');
-    if (bgEmoji) bgEmoji.style.opacity = '0.2';
-
-    const arena = document.getElementById('combat-arena');
-    if (arena) {
-      arena.classList.remove('hidden');
-      arena.innerHTML = this._buildArenaHTML(animal);
-    }
-
-    const btn = document.getElementById('btn-pedal');
-    if (btn) {
-      btn.innerHTML = '⚔️ FIGHT ' + animal.emoji + '! <span class="pedal-sub">+20% speed to damage, +40% to destroy</span>';
-      btn.style.background = 'linear-gradient(135deg,#3a0808,#6a1010)';
-      btn.style.borderColor = '#e53935';
-    }
-    Utils.toast('⚠ ' + animal.emoji + ' ' + animal.name + '!', 'bad', 3000);
-  },
 
   _buildArenaHTML(animal) {
     const locId  = this._locationId || 'forest';
@@ -1487,7 +1461,7 @@ const Foraging = {
           }
         });
         this._renderResources();
-        HUD.update();
+        Events.emit('hud:update');
         break;
       }
     }
@@ -1532,7 +1506,7 @@ const Foraging = {
     }
 
     this._checkUnlocks();
-    HUD.update();
+    Events.emit('hud:update');
     // Don't navigate or change audio if a raid is now active — raid screen is in control
     if (!State.data.world.activeRaid) {
       Audio.play('base');

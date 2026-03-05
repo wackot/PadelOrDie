@@ -169,7 +169,7 @@ const DevMode = {
           }
           break;
         case 'instantForage':
-          if (Foraging._active) {
+          if (Foraging.isActive()) {
             Foraging._duration = Math.min(Foraging._duration, Foraging._elapsed + 15);
             Utils.toast('🏃 Fast Forage ON — current run ends in 15s', 'good', 2500);
           } else {
@@ -192,14 +192,14 @@ const DevMode = {
       case 'skipDay':
         State.advanceTime(24);
         DayNight._applyHour?.(State.data.world.hour, false);
-        HUD.update?.();
+        Events.emit('hud:update');
         Utils.toast(`📅 Skipped to Day ${State.data.world.day}`, 'good', 2000);
         break;
 
       case 'skip7Days':
         for (let i = 0; i < 7; i++) State.advanceTime(24);
         DayNight._applyHour?.(State.data.world.hour, false);
-        HUD.update?.();
+        Events.emit('hud:update');
         Utils.toast(`📅 Skipped to Day ${State.data.world.day}`, 'good', 2000);
         break;
 
@@ -207,7 +207,7 @@ const DevMode = {
         State.data.player.hunger = 100;
         State.data.player.thirst = 100;
         State.data.player.energy = 100;
-        HUD.update?.();
+        Events.emit('hud:update');
         Utils.toast('❤️ All vitals filled to 100%', 'good', 2000);
         break;
 
@@ -228,7 +228,7 @@ const DevMode = {
           'battery_cell','copper_wire','steel_casing','capacitor','power_core'
         ];
         allRes.forEach(r => { inv[r] = 999; });
-        HUD.update?.();
+        Events.emit('hud:update');
         Utils.toast('📦 Inventory filled with 999 of everything!', 'good', 2500);
         break;
       }
@@ -255,7 +255,7 @@ const DevMode = {
         State.data.world.unlockedMissions = [
           'endgame_transmission','command_bunker','signal_drop','rescue_beacon','black_market'
         ];
-        HUD.update?.();
+        Events.emit('hud:update');
         Utils.toast('🗺 All locations unlocked!', 'good', 2000);
         break;
       }
