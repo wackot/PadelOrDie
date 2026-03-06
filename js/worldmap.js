@@ -35,7 +35,7 @@ const WorldMap = {
       desc:'Dense mutated woodland.',
       wx: -280, wy: -180, radius: 90,
       bgColor:'#0d1a08', bgEmoji:'🌲🌲🌳🌲🌳🌲🌲',
-      tileColor:'#1a3010', fogReveal:'#2d5a1a',
+      tileColor:'#1a3010', fogReveal:'#3d7a22',
       animals:['wolf','boar','insect','bear'], encounterChance:0.20,
       loot:{ common:{resources:['wood','rope','food'],weight:70}, rare:{resources:['wood','food','rope'],weight:25}, legendary:{resources:['rope','food'],weight:5} },
       events:[
@@ -52,7 +52,7 @@ const WorldMap = {
       desc:'Overgrown farmland with wild crops.',
       wx: 220,  wy: -250, radius: 80,
       bgColor:'#1a1500', bgEmoji:'🌾🚜🌾🌾🐄🌾',
-      tileColor:'#2a2010', fogReveal:'#3d3818',
+      tileColor:'#2a2010', fogReveal:'#52481e',
       animals:['wolf','boar','insect'], encounterChance:0.18,
       loot:{ common:{resources:['food','wood','rope'],weight:65}, rare:{resources:['food','food','cloth'],weight:28}, legendary:{resources:['food','food','food'],weight:7} },
       events:[
@@ -69,7 +69,7 @@ const WorldMap = {
       desc:'Abandoned fuel stop. Potentially explosive.',
       wx: 400,  wy: 80,  radius: 70,
       bgColor:'#1a1000', bgEmoji:'⛽🏪⛽🛢️⛽🏚️',
-      tileColor:'#2a1a00', fogReveal:'#3a2e10',
+      tileColor:'#2a1a00', fogReveal:'#4a3c18',
       animals:['rat','bird'], encounterChance:0.22,
       loot:{ common:{resources:['gasoline','metal'],weight:60}, rare:{resources:['gasoline','chemicals','metal'],weight:30}, legendary:{resources:['electronics','gasoline'],weight:10} },
       events:[
@@ -86,7 +86,7 @@ const WorldMap = {
       desc:'Collapsed buildings, scavengers everywhere.',
       wx: -180, wy: 380, radius: 110,
       bgColor:'#0d0d12', bgEmoji:'🏚️🧱🏗️🏚️🧱🏙️',
-      tileColor:'#141418', fogReveal:'#28283a',
+      tileColor:'#141418', fogReveal:'#363650',
       animals:['rat','bird','zombie_dog'], encounterChance:0.28,
       loot:{ common:{resources:['metal','cloth','electronics'],weight:55}, rare:{resources:['electronics','medicine','metal'],weight:33}, legendary:{resources:['electronics','electronics'],weight:12} },
       events:[
@@ -105,7 +105,7 @@ const WorldMap = {
       desc:'Mountains of scrap. Metal heaven.',
       wx: 560,  wy: -350, radius: 80,
       bgColor:'#100d0d', bgEmoji:'🔩🗑️♻️🚗💀🔩',
-      tileColor:'#1a1010', fogReveal:'#332020',
+      tileColor:'#1a1010', fogReveal:'#442828',
       animals:['rat','bird','insect'], encounterChance:0.25,
       loot:{ common:{resources:['metal','rope','electronics','coal'],weight:58}, rare:{resources:['electronics','metal','metal','glass'],weight:30}, legendary:{resources:['electronics','electronics','coal'],weight:12} },
       events:[
@@ -122,7 +122,7 @@ const WorldMap = {
       desc:'Medical goldmine — if you survive the infected.',
       wx: -520, wy: 280, radius: 75,
       bgColor:'#100d0d', bgEmoji:'🏥🚑🏥🩺🏥🚑',
-      tileColor:'#1a0d0d', fogReveal:'#301515',
+      tileColor:'#1a0d0d', fogReveal:'#401a1a',
       animals:['zombie_dog','rat','insect'], encounterChance:0.35,
       loot:{ common:{resources:['medicine','cloth'],weight:50}, rare:{resources:['medicine','medicine','chemicals'],weight:35}, legendary:{resources:['medicine','medicine','electronics'],weight:15} },
       events:[
@@ -139,7 +139,7 @@ const WorldMap = {
       desc:'Dark cave system rich in minerals.',
       wx: -700, wy: -420, radius: 85,
       bgColor:'#050508', bgEmoji:'🪨🕯️🪨💎🪨🕯️',
-      tileColor:'#0a0a0f', fogReveal:'#18182a',
+      tileColor:'#0a0a0f', fogReveal:'#222238',
       animals:['insect','rat','bear'], encounterChance:0.30,
       loot:{ common:{resources:['metal','chemicals','rope','coal'],weight:45}, rare:{resources:['chemicals','electronics','metal','coal'],weight:35}, legendary:{resources:['electronics','chemicals','coal'],weight:20} },
       events:[
@@ -156,7 +156,7 @@ const WorldMap = {
       desc:'The last government stronghold. Now overrun.',
       wx: 680,  wy: 500, radius: 90,
       bgColor:'#0a0a05', bgEmoji:'🪖🔫🏗️🚧🪖🔫',
-      tileColor:'#0f0f08', fogReveal:'#242410',
+      tileColor:'#0f0f08', fogReveal:'#323218',
       animals:['zombie_dog','bird','boss_mutant'], encounterChance:0.45,
       loot:{ common:{resources:['metal','electronics','medicine'],weight:40}, rare:{resources:['electronics','electronics','medicine'],weight:35}, legendary:{resources:['electronics','medicine','chemicals','metal'],weight:25} },
       events:[
@@ -176,7 +176,7 @@ const WorldMap = {
       desc:'A supply crate was broadcast. Find it before raiders do.',
       wx: 150,  wy: 120, radius: 60, isMission:true, missionKey:'signal_drop',
       bgColor:'#0a0d14', bgEmoji:'📦🪂📦🌫️📦🪂',
-      tileColor:'#111820', fogReveal:'#202e44',
+      tileColor:'#111820', fogReveal:'#2a3e5c',
       animals:['bird','rat'], encounterChance:0.20,
       loot:{ common:{resources:['food','medicine','cloth'],weight:40}, rare:{resources:['electronics','food','medicine'],weight:38}, legendary:{resources:['electronics','medicine','chemicals','circuit_board'],weight:22} },
       events:[
@@ -193,7 +193,7 @@ const WorldMap = {
       desc:'A survivor beacon. Rescue them and share their supplies.',
       wx: -350, wy: 180, radius: 65, isMission:true, missionKey:'rescue_beacon',
       bgColor:'#140808', bgEmoji:'🆘🩸🚑🔦🆘🩸',
-      tileColor:'#1e0e0e', fogReveal:'#3a1818',
+      tileColor:'#1e0e0e', fogReveal:'#4c2020',
       animals:['zombie_dog','rat'], encounterChance:0.35,
       loot:{ common:{resources:['medicine','food','cloth'],weight:35}, rare:{resources:['medicine','chemicals','electronics'],weight:40}, legendary:{resources:['antiseptic','medicine','military_chip'],weight:25} },
       events:[
@@ -210,7 +210,7 @@ const WorldMap = {
       desc:'A hidden trading post. Dangerous — but the rarest goods.',
       wx: 300,  wy: -480, radius: 70, isMission:true, missionKey:'black_market',
       bgColor:'#0d0814', bgEmoji:'🏴🕯️💀🏴🗡️💀',
-      tileColor:'#130d1c', fogReveal:'#26183a',
+      tileColor:'#130d1c', fogReveal:'#32204e',
       animals:['bird','zombie_dog'], encounterChance:0.30,
       loot:{ common:{resources:['electronics','chemicals','medicine'],weight:30}, rare:{resources:['circuit_board','military_chip','electronics'],weight:42}, legendary:{resources:['military_chip','circuit_board','chemicals','electronics'],weight:28} },
       events:[
@@ -227,7 +227,7 @@ const WorldMap = {
       desc:'Last known command post. Hardened intel and mil-spec supplies.',
       wx: -620, wy: 620, radius: 80, isMission:true, missionKey:'command_bunker',
       bgColor:'#050508', bgEmoji:'🎖️🔐💣🎖️🔐💣',
-      tileColor:'#080810', fogReveal:'#16162c',
+      tileColor:'#080810', fogReveal:'#1e1e3c',
       animals:['zombie_dog','boss_mutant'], encounterChance:0.50,
       loot:{ common:{resources:['metal','electronics','chemicals'],weight:30}, rare:{resources:['military_chip','electronics','chemicals'],weight:40}, legendary:{resources:['military_chip','military_chip','circuit_board','electronics'],weight:30} },
       events:[
@@ -244,7 +244,7 @@ const WorldMap = {
       desc:'A signal from beyond the collapse. What is still out there?',
       wx: 0,    wy: -850, radius: 95, isMission:true, missionKey:'endgame_transmission',
       bgColor:'#02020a', bgEmoji:'🌐📡💫🌐📡✨',
-      tileColor:'#050510', fogReveal:'#10102e',
+      tileColor:'#050510', fogReveal:'#181840',
       animals:['boss_mutant','bird','zombie_dog'], encounterChance:0.55,
       loot:{ common:{resources:['electronics','chemicals','military_chip'],weight:25}, rare:{resources:['military_chip','circuit_board','electronics'],weight:38}, legendary:{resources:['military_chip','military_chip','circuit_board','power_core'],weight:37} },
       events:[
@@ -517,22 +517,22 @@ const WorldMap = {
       const { sx, sy } = this._toScreen(zone.wx, zone.wy);
       const r = zone.radius * this._scale;
 
-      // Wide soft outer biome glow
+      // Use fogReveal as the bright inner colour, tileColor only for outer fade
       const grad = c.createRadialGradient(sx, sy, 0, sx, sy, r * 1.5);
-      grad.addColorStop(0,    def.tileColor + 'ee');
-      grad.addColorStop(0.45, def.tileColor + 'bb');
-      grad.addColorStop(0.75, def.tileColor + '55');
+      grad.addColorStop(0,    def.fogReveal + 'cc');
+      grad.addColorStop(0.4,  def.fogReveal + '88');
+      grad.addColorStop(0.75, def.tileColor + '44');
       grad.addColorStop(1,    def.tileColor + '00');
       c.beginPath();
       c.arc(sx, sy, r * 1.5, 0, Math.PI*2);
       c.fillStyle = grad;
       c.fill();
 
-      // Hard inner ring
+      // Danger ring
       c.beginPath();
-      c.arc(sx, sy, r * 0.55, 0, Math.PI*2);
-      c.strokeStyle = def.dangerCol + '60';
-      c.lineWidth = 1.5;
+      c.arc(sx, sy, r * 0.6, 0, Math.PI*2);
+      c.strokeStyle = def.dangerCol + '70';
+      c.lineWidth = 2;
       c.stroke();
     });
   },
@@ -555,7 +555,7 @@ const WorldMap = {
         const cellPxH = cellWY * this._scale + 1;
 
         // Tint by nearest zone biome
-        let baseColor = '#2a2618';
+        let baseColor = '#3a3628';
         let minDist = Infinity;
         md.zones.forEach(zone => {
           const def = this.locationDefs.find(d => d.id === zone.id);
@@ -816,7 +816,6 @@ const WorldMap = {
 
     let ptrs = {};
     let lastPinchDist = 0;
-    let panStart = null;
     let tapStart = 0, tapX = 0, tapY = 0;
 
     const getPinchDist = () => {
@@ -835,8 +834,6 @@ const WorldMap = {
     canvas.addEventListener('pointerdown', e => {
       canvas.setPointerCapture(e.pointerId);
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-      const mid = getMid();
-      panStart = { vx: this._viewX, vy: this._viewY, mx: mid.x, my: mid.y };
       lastPinchDist = getPinchDist();
       if (Object.keys(ptrs).length === 1) {
         tapStart = Date.now(); tapX = e.clientX; tapY = e.clientY;
@@ -846,6 +843,7 @@ const WorldMap = {
 
     canvas.addEventListener('pointermove', e => {
       if (!ptrs[e.pointerId]) return;
+      const prev = ptrs[e.pointerId];
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
 
       if (Object.keys(ptrs).length === 2) {
@@ -855,23 +853,21 @@ const WorldMap = {
           const ratio = dist / lastPinchDist;
           const mid   = getMid();
           const rect  = canvas.getBoundingClientRect();
-          // World coord at midpoint before zoom
-          const wx = (mid.x - rect.left) / this._scale + this._viewX;
-          const wy = (mid.y - rect.top)  / this._scale + this._viewY;
-          this._scale = Utils.clamp(this._scale * ratio, 0.05, 0.50);
-          // Re-anchor so midpoint stays fixed
-          this._viewX = wx - (mid.x - rect.left) / this._scale;
-          this._viewY = wy - (mid.y - rect.top)  / this._scale;
+          const scaleX = (this._cssW || rect.width) / rect.width;
+          const wx = (mid.x - rect.left) * scaleX / this._scale + this._viewX;
+          const wy = (mid.y - rect.top)  * scaleX / this._scale + this._viewY;
+          this._scale = Utils.clamp(this._scale * ratio, 0.15, 0.80);
+          this._viewX = wx - (mid.x - rect.left) * scaleX / this._scale;
+          this._viewY = wy - (mid.y - rect.top)  * scaleX / this._scale;
           this._drawMap();
         }
         lastPinchDist = dist;
-      } else if (panStart) {
-        // Pan
-        const mid = getMid();
-        const dx  = (mid.x - panStart.mx) / this._scale;
-        const dy  = (mid.y - panStart.my) / this._scale;
-        this._viewX = panStart.vx - dx;
-        this._viewY = panStart.vy - dy;
+      } else {
+        // Pan — use per-frame delta, no anchor needed
+        const ddx = e.clientX - prev.x;
+        const ddy = e.clientY - prev.y;
+        this._viewX -= ddx / this._scale;
+        this._viewY -= ddy / this._scale;
         this._drawMap();
       }
       e.preventDefault();
@@ -886,15 +882,12 @@ const WorldMap = {
         const movedY  = Math.abs(e.clientY - tapY);
         if (elapsed < 350 && movedX < 12 && movedY < 12) {
           const rect = canvas.getBoundingClientRect();
-          this._onTap(e.clientX - rect.left, e.clientY - rect.top);
+          const scaleX = (this._cssW || rect.width) / rect.width;
+          this._onTap((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleX);
         }
       }
       if (Object.keys(ptrs).length > 0) {
-        const mid = getMid();
-        panStart = { vx: this._viewX, vy: this._viewY, mx: mid.x, my: mid.y };
         lastPinchDist = getPinchDist();
-      } else {
-        panStart = null;
       }
     };
     canvas.addEventListener('pointerup',     endPtr);
