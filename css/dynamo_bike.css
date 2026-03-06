@@ -182,3 +182,35 @@
   border: 1px dashed rgba(255,255,255,0.1);
   border-radius: 6px;
 }
+
+/* ── Power overview generator summary rows ── */
+.pow-gen-list { display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
+.pow-gen-row {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:6px; padding:10px 12px;
+  cursor:pointer; transition:background 0.15s;
+}
+.pow-gen-row:hover { background:rgba(255,214,0,0.06); border-color:rgba(255,214,0,0.3); }
+.pow-gen-icon  { font-size:1.4rem; flex-shrink:0; }
+.pow-gen-name  { flex:1; font-family:var(--font-mono); font-size:clamp(0.78rem,2vw,0.9rem); color:var(--col-text); }
+.pow-gen-lv    { font-family:var(--font-mono); font-size:clamp(0.72rem,1.8vw,0.83rem); color:var(--col-text-dim); }
+.pow-gen-out   { font-family:var(--font-mono); font-size:clamp(0.78rem,2vw,0.9rem); color:#ffd600; min-width:40px; text-align:right; }
+.pow-gen-arrow { color:var(--col-text-dim); font-size:1.2rem; }
+
+/* ── Generator screen detail ── */
+.gen-desc-text { font-family:var(--font-mono); font-size:clamp(0.75rem,2vw,0.88rem); color:var(--col-text-dim); line-height:1.5; }
+.gen-fuel-info { font-family:var(--font-mono); font-size:clamp(0.75rem,2vw,0.88rem); color:#ff9800; margin-top:4px; }
+.gen-upg-list  { display:flex; flex-direction:column; gap:6px; }
+.gen-upg-row   { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+  border-radius:6px; padding:8px 10px; }
+.gen-upg-row.next   { border-color:rgba(255,214,0,0.4); background:rgba(255,214,0,0.04); }
+.gen-upg-row.future { opacity:0.45; }
+.gen-upg-lv    { font-family:var(--font-pixel); font-size:clamp(0.28rem,1vw,0.4rem); color:#ffd600; }
+.gen-upg-out   { font-family:var(--font-mono); font-size:clamp(0.75rem,2vw,0.88rem); color:#4caf50; flex:1; }
+.gen-upg-cost  { font-family:var(--font-mono); font-size:clamp(0.75rem,2vw,0.88rem); }
+.gen-upg-cost .ok    { color:#4caf50; }
+.gen-upg-cost .short { color:#e53935; }
+.gen-maxed { font-family:var(--font-pixel); font-size:clamp(0.3rem,1.1vw,0.44rem); color:#ffd600; text-align:center; padding:8px; }
