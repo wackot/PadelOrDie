@@ -186,69 +186,61 @@ const Power = {
     const screen = document.getElementById('screen-power');
     if (!screen) return;
 
-    const p   = State.data.power;
-    const gen = this.getGenerationRate();
-    const max = this.getMaxStorage();
-    const inv = State.data.inventory;
-
-    // Generator cards
-    const genCards = [
-      {
-        key: 'bike', icon: '🚴', name: 'Bike Dynamo',
-        desc: 'Converts pedalling into electricity. Scales with your riding speed.',
-        fuel: 'none', fuelNote: 'Free — powered by YOU',
-        output: this._genOutput.bike
-      },
-      {
-        key: 'woodburner', icon: '🪵', name: 'Wood Burner',
-        desc: 'Burns wood to generate steady power. Reliable base load.',
-        fuel: 'wood', fuelNote: `1 wood/day per level. Have: ${inv.wood || 0}`,
-        fuelled: p.woodburnerFuelled,
-        output: this._genOutput.woodburner
-      },
-      {
-        key: 'coal', icon: '⛏', name: 'Coal Plant',
-        desc: 'High-output coal generator. Best raw power per level.',
-        fuel: 'coal', fuelNote: `1 coal/day per level. Have: ${inv.coal || 0}`,
-        fuelled: p.coalFuelled,
-        output: this._genOutput.coal
-      },
-      {
-        key: 'solar', icon: '☀', name: 'Solar Array',
-        desc: 'Free daytime power. Zero output at night. Best combined with battery.',
-        fuel: 'none', fuelNote: 'Free — sunlight (daytime only)',
-        output: this._genOutput.solar
-      }
-    ].map(g => this._genCard(g, p.generators[g.key].level)).join('');
-
-    // Battery card
-    const batLvl  = p.battery.level;
-    const batCard = this._batteryCard(batLvl, max, p.stored || 0);
-
-    // Consumer toggles
-    const consumers = this._consumersPanel(p.consumers, gen);
-
-    // Power flow summary
+    const p     = State.data.power;
+    const gen   = this.getGenerationRate();
+    const max   = this.getMaxStorage();
     const drain = this._calcDrain(p.consumers);
-    const netCol = gen - drain >= 0 ? '#4caf50' : '#e53935';
+    const net   = gen - drain;
+    const netCol = net >= 0 ? '#4caf50' : '#e53935';
+
+    // Generator summary rows (click to go to building)
+    const genSummary = [
+      { key:'dynamo_bike', icon:'🚴', name:'Dynamo Bike',  screen:'dynamo-bike',     event:'dynamo_bike:render' },
+      { key:'woodburner',  icon:'🪵', name:'Wood Burner',  screen:'gen-woodburner',  event:'power:gen:render', payload:{key:'woodburner'} },
+      { key:'coal',        icon:'⛏️', name:'Coal Plant',   screen:'gen-coal_plant',  event:'power:gen:render', payload:{key:'coal'} },
+      { key:'solar',       icon:'☀️', name:'Solar Array',  screen:'gen-solar_array', event:'power:gen:render', payload:{key:'solar'} },
+    ].map(g => {
+      const lvl = g.key === 'dynamo_bike'
+        ? (State.data.base.buildings?.dynamo_bike?.level || 0)
+        : (p.generators[g.key]?.level || 0);
+      const out = lvl > 0 ? this._liveOutput(g.key) : '—';
+      const onclick = `Events.emit('navigate',{screen:'${g.screen}'});Events.emit('${g.event}'${g.payload ? `,${JSON.stringify(g.payload)}` : ''})`;
+      return `<div class="pow-gen-row" onclick="${onclick}">
+        <span class="pow-gen-icon">${g.icon}</span>
+        <span class="pow-gen-name">${g.name}</span>
+        <span class="pow-gen-lv">Lv${lvl}</span>
+        <span class="pow-gen-out">${out}W</span>
+        <span class="pow-gen-arrow">›</span>
+      </div>`;
+    }).join('');
+
+    // Battery summary row
+    const batLvl = p.battery.level;
+    const batPct = max > 0 ? Math.round(((p.stored||0)/max)*100) : 0;
+    const batRow = `<div class="pow-gen-row" onclick="Events.emit('navigate',{screen:'gen-battery_bank'});Events.emit('power:bat:render')">
+      <span class="pow-gen-icon">🔋</span>
+      <span class="pow-gen-name">Battery Bank</span>
+      <span class="pow-gen-lv">Lv${batLvl}</span>
+      <span class="pow-gen-out">${batLvl > 0 ? batPct+'%' : '—'}</span>
+      <span class="pow-gen-arrow">›</span>
+    </div>`;
+
+    const consumers = this._consumersPanel(p.consumers, gen);
 
     screen.innerHTML = `
       <div class="power-panel">
         <div class="power-header">
-          <div class="power-title">⚡ POWER MANAGEMENT</div>
+          <div class="power-title">⚡ POWER OVERVIEW</div>
           <div class="power-summary">
             <span style="color:#ffd600">⚡ ${gen}W generating</span>
-            <span style="color:#ff6d00">▼ ${drain.toFixed(1)}W consuming</span>
-            <span style="color:${netCol}">${gen - drain >= 0 ? '↑' : '↓'} ${Math.abs(gen - drain).toFixed(1)}W net</span>
+            <span style="color:#ff6d00">▼ ${drain.toFixed(1)}W drain</span>
+            <span style="color:${netCol}">${net >= 0 ? '↑' : '↓'} ${Math.abs(net).toFixed(1)}W net</span>
             ${max > 0 ? `<span style="color:#29b6f6">🔋 ${Math.round(p.stored||0)}/${max} Wh</span>` : ''}
           </div>
         </div>
 
-        <div class="power-section-title">⚡ GENERATORS</div>
-        <div class="power-generators">${genCards}</div>
-
-        <div class="power-section-title">🔋 BATTERY BANK</div>
-        ${batCard}
+        <div class="power-section-title">⚡ GENERATORS — tap to manage</div>
+        <div class="pow-gen-list">${genSummary}${batRow}</div>
 
         <div class="power-section-title">🔌 ACTIVE CONSUMERS</div>
         ${consumers}
@@ -258,7 +250,157 @@ const Power = {
     `;
   },
 
-  _genCard(g, level) {
+  _liveOutput(key) {
+    const p   = State.data.power;
+    const gen = p.generators;
+    if (key === 'dynamo_bike') {
+      const bldLvl = State.data.base.buildings?.dynamo_bike?.level || 0;
+      const cpm    = State.data.cadence?.clicksPerMinute || 0;
+      const tgt    = State.data.cadence?.targetCPM || 60;
+      return (bldLvl * 8 * Math.max(0, Utils.clamp(cpm/tgt,0,2))).toFixed(1);
+    }
+    if (key === 'woodburner') return gen.woodburner.level > 0 && p.woodburnerFuelled ? (this._genOutput.woodburner * gen.woodburner.level).toFixed(1) : '0';
+    if (key === 'coal')       return gen.coal.level > 0 && p.coalFuelled ? (this._genOutput.coal * gen.coal.level).toFixed(1) : '0';
+    if (key === 'solar')      return gen.solar.level > 0 ? (this._genOutput.solar * gen.solar.level * this._solarMultiplier(State.data.world.hour)).toFixed(1) : '0';
+    return '0';
+  },
+
+  // ── Individual generator building screen ──
+  renderGeneratorScreen(key) {
+    const screenId = key === 'coal' ? 'gen-coal_plant' : `gen-${key}`;
+    const screen = document.getElementById(`screen-${screenId}`);
+    if (!screen) return;
+
+    const defs = {
+      woodburner: { icon:'🪵', name:'Wood Burner',  desc:'Burns wood each day to produce steady power. Reliable base load.', fuel:'wood',  fuelNote:'1 wood/day per level.' },
+      coal:       { icon:'⛏️', name:'Coal Plant',   desc:'High-output coal generator. Best raw power per level.',             fuel:'coal',  fuelNote:'1 coal/day per level.' },
+      solar:      { icon:'☀️', name:'Solar Array',  desc:'Free daytime power. Zero output at night.',                         fuel:'none',  fuelNote:'Free — sunlight only.'  },
+    };
+    const d    = defs[key];
+    const p    = State.data.power;
+    const gen  = p.generators[key];
+    const lvl  = gen.level;
+    const inv  = State.data.inventory;
+
+    const fuelled = key === 'woodburner' ? p.woodburnerFuelled
+                  : key === 'coal'       ? p.coalFuelled : true;
+    const fuelHave = key !== 'solar' ? (inv[d.fuel] || 0) : null;
+
+    const outputNow = this._liveOutput(key);
+    const outputMax = lvl > 0 ? (this._genOutput[key] * lvl).toFixed(1) : '—';
+
+    // Pip bar
+    const pips = Array.from({length:10}, (_,i) =>
+      `<div class="pow-pip ${i < lvl ? 'on' : ''}"></div>`).join('');
+
+    // Upgrade cost rows for next 3 levels
+    const upgRows = Array.from({length: Math.min(3, 10 - lvl)}, (_, i) => {
+      const nextLv  = lvl + i + 1;
+      const cost    = this._genUpgradeCostObj(key, nextLv);
+      const canAfford = this._canAffordGenUpgrade(key, nextLv) && (lvl + i === lvl); // only first row clickable
+      const isNext  = i === 0;
+      const costStr = Object.entries(cost).map(([r,v]) =>
+        `<span class="${(inv[r]||0)>=v?'ok':'short'}">${Utils.emojiMap[r]||'📦'}${v}</span>`).join(' ');
+      return `<div class="gen-upg-row ${isNext?'next':'future'}">
+        <span class="gen-upg-lv">Lv${nextLv}</span>
+        <span class="gen-upg-out">+${(this._genOutput[key]*nextLv).toFixed(1)}W max</span>
+        <span class="gen-upg-cost">${costStr}</span>
+        ${isNext ? `<button class="btn-gen-upgrade" onclick="Power.upgradeGenerator('${key}')"
+          ${canAfford?'':'disabled'}>${lvl===0?'▲ BUILD':'▲ UPGRADE'}</button>` : ''}
+      </div>`;
+    }).join('');
+
+    screen.innerHTML = `
+      <div class="power-panel">
+        <div class="power-header">
+          <div class="power-title">${d.icon} ${d.name.toUpperCase()}</div>
+          <div class="power-summary">
+            <span style="color:#ffd600">⚡ Now: ${outputNow}W</span>
+            <span>Max: ${outputMax}W</span>
+            ${key !== 'solar' ? `<span class="gen-fuel ${!fuelled?'out':'ok'}">${fuelled?'✓ Fuelled':'⚠ No fuel'}</span>` : ''}
+          </div>
+        </div>
+        <div class="gen-desc-text">${d.desc}</div>
+        ${key !== 'solar' ? `<div class="gen-fuel-info">🪣 Fuel: ${d.fuelNote} Have: ${fuelHave}</div>` : ''}
+        <div class="gen-pips" style="margin:10px 0">${pips}</div>
+        <div class="power-section-title">UPGRADES</div>
+        <div class="gen-upg-list">${upgRows || '<div class="gen-maxed">✨ MAX LEVEL</div>'}</div>
+        <button class="btn-pixel btn-secondary" data-goto="base" style="margin-top:14px;max-width:180px">← BACK TO BASE</button>
+      </div>`;
+  },
+
+  renderBatteryScreen() {
+    const screen = document.getElementById('screen-gen-battery_bank');
+    if (!screen) return;
+    const p   = State.data.power;
+    const max = this.getMaxStorage();
+    const lvl = p.battery.level;
+    screen.innerHTML = `
+      <div class="power-panel">
+        <div class="power-header">
+          <div class="power-title">🔋 BATTERY BANK</div>
+        </div>
+        ${this._batteryCard(lvl, max, p.stored || 0)}
+        <button class="btn-pixel btn-secondary" data-goto="base" style="margin-top:14px;max-width:180px">← BACK TO BASE</button>
+      </div>`;
+  },
+
+  // ── SVG art for base map ───────────────────
+  svgWoodBurner(x, y, level) {
+    const col = level >= 3 ? '#ff6d00' : '#cc4400';
+    return `<g transform="translate(${x},${y})" style="cursor:pointer">
+      <rect x="-18" y="-20" width="36" height="30" rx="3" fill="#1a0a00" stroke="${col}" stroke-width="2"/>
+      <rect x="-10" y="-15" width="8" height="14" rx="1" fill="${col}" opacity="0.7"/>
+      <rect x="2"   y="-15" width="8" height="14" rx="1" fill="${col}" opacity="0.5"/>
+      <rect x="-6"  y="-30" width="4" height="14" rx="2" fill="#555" stroke="#333" stroke-width="1"/>
+      <rect x="4"   y="-28" width="4" height="12" rx="2" fill="#555" stroke="#333" stroke-width="1"/>
+      ${level >= 2 ? `<circle cx="0" cy="-34" r="4" fill="${col}" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="1s" repeatCount="indefinite"/></circle>` : ''}
+      <text x="0" y="20" text-anchor="middle" font-size="9" fill="${col}" font-family="monospace">Lv${level}</text>
+    </g>`;
+  },
+
+  svgCoalPlant(x, y, level) {
+    const col = level >= 3 ? '#888' : '#555';
+    return `<g transform="translate(${x},${y})" style="cursor:pointer">
+      <rect x="-20" y="-18" width="40" height="26" rx="2" fill="#111" stroke="${col}" stroke-width="2"/>
+      <rect x="-14" y="-34" width="8"  height="18" rx="2" fill="#333" stroke="${col}" stroke-width="1.5"/>
+      <rect x="6"   y="-30" width="8"  height="14" rx="2" fill="#333" stroke="${col}" stroke-width="1.5"/>
+      ${level >= 2 ? `<circle cx="-10" cy="-38" r="5" fill="#888" opacity="0.4"><animate attributeName="opacity" values="0.4;0.1;0.4" dur="1.5s" repeatCount="indefinite"/></circle>` : ''}
+      ${level >= 3 ? `<circle cx="10"  cy="-34" r="5" fill="#888" opacity="0.3"><animate attributeName="opacity" values="0.3;0.1;0.3" dur="1.8s" repeatCount="indefinite"/></circle>` : ''}
+      <text x="0" y="20" text-anchor="middle" font-size="9" fill="${col}" font-family="monospace">Lv${level}</text>
+    </g>`;
+  },
+
+  svgSolarArray(x, y, level) {
+    const col = '#ffd600';
+    const panels = Math.min(level, 4);
+    const panelSvg = Array.from({length: panels}, (_, i) =>
+      `<rect x="${-30 + i*16}" y="-20" width="14" height="20" rx="1" fill="#1a2a4a" stroke="${col}" stroke-width="1.5">
+        <animate attributeName="opacity" values="0.8;1.0;0.8" dur="${1.5 + i*0.3}s" repeatCount="indefinite"/>
+      </rect>`
+    ).join('');
+    return `<g transform="translate(${x},${y})" style="cursor:pointer">
+      ${panelSvg}
+      <line x1="-24" y1="0" x2="-24" y2="12" stroke="#666" stroke-width="2"/>
+      <line x1="${-24 + (panels-1)*16}" y1="0" x2="${-24 + (panels-1)*16}" y2="12" stroke="#666" stroke-width="2"/>
+      <text x="0" y="24" text-anchor="middle" font-size="9" fill="${col}" font-family="monospace">Lv${level}</text>
+    </g>`;
+  },
+
+  svgBatteryBank(x, y, level) {
+    const pct = (() => {
+      const max = this.getMaxStorage();
+      return max > 0 ? (State.data.power.stored || 0) / max : 0;
+    })();
+    const col   = pct > 0.6 ? '#4caf50' : pct > 0.25 ? '#ffd600' : '#e53935';
+    const fillH = Math.round(pct * 24);
+    return `<g transform="translate(${x},${y})" style="cursor:pointer">
+      <rect x="-18" y="-26" width="36" height="32" rx="3" fill="#0a1a0a" stroke="#29b6f6" stroke-width="2"/>
+      <rect x="-14" y="${-22 + (24 - fillH)}" width="28" height="${fillH}" rx="1" fill="${col}" opacity="0.8"/>
+      <rect x="-6"  y="-30" width="12" height="6" rx="2" fill="#29b6f6"/>
+      <text x="0" y="18" text-anchor="middle" font-size="9" fill="#29b6f6" font-family="monospace">Lv${level}</text>
+    </g>`;
+  },
     const isBuilt     = level > 0;
     const outputNow   = isBuilt
       ? (g.key === 'bike'
@@ -397,6 +539,9 @@ const Power = {
     Object.entries(parts).forEach(([res, amt]) => State.consumeResource(res, amt));
 
     p.battery.level = nextLevel;
+    if (State.data.base.buildings.battery_bank !== undefined) {
+      State.data.base.buildings.battery_bank.level = nextLevel;
+    }
     const newMax    = this.getMaxStorage();
 
     Utils.toast(`🔋 Battery Bank upgraded to Level ${nextLevel}! Stores ${newMax} Wh.`, 'good', 4000);
@@ -469,6 +614,12 @@ const Power = {
     Object.entries(cost).forEach(([res, amt]) => State.consumeResource(res, amt));
 
     p.generators[key].level = newLevel;
+
+    // Keep base.buildings in sync so the SVG shows the building on the map
+    const buildingKey = key === 'coal' ? 'coal_plant' : key === 'solar' ? 'solar_array' : key;
+    if (State.data.base.buildings[buildingKey] !== undefined) {
+      State.data.base.buildings[buildingKey].level = newLevel;
+    }
 
     // Fuel woodburner/coal on first build
     if (newLevel === 1) {
@@ -548,4 +699,13 @@ Events.on('tick:dawn:power', () => {
 // Subscribe: base emits when player opens powerhouse building
 Events.on('power:render', () => {
   Power.renderPanel?.();
+});
+
+// Subscribe: individual generator building screens
+Events.on('power:gen:render', ({ key }) => {
+  Power.renderGeneratorScreen?.(key);
+});
+
+Events.on('power:bat:render', () => {
+  Power.renderBatteryScreen?.();
 });

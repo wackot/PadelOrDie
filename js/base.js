@@ -20,8 +20,12 @@ const Base = {
     bike:       { id:'bike',        title:'Your Bike',      desc:'Upgrade to carry more and ride at night.',              action:'upgrades'   },
     greenhouse: { id:'greenhouse',  title:'Greenhouse',     desc:'Passive food production. Upgrade in Crafting.',         action:'upgrades'   },
     field:      { id:'field',       title:'Crop Field',     desc:'Daily crop harvest. Upgrade in Crafting.',              action:'upgrades'   },
-    powerhouse: { id:'powerhouse',  title:'Power House',    desc:'Manage your generators and battery bank.',              action:'power'      },
-    dynamo_bike:{ id:'dynamo_bike', title:'Dynamo Bike',    desc:'Pedal to generate electricity and charge your battery.', action:'dynamo_bike' },
+    powerhouse: { id:'powerhouse',  title:'Power House',    desc:'Overview of your power grid. Manage consumers.',        action:'power'       },
+    dynamo_bike:{ id:'dynamo_bike', title:'Dynamo Bike',    desc:'Pedal to generate electricity and charge your battery.', action:'dynamo_bike'  },
+    woodburner: { id:'woodburner',  title:'Wood Burner',    desc:'Burns wood to generate steady power.',                  action:'woodburner'  },
+    coal_plant: { id:'coal_plant',  title:'Coal Plant',     desc:'High-output coal generator.',                           action:'coal_plant'  },
+    solar_array:{ id:'solar_array', title:'Solar Array',    desc:'Free daytime power from the sun.',                      action:'solar_array' },
+    battery_bank:{id:'battery_bank',title:'Battery Bank',   desc:'Stores surplus power for use at night.',                action:'battery_bank'},
     elecbench:      { id:'elecbench',      title:'Electric Bench',   desc:'Craft electrical components and advanced upgrades.',  action:'elecbench'  },
     radio_tower:    { id:'radio_tower',    title:'Radio Tower',    desc:'Intercept raids. Unlock special world missions.',      action:'upgrades'   },
     rain_collector: { id:'rain_collector', title:'Rain Collector',   desc:'Passively collects rainwater every day.',              action:'upgrades'   },
@@ -232,6 +236,10 @@ const Base = {
     const rtLvl  = State.data?.base?.buildings?.radio_tower?.level    || 0;
     const ssLvl  = State.data?.base?.buildings?.solar_station?.level  || 0;
     const dbLvl  = State.data?.base?.buildings?.dynamo_bike?.level    || 0;
+    const wbLvl  = State.data?.base?.buildings?.woodburner?.level     || 0;
+    const cpLvl  = State.data?.base?.buildings?.coal_plant?.level     || 0;
+    const saLvl  = State.data?.base?.buildings?.solar_array?.level    || 0;
+    const bbLvl  = State.data?.base?.buildings?.battery_bank?.level   || 0;
     const dr     = State.data?.base?.defenceRating || 0;
     const hasPwr= phLvl > 0 && (State.data?.power?.generators?.bike?.level > 0
                               || State.data?.power?.generators?.woodburner?.level > 0
@@ -328,6 +336,22 @@ const Base = {
     const dbX    = cx - fw * 0.44;
     const dbY    = cy + fh * 0.10;
 
+    // Wood burner — below powerhouse
+    const wbX    = cx - fw * 0.32;
+    const wbY    = cy - fh * 0.04;
+
+    // Coal plant — left of powerhouse
+    const cpX    = cx - fw * 0.44;
+    const cpY    = cy - fh * 0.08;
+
+    // Solar array — above powerhouse (distinct from solar_station upgrade building)
+    const saX    = cx - fw * 0.18;
+    const saY    = cy - fh * 0.32;
+
+    // Battery bank — right of powerhouse
+    const bbX    = cx - fw * 0.16;
+    const bbY    = cy - fh * 0.16;
+
     svg.innerHTML = `
       <defs>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -392,6 +416,12 @@ const Base = {
       <!-- Dynamo bike -->
       ${dbLvl > 0 ? DynamoBike.svg(dbX, dbY, dbLvl) : BuildingBuildPrompt.svg(dbX, dbY, 'dynamo_bike')}
 
+      <!-- Wood burner, coal plant, solar array, battery bank -->
+      ${phLvl > 0 ? (wbLvl > 0 ? Power.svgWoodBurner(wbX, wbY, wbLvl) : BuildingBuildPrompt.svg(wbX, wbY, 'woodburner')) : ''}
+      ${phLvl > 0 ? (cpLvl > 0 ? Power.svgCoalPlant(cpX, cpY, cpLvl)  : BuildingBuildPrompt.svg(cpX, cpY, 'coal_plant'))  : ''}
+      ${phLvl > 0 ? (saLvl > 0 ? Power.svgSolarArray(saX, saY, saLvl) : BuildingBuildPrompt.svg(saX, saY, 'solar_array')) : ''}
+      ${phLvl > 0 ? (bbLvl > 0 ? Power.svgBatteryBank(bbX, bbY, bbLvl): BuildingBuildPrompt.svg(bbX, bbY, 'battery_bank')): ''}
+
       <!-- Hit zones -->
       ${this._hitZone('house',          houseX, houseY, 90,  100, 'SHELTER')}
       ${this._hitZone('fridge',         barnX,  barnY,  70,  80,  'FOOD STORE')}
@@ -414,7 +444,11 @@ const Base = {
       ${this._hitZone('alarm_system',   alX,    alY,    70,  60,  '🔔 ALARM Lv' + alLvl)}
       ${this._hitZone('medkit_station', mkX,    mkY,    80,  70,  '🏥 MEDKIT Lv' + mkLvl)}
       ${this._hitZone('bunker',         bnX,    bnY,    90,  60,  '🏗️ BUNKER Lv' + bnLvl)}
-      ${this._hitZone('dynamo_bike',    dbX,    dbY,    80,  80,  '⚡🚴 DYNAMO Lv' + dbLvl)}
+      ${this._hitZone('dynamo_bike',    dbX,    dbY,    80,  80,  '🚴 DYNAMO Lv' + dbLvl)}
+      ${phLvl > 0 ? this._hitZone('woodburner',   wbX, wbY, 70, 70, '🪵 WOOD BURNER Lv' + wbLvl) : ''}
+      ${phLvl > 0 ? this._hitZone('coal_plant',   cpX, cpY, 70, 70, '⛏️ COAL PLANT Lv' + cpLvl)  : ''}
+      ${phLvl > 0 ? this._hitZone('solar_array',  saX, saY, 80, 70, '☀️ SOLAR ARRAY Lv' + saLvl) : ''}
+      ${phLvl > 0 ? this._hitZone('battery_bank', bbX, bbY, 70, 70, '🔋 BATTERY Lv' + bbLvl)     : ''}
     `;
 
     // Building clicks handled by pointerup tap detection above
@@ -438,8 +472,12 @@ const Base = {
       case 'house':       BuildingHouse.onOpen();                                                      break;
       case 'fridge':      BuildingBarn.onOpen();                                                       break;
       case 'well':        BuildingWell.onOpen();                                                       break;
-      case 'powerhouse':  Events.emit('navigate', { screen: 'power' }); Events.emit('power:render');   break;
-      case 'dynamo_bike': Events.emit('navigate', { screen: 'dynamo-bike' }); Events.emit('dynamo_bike:render'); break;
+      case 'powerhouse':    Events.emit('navigate', { screen: 'power' });        Events.emit('power:render');          break;
+      case 'dynamo_bike':   Events.emit('navigate', { screen: 'dynamo-bike' });  Events.emit('dynamo_bike:render');    break;
+      case 'woodburner':    Events.emit('navigate', { screen: 'gen-woodburner'}); Events.emit('power:gen:render', { key:'woodburner' }); break;
+      case 'coal_plant':    Events.emit('navigate', { screen: 'gen-coal_plant'}); Events.emit('power:gen:render', { key:'coal' });       break;
+      case 'solar_array':   Events.emit('navigate', { screen: 'gen-solar_array'}); Events.emit('power:gen:render', { key:'solar' });     break;
+      case 'battery_bank':  Events.emit('navigate', { screen: 'gen-battery_bank'}); Events.emit('power:bat:render');                     break;
       case 'table':       Events.emit('navigate', { screen: 'crafting' }); Events.emit('crafting:render'); break;
       case 'map':         Events.emit('navigate', { screen: 'map' }); Events.emit('worldmap:render');  break;
       case 'radio_tower':
