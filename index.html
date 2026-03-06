@@ -48,7 +48,7 @@
         <button class="btn-pixel btn-secondary" id="btn-load-game">📂 LOAD GAME</button>
         <button class="btn-pixel btn-secondary" id="btn-import-save">⬆ IMPORT SAVE</button>
       </div>
-      <p class="menu-version">v0.17 — Power System Expansion</p>
+      <p class="menu-version">v0.16 — Dependency Refactor</p>
     </div>
   </div>
 
@@ -140,7 +140,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════ -->
-  <!--  SCREEN: DYNAMO BIKE (pedal generator)  -->
+  <!--  SCREEN: DYNAMO BIKE                    -->
   <!--  Populated by DynamoBike.renderScreen() -->
   <!-- ═══════════════════════════════════════ -->
   <div id="screen-dynamo-bike" class="screen">
@@ -148,28 +148,13 @@
   </div>
 
   <!-- ═══════════════════════════════════════ -->
-  <!--  SCREEN: GENERATOR SUB-SCREENS          -->
-  <!--  Populated by Power.renderGenScreen()   -->
+  <!--  SCREENS: GENERATOR SUB-SCREENS         -->
+  <!--  Populated by Power.renderGeneratorScreen() / Power.renderBatteryScreen() -->
   <!-- ═══════════════════════════════════════ -->
-  <div id="screen-gen-woodburner" class="screen">
-    <!-- Populated by Power on power:gen:render { key:'woodburner' } -->
-  </div>
-
-  <div id="screen-gen-coal_plant" class="screen">
-    <!-- Populated by Power on power:gen:render { key:'coal' } -->
-  </div>
-
-  <div id="screen-gen-solar_array" class="screen">
-    <!-- Populated by Power on power:gen:render { key:'solar' } -->
-  </div>
-
-  <!-- ═══════════════════════════════════════ -->
-  <!--  SCREEN: BATTERY BANK                   -->
-  <!--  Populated by Power.renderBatScreen()   -->
-  <!-- ═══════════════════════════════════════ -->
-  <div id="screen-gen-battery_bank" class="screen">
-    <!-- Populated by Power on power:bat:render -->
-  </div>
+  <div id="screen-gen-woodburner"  class="screen"><!-- Power on power:gen:render {key:'woodburner'} --></div>
+  <div id="screen-gen-coal_plant"  class="screen"><!-- Power on power:gen:render {key:'coal'} --></div>
+  <div id="screen-gen-solar_array" class="screen"><!-- Power on power:gen:render {key:'solar'} --></div>
+  <div id="screen-gen-battery_bank" class="screen"><!-- Power on power:bat:render --></div>
 
   <div id="screen-crafting" class="screen">
     <div class="crafting-container" id="crafting-container">
@@ -366,6 +351,7 @@
   <script src="js/buildings/GroundCanvas.js"></script>
   <script src="js/buildings/BuildPrompt.js"></script>
   <script src="js/buildings/InlineBuildings.js"></script>
+  <script src="js/buildings/dynamo_bike.js"></script>
   <script src="js/base.js"></script>
   <script src="js/map.js"></script>
   <script src="js/worldmap.js"></script>
@@ -373,7 +359,6 @@
   <script src="js/upgrades.js"></script>
   <script src="js/crafting.js"></script>
   <script src="js/power.js"></script>
-  <script src="js/dynamo_bike.js"></script>
   <script src="js/achievements.js"></script>
   <script src="js/farming.js"></script>
   <script src="js/devmode.js"></script>

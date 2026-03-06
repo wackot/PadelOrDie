@@ -1,47 +1,54 @@
 // ═══════════════════════════════════════════
-// PEDAL OR DIE — dynamo_bike.js
-// Dynamo Bike building screen + pedalling session
+// PEDAL OR DIE — DynamoBike.js
+// Dynamo Bike building: SVG art + screen rendering
 //
-// The Dynamo Bike is a special generator:
-//   — Player opens the screen and actively pedals
-//   — CPM drives watt generation in real time
-//   — Session ends after _IDLE_CUTOFF seconds with no clicks
-//   — Emits power:dynamo:tick each second during a session
-//   — Emits power:dynamo:stop when session ends
+// Called by:
+//   base.js  → DynamoBike.svg(x, y, level)       — SVG on base map
+//   base.js  → Events.emit('dynamo_bike:render')  — open building screen
 //
-// Level lives in BOTH:
-//   State.data.base.buildings.dynamo_bike.level  (building)
-//   State.data.power.generators.bike.level       (generator)
-//   DynamoBike.build() keeps them in sync.
+// Level is synced across:
+//   State.data.base.buildings.dynamo_bike.level   (building tier)
+//   State.data.power.generators.bike.level        (generator output)
+//   DynamoBike.build() keeps both in sync.
+//
+// Emits:
+//   power:dynamo:tick  { watts, whThisTick }  — each second while pedalling
+//   power:dynamo:stop  { totalWh }            — when session ends
 // ═══════════════════════════════════════════
 
 const DynamoBike = {
 
-  _IDLE_CUTOFF: 3,      // seconds of zero clicks before session auto-ends
-  _tickInterval: null,  // setInterval handle for live session tick
-  _sessionWh:    0,     // watt-hours generated this session
-  _idleSecs:     0,     // consecutive seconds with no new clicks
+  // ── Session state ─────────────────────────
+  _tickInterval: null,
+  _sessionWh:    0,
+  _idleSecs:     0,
+  _IDLE_CUTOFF:  3,
 
   // ── SVG art for the base map ──────────────
   svg(x, y, level) {
-    const col = level >= 3 ? '#00e5ff' : '#0288d1';
+    const col  = level >= 5 ? '#00e5ff' : level >= 3 ? '#29b6f6' : '#0288d1';
+    const glow = level >= 3
+      ? `<circle cx="0" cy="-10" r="${10 + level}" fill="${col}" opacity="0.08"/>`
+      : '';
     return `<g transform="translate(${x},${y})" style="cursor:pointer">
-      <!-- Frame -->
-      <ellipse cx="0" cy="8" rx="18" ry="5" fill="rgba(0,0,0,0.3)"/>
-      <line x1="-12" y1="0" x2="0"   y2="-14" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="0"   y1="-14" x2="14" y2="0"  stroke="${col}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="-12" y1="0"  x2="14"  y2="0"  stroke="${col}" stroke-width="2" stroke-linecap="round"/>
-      <!-- Wheels -->
-      <circle cx="-12" cy="2" r="8" fill="none" stroke="${col}" stroke-width="2.5"/>
-      <circle cx="14"  cy="2" r="8" fill="none" stroke="${col}" stroke-width="2.5"/>
-      <circle cx="-12" cy="2" r="2" fill="${col}"/>
-      <circle cx="14"  cy="2" r="2" fill="${col}"/>
-      <!-- Saddle -->
-      <rect x="-4" y="-18" width="10" height="3" rx="1" fill="${col}"/>
-      <!-- Lightning bolt (power indicator) -->
-      <text x="0" y="-24" text-anchor="middle" font-size="10" fill="#ffd600">⚡</text>
-      <!-- Level label -->
-      <text x="0" y="22" text-anchor="middle" font-size="9" fill="${col}" font-family="monospace">Lv${level}</text>
+      ${glow}
+      <ellipse cx="2" cy="14" rx="20" ry="5" fill="rgba(0,0,0,0.25)"/>
+      <line x1="-14" y1="4"  x2="0"   y2="-12" stroke="${col}" stroke-width="3" stroke-linecap="round"/>
+      <line x1="0"   y1="-12" x2="16" y2="4"   stroke="${col}" stroke-width="3" stroke-linecap="round"/>
+      <line x1="-14" y1="4"  x2="16"  y2="4"   stroke="${col}" stroke-width="2" stroke-linecap="round"/>
+      <line x1="2"   y1="-12" x2="2"  y2="-18" stroke="${col}" stroke-width="2"/>
+      <rect x="-4"  y="-20" width="12" height="3" rx="1.5" fill="${col}"/>
+      <line x1="16"  y1="4"  x2="16"  y2="-4"  stroke="${col}" stroke-width="2"/>
+      <line x1="13"  y1="-4" x2="19"  y2="-4"  stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="-14" cy="4" r="9" fill="none" stroke="${col}" stroke-width="2.5"/>
+      <circle cx="16"  cy="4" r="9" fill="none" stroke="${col}" stroke-width="2.5"/>
+      <circle cx="-14" cy="4" r="2" fill="${col}"/>
+      <circle cx="16"  cy="4" r="2" fill="${col}"/>
+      ${level >= 2 ? `
+        <line x1="-14" y1="-5" x2="-14" y2="13" stroke="${col}" stroke-width="1" opacity="0.5"/>
+        <line x1="-23" y1="4"  x2="-5"  y2="4"  stroke="${col}" stroke-width="1" opacity="0.5"/>` : ''}
+      <text x="0" y="-26" text-anchor="middle" font-size="11" fill="#ffd600">⚡</text>
+      <text x="1" y="28"  text-anchor="middle" font-size="9"  fill="${col}" font-family="monospace">Lv${level}</text>
     </g>`;
   },
 
@@ -50,134 +57,129 @@ const DynamoBike = {
     const screen = document.getElementById('screen-dynamo-bike');
     if (!screen) return;
 
-    const bldLvl = State.data.base.buildings?.dynamo_bike?.level || 0;
-    const genLvl = State.data.power?.generators?.bike?.level     || 0;
-    const level  = Math.max(bldLvl, genLvl);
-    const stored = State.data.power?.stored   || 0;
+    const bldLvl  = State.data.base.buildings?.dynamo_bike?.level || 0;
+    const genLvl  = State.data.power?.generators?.bike?.level     || 0;
+    const level   = Math.max(bldLvl, genLvl);
+    const stored  = State.data.power?.stored || 0;
     const maxStor = Power.getMaxStorage();
     const batPct  = maxStor > 0 ? Math.round((stored / maxStor) * 100) : 0;
+    const active  = !!this._tickInterval;
+    const cpm     = State.data.cadence?.clicksPerMinute || 0;
+    const tgt     = State.data.cadence?.targetCPM       || 60;
+    const watts   = level > 0
+      ? (level * 2.0 * Math.max(0.2, Utils.clamp(cpm / tgt, 0, 2))).toFixed(1)
+      : '0';
 
-    // Pip bar
+    const nextLvl   = level + 1;
+    const canUpgrade = nextLvl <= 10;
+    const cost       = canUpgrade ? this._upgradeCost(nextLvl) : null;
+    const canAfford  = cost ? State.canAfford(cost) : false;
+    const costHtml   = cost
+      ? Object.entries(cost).map(([r, v]) => {
+          const have = State.data.inventory[r] || 0;
+          return `<span class="${have >= v ? 'ok' : 'short'}">${Utils.emojiMap?.[r] || '📦'}${v}</span>`;
+        }).join(' ')
+      : '';
+
     const pips = Array.from({length: 10}, (_, i) =>
       `<div class="pow-pip ${i < level ? 'on' : ''}"></div>`
     ).join('');
-
-    // Upgrade cost for next level
-    const nextLvl  = level + 1;
-    const canBuild = nextLvl <= 10;
-    const cost     = canBuild ? this._upgradeCost(nextLvl) : null;
-    const canAfford = cost ? State.canAfford(cost) : false;
-    const costStr  = cost
-      ? Object.entries(cost).map(([r, v]) =>
-          `<span class="${(State.data.inventory[r]||0) >= v ? 'ok' : 'short'}">${Utils.emojiMap?.[r] || '📦'}${v}</span>`
-        ).join(' ')
-      : '';
-
-    const sessionActive = !!this._tickInterval;
 
     screen.innerHTML = `
       <div class="power-panel">
         <div class="power-header">
           <div class="power-title">🚴 DYNAMO BIKE</div>
           <div class="power-summary">
-            <span style="color:#00e5ff">Lv ${level}/10</span>
-            <span style="color:#ffd600">⚡ ${this._liveWatts(level)} W now</span>
-            ${maxStor > 0 ? `<span style="color:#29b6f6">🔋 ${batPct}%</span>` : '<span style="color:#888">No battery</span>'}
+            <span style="color:#29b6f6">Lv ${level}/10</span>
+            <span style="color:#ffd600">⚡ ${watts}W</span>
+            ${maxStor > 0
+              ? `<span style="color:#29b6f6">🔋 ${batPct}%</span>`
+              : `<span style="color:#555">No battery built</span>`}
           </div>
         </div>
 
-        <div class="dynamo-desc">
-          Pedal to generate electricity. The harder you pedal (higher CPM), the more power you produce.
-          Power flows directly to your battery — or is wasted if you have none built.
-        </div>
+        <p class="dynamo-desc">
+          Pedal to generate electricity. Higher CPM = more watts.
+          Power flows to your battery — surplus is wasted without one.
+        </p>
 
-        <!-- Live session panel -->
         <div class="dynamo-session-panel">
           <div class="dynamo-cpm-display" id="dynamo-cpm-display">
-            ${sessionActive ? this._cpmDisplay() : '<span style="color:#555">— not pedalling —</span>'}
+            ${active ? this._cpmHtml() : '<span style="color:#555">— not pedalling —</span>'}
           </div>
           <div class="dynamo-wh-display" id="dynamo-wh-display">
-            ${sessionActive ? `+${this._sessionWh.toFixed(2)} Wh this session` : ''}
+            ${active ? `+${this._sessionWh.toFixed(2)} Wh this session` : ''}
           </div>
-
           ${level > 0
-            ? `<button class="btn-pixel ${sessionActive ? 'btn-danger' : 'btn-primary'} dynamo-session-btn"
-                id="btn-dynamo-session"
-                onclick="DynamoBike.${sessionActive ? 'stopSession' : 'startSession'}()">
-                ${sessionActive ? '⏹ STOP PEDALLING' : '▶ START PEDALLING'}
+            ? `<button class="btn-pixel ${active ? 'btn-danger' : 'btn-primary'} dynamo-session-btn"
+                onclick="DynamoBike.${active ? 'stopSession' : 'startSession'}()">
+                ${active ? '⏹ STOP' : '▶ START PEDALLING'}
               </button>`
-            : `<p style="color:#888;text-align:center">Build the dynamo first to start pedalling.</p>`
+            : `<p style="color:#888;text-align:center;margin-top:12px">Build the dynamo first to start pedalling.</p>`
           }
         </div>
 
-        <!-- Build / upgrade -->
-        <div class="power-section-title">
-          ${level === 0 ? 'BUILD DYNAMO BIKE' : 'UPGRADE'}
-        </div>
-        <div class="gen-pips" style="margin: 8px 0">${pips}</div>
-        ${canBuild ? `
-          <div class="gen-upg-row next">
-            <span class="gen-upg-lv">Lv ${nextLvl}</span>
-            <span class="gen-upg-out">+${(nextLvl * 2).toFixed(0)}W max</span>
-            <span class="gen-upg-cost">${costStr}</span>
-            <button class="btn-gen-upgrade"
-              onclick="DynamoBike.build()"
-              ${canAfford ? '' : 'disabled'}>
-              ${level === 0 ? '▲ BUILD' : '▲ UPGRADE'}
-            </button>
-          </div>
-        ` : '<div class="gen-maxed">✨ MAX LEVEL</div>'}
+        <div class="power-section-title">${level === 0 ? 'BUILD' : 'UPGRADE'}</div>
+        <div class="gen-pips" style="margin:8px 0">${pips}</div>
+        ${canUpgrade
+          ? `<div class="gen-upg-row next">
+              <span class="gen-upg-lv">Lv ${nextLvl}</span>
+              <span class="gen-upg-out">+${nextLvl * 2}W max</span>
+              <span class="gen-upg-cost">${costHtml}</span>
+              <button class="btn-gen-upgrade"
+                onclick="DynamoBike.build()"
+                ${canAfford ? '' : 'disabled'}>
+                ${level === 0 ? '▲ BUILD' : '▲ UPGRADE'}
+              </button>
+            </div>`
+          : '<div class="gen-maxed">✨ MAX LEVEL</div>'
+        }
 
-        <button class="btn-pixel btn-secondary" data-goto="base" style="margin-top:14px;max-width:180px">← BACK TO BASE</button>
+        <button class="btn-pixel btn-secondary" data-goto="base"
+          style="margin-top:16px;max-width:180px">← BACK TO BASE</button>
       </div>
     `;
   },
 
-  // ── Start a pedalling session ─────────────
+  // ── Start pedalling session ───────────────
   startSession() {
     if (this._tickInterval) return;
-    this._sessionWh  = 0;
-    this._idleSecs   = 0;
+    this._sessionWh = 0;
+    this._idleSecs  = 0;
     this._tickInterval = setInterval(() => this._tick(), 1000);
     this.renderScreen();
     Utils.toast('🚴 Pedalling session started!', 'info', 2000);
   },
 
-  // ── Stop the session ──────────────────────
+  // ── Stop pedalling session ────────────────
   stopSession() {
     if (!this._tickInterval) return;
     clearInterval(this._tickInterval);
     this._tickInterval = null;
     const total = parseFloat(this._sessionWh.toFixed(2));
     Events.emit('power:dynamo:stop', { totalWh: total });
-    Utils.toast(`⚡ Session ended. Generated ${total} Wh.`, 'good', 3000);
+    if (total > 0) Utils.toast(`⚡ Session ended — generated ${total} Wh.`, 'good', 3000);
     this._sessionWh = 0;
     this._idleSecs  = 0;
     this.renderScreen();
   },
 
-  // ── Per-second session tick ───────────────
+  // ── Per-second tick ───────────────────────
   _tick() {
-    const level  = Math.max(
+    const level = Math.max(
       State.data.base.buildings?.dynamo_bike?.level || 0,
       State.data.power?.generators?.bike?.level     || 0
     );
     if (level === 0) { this.stopSession(); return; }
 
-    const cpm    = State.data.cadence?.clicksPerMinute || 0;
-    const tgt    = State.data.cadence?.targetCPM       || 60;
-    const ratio  = Utils.clamp(cpm / tgt, 0, 2);
-    const watts  = level * 2.0 * Math.max(0.2, ratio);
-    const wh     = watts / 3600; // 1 second worth of generation
+    const cpm   = State.data.cadence?.clicksPerMinute || 0;
+    const tgt   = State.data.cadence?.targetCPM       || 60;
+    const ratio = Utils.clamp(cpm / tgt, 0, 2);
+    const watts = level * 2.0 * Math.max(0.2, ratio);
+    const wh    = watts / 3600;
 
-    // Track idle
-    if (cpm < 5) {
-      this._idleSecs++;
-    } else {
-      this._idleSecs = 0;
-    }
+    this._idleSecs = cpm < 5 ? this._idleSecs + 1 : 0;
 
-    // Add to battery if available
     const p = State.data.power;
     if (p) {
       const maxStor = Power.getMaxStorage();
@@ -189,19 +191,15 @@ const DynamoBike = {
     this._sessionWh += wh;
     Events.emit('power:dynamo:tick', { watts, whThisTick: wh });
 
-    // Update live display without full re-render
     const cpmEl = document.getElementById('dynamo-cpm-display');
     const whEl  = document.getElementById('dynamo-wh-display');
-    if (cpmEl) cpmEl.innerHTML = this._cpmDisplay();
+    if (cpmEl) cpmEl.innerHTML = this._cpmHtml();
     if (whEl)  whEl.textContent = `+${this._sessionWh.toFixed(2)} Wh this session`;
 
-    // Auto-stop on idle
-    if (this._idleSecs >= this._IDLE_CUTOFF) {
-      this.stopSession();
-    }
+    if (this._idleSecs >= this._IDLE_CUTOFF) this.stopSession();
   },
 
-  // ── Build / upgrade ───────────────────────
+  // ── Build / upgrade the building ─────────
   build() {
     const bldLvl  = State.data.base.buildings?.dynamo_bike?.level || 0;
     const nextLvl = bldLvl + 1;
@@ -209,35 +207,32 @@ const DynamoBike = {
 
     const cost = this._upgradeCost(nextLvl);
     if (!State.canAfford(cost)) {
-      Utils.toast('❌ Cannot afford this!', 'bad');
+      Utils.toast('❌ Cannot afford this upgrade!', 'bad');
       return;
     }
 
     Object.entries(cost).forEach(([r, v]) => State.consumeResource(r, v));
 
-    // Sync both state locations
     if (!State.data.base.buildings.dynamo_bike) {
       State.data.base.buildings.dynamo_bike = { level: 0, name: 'Dynamo Bike', emoji: '🚴' };
     }
     State.data.base.buildings.dynamo_bike.level = nextLvl;
-    State.data.power.generators.bike.level      = nextLvl;
+    if (State.data.power?.generators?.bike) {
+      State.data.power.generators.bike.level = nextLvl;
+    }
 
-    Utils.toast(`🚴 Dynamo Bike ${nextLvl === 1 ? 'built' : 'upgraded to Lv' + nextLvl}!`, 'good', 3000);
+    Utils.toast(
+      `🚴 Dynamo Bike ${nextLvl === 1 ? 'built' : 'upgraded to Lv' + nextLvl}!`,
+      'good', 3000
+    );
     Audio.sfxCraft?.();
     Events.emit('map:changed');
     Events.emit('hud:update');
     this.renderScreen();
   },
 
-  // ── Helpers ───────────────────────────────
-  _liveWatts(level) {
-    const cpm   = State.data.cadence?.clicksPerMinute || 0;
-    const tgt   = State.data.cadence?.targetCPM       || 60;
-    const ratio = Utils.clamp(cpm / tgt, 0, 2);
-    return (level * 2.0 * Math.max(0.2, ratio)).toFixed(1);
-  },
-
-  _cpmDisplay() {
+  // ── Private helpers ───────────────────────
+  _cpmHtml() {
     const cpm = State.data.cadence?.clicksPerMinute || 0;
     const tgt = State.data.cadence?.targetCPM       || 60;
     const pct = Utils.clamp(Math.round((cpm / tgt) * 100), 0, 200);

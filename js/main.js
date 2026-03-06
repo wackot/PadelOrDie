@@ -134,6 +134,25 @@ const Game = {
       setTimeout(() => Events.emit('power:render'), 50);
     }
 
+    // Render dynamo bike screen
+    if (screenName === 'dynamo-bike') {
+      setTimeout(() => Events.emit('dynamo_bike:render'), 50);
+    }
+
+    // Render individual generator screens
+    if (screenName === 'gen-woodburner') {
+      setTimeout(() => Events.emit('power:gen:render', { key: 'woodburner' }), 50);
+    }
+    if (screenName === 'gen-coal_plant') {
+      setTimeout(() => Events.emit('power:gen:render', { key: 'coal' }), 50);
+    }
+    if (screenName === 'gen-solar_array') {
+      setTimeout(() => Events.emit('power:gen:render', { key: 'solar' }), 50);
+    }
+    if (screenName === 'gen-battery_bank') {
+      setTimeout(() => Events.emit('power:bat:render'), 50);
+    }
+
     HUD.update();
   },
 
