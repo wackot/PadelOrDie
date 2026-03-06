@@ -1199,13 +1199,14 @@ const WorldMap = {
       this._mapData.playerWX = this._playerWX;
       this._mapData.playerWY = this._playerWY;
 
-      // Reveal fog along entire path so far (not just current position)
-      const revealSteps = 8;
-      for (let i = 0; i <= revealSteps; i++) {
-        const t = i / revealSteps * progress;
+      // Reveal a solid corridor — steps spaced close enough that circles overlap
+      // Fog cell = 20 world units wide; radius 80 = 4 cells, steps every 15 units = guaranteed solid
+      const pathSteps = Math.max(30, Math.ceil(totalDist / 15));
+      for (let i = 0; i <= pathSteps; i++) {
+        const t = (i / pathSteps) * progress;
         const rx = startWX + (targetWX - startWX) * t;
         const ry = startWY + (targetWY - startWY) * t;
-        this._revealAround(rx, ry, 60);
+        this._revealAround(rx, ry, 80);
       }
 
       // Redraw map (partial — just reposition, don't full rebuild)
