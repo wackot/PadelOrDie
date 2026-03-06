@@ -12,15 +12,9 @@ const Crafting = {
   _craftQty:       1,
 
   // ── Emoji map ─────────────────────────────
-  emojiMap: {
-    wood:'🪵', metal:'🔩', gasoline:'⛽', food:'🥫', water:'💧',
-    medicine:'💊', cloth:'🧶', electronics:'📟', rope:'🪢', chemicals:'🧪',
-    spores:'🍄', wild_seeds:'🌱', engine_parts:'⚙️', scrap_wire:'🔌',
-    circuit_board:'💾', antiseptic:'🧫', cave_crystal:'💎', military_chip:'🎖️',
-    coal:'⛏', glass:'🪟',
-    battery_cell:'🔋', copper_wire:'🔌', steel_casing:'🧊', capacitor:'💡', power_core:'⚡',
-    solar_glass:'☀'
-  },
+  // Canonical definition lives in Utils.emojiMap (shared with Power and others).
+  // This getter keeps any existing Crafting.emojiMap references working.
+  get emojiMap() { return Utils.emojiMap; },
 
   // ── Recipe definitions ────────────────────
   recipes: {
@@ -332,324 +326,10 @@ const Crafting = {
     { id:'electric', label:'⚡ Electric' }
   ],
 
-  // ── Base upgrades tracker ─────────────────
-  baseUpgrades: {
-    shelter: {
-      name:'Shelter', icon:'🏚️', maxLevel:10,
-      levels: [
-        { desc:'Lv1 — Hay pile. Basic rest. +0 bonus.',
-          cost:{ wood:0 }, unlocks:[] },
-        { desc:'Lv2 — Mattress on ground. Sleep restores +10% energy. Unlocks: Greenhouse.',
-          cost:{ cloth:4, rope:2 }, unlocks:['greenhouse'] },
-        { desc:'Lv3 — Stick lean-to. Some shelter from rain. Unlocks: Crop Field, Rain Collector.',
-          cost:{ wood:8, rope:4 }, unlocks:['field','rain_collector'] },
-        { desc:'Lv4 — Open hut. +15% sleep energy. Unlocks: Compost Bin, Food Storage.',
-          cost:{ wood:20, rope:6 }, unlocks:['compost_bin','storage'] },
-        { desc:'Lv5 — Closed shack. Raid damage -10%. Unlocks: Watchtower, Workshop.',
-          cost:{ wood:30, metal:4, rope:4 }, unlocks:['watchtower','workshop'] },
-        { desc:'Lv6 — Wooden house. Sleep +25% energy. Unlocks: Smokehouse, Powerhouse.',
-          cost:{ wood:45, metal:8, cloth:6 }, unlocks:['smokehouse','powerhouse'] },
-        { desc:'Lv7 — Glass house. Raid -20%. Unlocks: Electric Bench, Radio Tower.',
-          cost:{ wood:40, metal:15, electronics:4 }, unlocks:['elecbench','radio_tower'] },
-        { desc:'Lv8 — Brick house. Sleep +40%. Unlocks: Alarm System, Well Upgrade.',
-          cost:{ metal:20, chemicals:6, electronics:4 }, unlocks:['alarm_system','well'] },
-        { desc:'Lv9 — Fancy house. Hunger/thirst drain -20%. Unlocks: Medical Station, Solar Station.',
-          cost:{ metal:30, electronics:8, cloth:10 }, unlocks:['medkit_station','solar_station'] },
-        { desc:'Lv10 — Metal fortress. Raid -50%. Unlocks: Bunker (ultimate protection).',
-          cost:{ metal:50, electronics:20, military_chip:4, chemicals:10 }, unlocks:['bunker'] }
-      ]
-    },
-    well: {
-      name:'Well', icon:'🪣', maxLevel:10,
-      levels: [
-        { desc:'Lv1 — Stone well. Draws 5 water per use.',
-          cost:{ wood:0 }, waterPerUse:5 },
-        { desc:'Lv2 — Lined well. Draws 8 water per use.',
-          cost:{ wood:6, rope:3 }, waterPerUse:8 },
-        { desc:'Lv3 — Filtered well. Draws 12 water + removes toxins.',
-          cost:{ wood:10, chemicals:3, rope:2 }, waterPerUse:12 },
-        { desc:'Lv4 — Deep well. Draws 18 water. Never runs dry.',
-          cost:{ wood:15, metal:4, rope:4 }, waterPerUse:18 },
-        { desc:'Lv5 — Hand-pump well. Draws 25 water per use. +1 water/day passively.',
-          cost:{ metal:10, wood:12, rope:4 }, waterPerUse:25, passiveWater:1 },
-        { desc:'Lv6 — Brick well with pump. Draws 35 water. +2 water/day.',
-          cost:{ metal:16, chemicals:4, rope:5 }, waterPerUse:35, passiveWater:2 },
-        { desc:'Lv7 — Pressurised well. Draws 50 water. +3 water/day.',
-          cost:{ metal:22, electronics:4, chemicals:5 }, waterPerUse:50, passiveWater:3 },
-        { desc:'Lv8 — Purification tower. Draws 70 water. +5 water/day. Water heals +2 health.',
-          cost:{ metal:30, electronics:8, chemicals:8 }, waterPerUse:70, passiveWater:5 },
-        { desc:'Lv9 — Hydro plant. Draws 100 water. +8 water/day. Also generates 1Wh power.',
-          cost:{ metal:40, electronics:15, chemicals:10, power_core:2 }, waterPerUse:100, passiveWater:8 },
-        { desc:'Lv10 — Infinite aquifer tap. Draws 150 water. +15 water/day. Unlimited supply.',
-          cost:{ metal:55, electronics:22, chemicals:15, power_core:4, military_chip:2 }, waterPerUse:150, passiveWater:15 }
-      ]
-    },
-    fence: {
-      name:'Perimeter', icon:'🚧', maxLevel:10,
-      levels: [
-        { desc:'Lv1 — Open perimeter. No fence yet. Defence: 10.',
-          cost:{ wood:0 } },
-        { desc:'Lv2 — Rope & poles. +8 def. Slows raiders.',
-          cost:{ wood:4, rope:4 } },
-        { desc:'Lv3 — Alarm line. Rope + cans alert you to raids. +12 def.',
-          cost:{ wood:6, rope:6, metal:2 } },
-        { desc:'Lv4 — Wooden fence. +18 def. Stops basic animal raids.',
-          cost:{ wood:20, rope:4 } },
-        { desc:'Lv5 — Spiked fence. +25 def. Spikes damage attackers.',
-          cost:{ wood:30, rope:6, metal:4 } },
-        { desc:'Lv6 — Barbed wire perimeter. +35 def. Wire in front slows raiders.',
-          cost:{ wood:20, metal:10, rope:8 } },
-        { desc:'Lv7 — Metal fence. +50 def. Welded steel panels.',
-          cost:{ metal:25, rope:5, electronics:2 } },
-        { desc:'Lv8 — Metal + barbed wire on top. +65 def. Climbing is suicide.',
-          cost:{ metal:35, rope:10, chemicals:4 } },
-        { desc:'Lv9 — Electrified fence. +80 def. Sparks fly. Needs power for full effect.',
-          cost:{ metal:40, electronics:15, chemicals:6 } },
-        { desc:'Lv10 — Concrete + electric wire + auto-turrets. +100 def. Maximum security.',
-          cost:{ metal:50, electronics:25, chemicals:10, military_chip:3 } }
-      ]
-    },
-    storage: {
-      name:'Storage Room', icon:'🗃️', maxLevel:10,
-      levels: [
-        { desc:'Lv1 — Crate pile outside. Max 50 of each basic resource.',
-          cost:{ wood:0 },
-          storeCapA:50, storeCapB:0, storeCapC:0, storeCapD:0 },
-        { desc:'Lv2 — Wooden shelf shed. Max 100 basics.',
-          cost:{ wood:12, rope:4 },
-          storeCapA:100 },
-        { desc:'Lv3 — Locked shed + metal shelf. Max 150 basics. Unlocks Tier B storage (electronics, meds, chemicals).',
-          cost:{ wood:20, metal:6, rope:4 },
-          storeCapA:150, storeCapB:30 },
-        { desc:'Lv4 — Double shed. Max 200 basics, 60 Tier B.',
-          cost:{ wood:30, metal:10, rope:6 },
-          storeCapA:200, storeCapB:60 },
-        { desc:'Lv5 — Reinforced storage. Max 300 basics, 100 Tier B. Unlocks Tier C (rare materials).',
-          cost:{ wood:40, metal:16, rope:8, electronics:3 },
-          storeCapA:300, storeCapB:100, storeCapC:30 },
-        { desc:'Lv6 — Underground room. Max 400 basics, 150 Tier B, 60 Tier C.',
-          cost:{ wood:30, metal:24, electronics:6, chemicals:4 },
-          storeCapA:400, storeCapB:150, storeCapC:60 },
-        { desc:'Lv7 — Climate-controlled vault. Max 500, 200, 100.',
-          cost:{ metal:30, electronics:10, chemicals:8, rope:8 },
-          storeCapA:500, storeCapB:200, storeCapC:100 },
-        { desc:'Lv8 — Industrial shelving. Max 750, 300, 150. Unlocks Tier D (electrical parts).',
-          cost:{ metal:40, electronics:15, chemicals:10, military_chip:2 },
-          storeCapA:750, storeCapB:300, storeCapC:150, storeCapD:60 },
-        { desc:'Lv9 — Hardened bunker store. Max 1000, 400, 200, 100.',
-          cost:{ metal:60, electronics:20, chemicals:15, military_chip:4 },
-          storeCapA:1000, storeCapB:400, storeCapC:200, storeCapD:100 },
-        { desc:'Lv10 — Apocalypse warehouse. Max 2000, 600, 300, 200. Unlimited basics.',
-          cost:{ metal:80, electronics:30, chemicals:20, military_chip:8 },
-          storeCapA:2000, storeCapB:600, storeCapC:300, storeCapD:200 }
-      ]
-    },
-    greenhouse: {
-      name:'Greenhouse', icon:'🌿', maxLevel:3,
-      levels: [
-        { desc:'Lv0 — Not built. Build to grow food passively.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Small greenhouse. +1 food every game day, passively.',
-          cost:{ wood:12, cloth:4, rope:3 } },
-        { desc:'Lv2 — Expanded greenhouse. +2 food/day + 1 water/day.',
-          cost:{ wood:20, cloth:6, metal:4 } },
-        { desc:'Lv3 — Full greenhouse. +3 food/day + 2 water/day + slows hunger 10%.',
-          cost:{ wood:30, metal:8, electronics:2, rope:5 } }
-      ]
-    },
-    field: {
-      name:'Crop Field', icon:'🌾', maxLevel:3,
-      levels: [
-        { desc:'Lv0 — Not built. Requires Wild Seeds to plant.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Planted field. +2 food every 2 days. Needs Wild Seeds.',
-          cost:{ wild_seeds:5, wood:8, rope:2 } },
-        { desc:'Lv2 — Cultivated field. +3 food/day. Reduces hunger drain 15%.',
-          cost:{ wild_seeds:10, wood:15, metal:3, rope:4 } },
-        { desc:'Lv3 — Full harvest. +5 food/day. Hunger barely drains at base.',
-          cost:{ wild_seeds:20, wood:20, metal:8, chemicals:3 } }
-      ]
-    },
-    // ── NEW BUILDINGS (unlocked by shelter level) ──────
-    rain_collector: {
-      name:'Rain Collector', icon:'🌧️', maxLevel:3, unlockReq:3,
-      levels:[
-        { desc:'Lv0 — Not built. Passively collect water during expeditions.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Basic barrel. +1 water/day passively.',
-          cost:{ wood:10, rope:4, metal:2 } },
-        { desc:'Lv2 — Gutter system. +2 water/day.',
-          cost:{ wood:16, metal:6, rope:4 } },
-        { desc:'Lv3 — Tank array. +4 water/day. Never run dry.',
-          cost:{ metal:15, electronics:3, rope:6 } }
-      ]
-    },
-    compost_bin: {
-      name:'Compost Bin', icon:'♻️', maxLevel:2, unlockReq:4,
-      levels:[
-        { desc:'Lv0 — Not built. Converts waste to soil nutrients.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Compost bin. +1 food/day from scraps.',
-          cost:{ wood:12, rope:3, chemicals:2 } },
-        { desc:'Lv2 — Full compost system. +2 food/day. Reduces hunger drain 5%.',
-          cost:{ wood:18, chemicals:5, rope:5 } }
-      ]
-    },
-    watchtower: {
-      name:'Watchtower', icon:'🗼', maxLevel:3, unlockReq:5,
-      levels:[
-        { desc:'Lv0 — Not built. Spot raiders before they arrive.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Wooden tower. Raid warning time +5s. +10 defence.',
-          cost:{ wood:20, rope:6, metal:4 } },
-        { desc:'Lv2 — Reinforced tower. Raid warning +10s. +20 defence.',
-          cost:{ wood:30, metal:10, rope:8 } },
-        { desc:'Lv3 — Armoured tower. Raid warning +20s. +35 defence.',
-          cost:{ metal:20, electronics:6, rope:8 } }
-      ]
-    },
-    workshop: {
-      name:'Workshop', icon:'🔧', maxLevel:10, unlockReq:5,
-      levels:[
-        { desc:'Lv0 — Not built. Improves crafting efficiency.',
-          cost:{ wood:0 }, craftDiscount:0, bikeBonus:0 },
-        { desc:'Lv1 — Tool bench. Crafting costs -10%.',
-          cost:{ wood:18, metal:6, rope:4 }, craftDiscount:0.10, bikeBonus:0 },
-        { desc:'Lv2 — Equipped bench. Crafting -15%. Bike efficiency +10%.',
-          cost:{ wood:24, metal:10, rope:4 }, craftDiscount:0.15, bikeBonus:0.10 },
-        { desc:'Lv3 — Full workshop. Crafting -20%. Bike +15%.',
-          cost:{ wood:30, metal:14, electronics:3 }, craftDiscount:0.20, bikeBonus:0.15 },
-        { desc:'Lv4 — Power tools. Crafting -25%. Bike +20%.',
-          cost:{ metal:20, electronics:6, chemicals:3 }, craftDiscount:0.25, bikeBonus:0.20 },
-        { desc:'Lv5 — Machine shop. Crafting -30%. Bike +25%. Unlocks fast-craft mode.',
-          cost:{ metal:28, electronics:8, chemicals:4 }, craftDiscount:0.30, bikeBonus:0.25 },
-        { desc:'Lv6 — Advanced shop. Crafting -35%. Bike +30%.',
-          cost:{ metal:36, electronics:12, chemicals:6 }, craftDiscount:0.35, bikeBonus:0.30 },
-        { desc:'Lv7 — Precision workshop. Crafting -40%. Bike +35%. Rare drop chance +10%.',
-          cost:{ metal:44, electronics:16, chemicals:8, rope:8 }, craftDiscount:0.40, bikeBonus:0.35 },
-        { desc:'Lv8 — Industrial workshop. Crafting -45%. Bike +40%.',
-          cost:{ metal:54, electronics:20, chemicals:12, circuit_board:3 }, craftDiscount:0.45, bikeBonus:0.40 },
-        { desc:'Lv9 — High-tech lab. Crafting -50%. Bike +50%. Electric recipes unlocked.',
-          cost:{ metal:65, electronics:26, chemicals:15, circuit_board:6, military_chip:2 }, craftDiscount:0.50, bikeBonus:0.50 },
-        { desc:'Lv10 — Master forge. Crafting -60%. Bike +60%. All recipes available.',
-          cost:{ metal:80, electronics:35, chemicals:20, circuit_board:10, military_chip:4 }, craftDiscount:0.60, bikeBonus:0.60 }
-      ]
-    },
-    smokehouse: {
-      name:'Smokehouse', icon:'🏭', maxLevel:2, unlockReq:6,
-      levels:[
-        { desc:'Lv0 — Not built. Preserve food to reduce spoilage.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Smokehouse. Food stores last 2× longer.',
-          cost:{ wood:20, metal:4, rope:6 } },
-        { desc:'Lv2 — Curing house. Food 3× longer + +2 food/day.',
-          cost:{ wood:28, metal:10, chemicals:4 } }
-      ]
-    },
-    radio_tower: {
-      name:'Radio Tower', icon:'📡', maxLevel:2, unlockReq:7,
-      levels:[
-        { desc:'Lv0 — Not built. Intercept raid frequencies.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Radio tower. Raid chance reduced 15%.',
-          cost:{ metal:15, electronics:8, rope:5 } },
-        { desc:'Lv2 — Encrypted radio. Raid chance -30%. Rare material drops +20%.',
-          cost:{ metal:20, electronics:15, military_chip:2 } }
-      ]
-    },
-    alarm_system: {
-      name:'Alarm System', icon:'🔔', maxLevel:2, unlockReq:8,
-      levels:[
-        { desc:'Lv0 — Not built. Trigger alarms on breach.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Trip wire alarms. Raid damage -15%.',
-          cost:{ metal:10, electronics:6, rope:8 } },
-        { desc:'Lv2 — Auto-alarm grid. Raid damage -30%. Auto-activates fence.',
-          cost:{ metal:18, electronics:12, chemicals:4 } }
-      ]
-    },
-    medkit_station: {
-      name:'Medical Station', icon:'🏥', maxLevel:3, unlockReq:9,
-      levels:[
-        { desc:'Lv0 — Not built. Heal faster and use meds more efficiently.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — First aid post. Medicine 25% more effective.',
-          cost:{ metal:10, medicine:8, cloth:6 } },
-        { desc:'Lv2 — Medical bay. Medicine 50% more effective. +1 medicine/day.',
-          cost:{ metal:18, medicine:15, electronics:6 } },
-        { desc:'Lv3 — Full clinic. Medicine 2× effective. Passively heal 1 energy/hour.',
-          cost:{ metal:25, medicine:20, electronics:12, chemicals:8 } }
-      ]
-    },
-    solar_station: {
-      name:'Solar Station', icon:'☀️', maxLevel:2, unlockReq:9,
-      levels:[
-        { desc:'Lv0 — Not built. Boost solar power generation.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Solar station. Solar array generates 20% more power.',
-          cost:{ electronics:12, metal:10, rope:4 } },
-        { desc:'Lv2 — Optimised array. Solar +40% more power. Battery charges overnight 1Wh.',
-          cost:{ electronics:20, metal:16, military_chip:2 } }
-      ]
-    },
-    bunker: {
-      name:'Bunker', icon:'🏗️', maxLevel:2, unlockReq:10,
-      levels:[
-        { desc:'Lv0 — Not built. Ultimate protection against raids.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Underground bunker. Raid damage -40%. +50 defence.',
-          cost:{ metal:40, electronics:15, chemicals:12, rope:10 } },
-        { desc:'Lv2 — Fortified bunker. Raid damage -60%. +80 defence. Raid chance -20%.',
-          cost:{ metal:60, electronics:25, chemicals:20, military_chip:6 } }
-      ]
-    },
-
-    // ── BIKE UPGRADES — 10 levels ────────────────────────
-    bike: {
-      name:'Bike Upgrade', icon:'🚴', maxLevel:10,
-      levels: [
-        { desc:'Lv1 — Basic ride. Standard cargo. No light. Night riding risky.',
-          cost:{ wood:0 },
-          cargoBonus:1.0, hasLight:false, nightMult:1.0 },
-        { desc:'Lv2 — Better tires + pannier bags. +25% cargo capacity.',
-          cost:{ metal:4, cloth:3, rope:2 },
-          cargoBonus:1.25, hasLight:false, nightMult:1.0 },
-        { desc:'Lv3 — Front headlight. Craft Bike Light to mount. Can ride at night safely (+20% rewards).',
-          cost:{ metal:6, electronics:2, rope:2 },
-          cargoBonus:1.25, hasLight:true, nightMult:1.2 },
-        { desc:'Lv4 — Reinforced frame. +50% cargo. Night rewards +25%.',
-          cost:{ metal:10, rope:4, electronics:2 },
-          cargoBonus:1.50, hasLight:true, nightMult:1.25 },
-        { desc:'Lv5 — Cargo trailer. +75% cargo. Night +30% rewards.',
-          cost:{ metal:14, rope:6, wood:8 },
-          cargoBonus:1.75, hasLight:true, nightMult:1.30 },
-        { desc:'Lv6 — Upgraded headlights + saddlebags. 2× cargo. Night +40% rewards.',
-          cost:{ metal:18, electronics:6, rope:6 },
-          cargoBonus:2.0, hasLight:true, nightMult:1.40 },
-        { desc:'Lv7 — Heavy-duty frame + large trailer. 2.5× cargo. Night +50% rewards.',
-          cost:{ metal:24, electronics:8, rope:8, chemicals:4 },
-          cargoBonus:2.5, hasLight:true, nightMult:1.50 },
-        { desc:'Lv8 — Night vision lights. 3× cargo. Night +65% rewards. Night encounter chance -10%.',
-          cost:{ metal:30, electronics:14, chemicals:6, military_chip:1 },
-          cargoBonus:3.0, hasLight:true, nightMult:1.65, nightEncounterReduction:0.10 },
-        { desc:'Lv9 — Armoured cargo crates. 4× cargo. Night +80% rewards. Night encounter -20%.',
-          cost:{ metal:40, electronics:18, chemicals:10, military_chip:3 },
-          cargoBonus:4.0, hasLight:true, nightMult:1.80, nightEncounterReduction:0.20 },
-        { desc:'Lv10 — Military cargo beast. 5× cargo. Night +100% rewards. Night encounter -30%.',
-          cost:{ metal:55, electronics:25, chemicals:15, military_chip:6 },
-          cargoBonus:5.0, hasLight:true, nightMult:2.0, nightEncounterReduction:0.30 }
-      ]
-    },
-    powerhouse: {
-      name:'Power House', icon:'⚡', maxLevel:1, unlockReq:6,
-      levels: [
-        { desc:'Lv0 — Not built. Build to access the Power Management panel.',
-          cost:{ wood:0 } },
-        { desc:'Lv1 — Power house built. Houses all generators. Access Power Panel to upgrade.',
-          cost:{ wood:15, metal:10, rope:4 } }
-      ]
-    }
-  },
+  // ── Building upgrade registry ───────────────────────────────
+  // Canonical definition lives in upgrades.js (BuildingUpgrades).
+  // This getter keeps any existing Crafting.baseUpgrades references working.
+  get baseUpgrades() { return BuildingUpgrades; },
 
   // ── Main render entry ─────────────────────
   render() {
@@ -920,9 +600,15 @@ const Crafting = {
       // Apply effects × qty
       Audio.sfxCraft();
       for (let i = 0; i < qty; i++) this._applyEffect(recipe);
-      HUD.update();
+      Events.emit('hud:update');
       this._renderDetail();
       this._renderRecipes();
+      State.data.stats.totalCrafted = (State.data.stats.totalCrafted||0) + qty;
+      // Track special crafted items for achievements
+      if (recipe.id === 'circuit_board')  State.data.stats.craftedCircuitBoard  = (State.data.stats.craftedCircuitBoard ||0) + qty;
+      if (recipe.id === 'military_chip')  State.data.stats.craftedMilitaryChip  = (State.data.stats.craftedMilitaryChip ||0) + qty;
+      if (recipe.id === 'power_core')     State.data.stats.craftedPowerCore     = (State.data.stats.craftedPowerCore    ||0) + qty;
+      Events.emit('achievements:check');
       Utils.toast(`🔨 Crafted ${qty}× ${recipe.emoji} ${recipe.name}!`, 'good');
       console.log('[Crafting] Crafted:', recipe.name, '×', qty);
     });
@@ -1099,91 +785,175 @@ const Crafting = {
         ${max > 0 ? `<div class="bat-charge-wrap" style="width:80px;display:inline-block">
           <div class="bat-charge-bar" style="width:${max>0?Math.round((stor/max)*100):0}%;background:#ffd600"></div>
         </div> ${stor}/${max}Wh` : '<span style="color:#666">No battery</span>'}
-        <button class="btn-pixel btn-secondary" onclick="Game.goTo('power')" style="padding:4px 8px;font-size:0.3rem">⚡ POWER PANEL</button>
+        <button class="btn-pixel btn-secondary" data-goto="power" style="padding:4px 8px;font-size:0.3rem">⚡ POWER PANEL</button>
       </div>`;
     })() : '';
 
-    // Shelter unlock banner
-    const shelterBanner = `<div class="shelter-unlock-banner">
-      🏠 SHELTER Lv${shelterLv} — Upgrade shelter to unlock more buildings
-    </div>`;
-
-    // Group buildings: core + unlocked new ones
-    const buildingGroups = [
-      { label: '🏠 CORE BUILDINGS', keys: ['shelter','well','fence','storage'] },
-      { label: '🚴 BIKE',            keys: ['bike'] },
-      { label: '🌿 FARMING & FOOD',  keys: ['greenhouse','field','compost_bin','smokehouse'] },
-      { label: '⚙️ UTILITY',         keys: ['workshop','rain_collector','watchtower','radio_tower'] },
-      { label: '⚡ POWER & TECH',    keys: ['powerhouse','elecbench','alarm_system','solar_station'] },
-      { label: '🏥 ADVANCED',        keys: ['medkit_station','bunker'] },
+    const allKeys = [
+      'shelter','fence','well','storage','bike',
+      'greenhouse','field','compost_bin','smokehouse',
+      'workshop','rain_collector','watchtower','radio_tower',
+      'powerhouse','elecbench','alarm_system','solar_station',
+      'medkit_station','bunker',
     ];
 
-    let groupHTML = '';
-    for (const group of buildingGroups) {
-      const cards = group.keys.map(key => {
-        const upg = this.baseUpgrades[key];
-        if (!upg) return '';
-        const reqLv = upg.unlockReq || 0;
-        const isLocked = reqLv > shelterLv;
+    const tiles = allKeys.map(key => {
+      const upg = this.baseUpgrades[key];
+      if (!upg) return '';
+      const reqLv     = upg.unlockReq || 0;
+      const isLocked  = reqLv > shelterLv;
+      const stKey     = key === 'shelter' ? 'house' : key;
+      const curLv     = State.data.base.buildings[stKey]?.level || 0;
+      const isMax     = curLv >= upg.maxLevel;
+      const isNew     = reqLv > 0 && curLv === 0 && !isLocked;
+      const nextCost  = !isMax && !isLocked ? this.baseUpgrades[key].levels[curLv] : null;
+      const canAfford = nextCost ? this._canAffordUpgrade(nextCost.cost) : false;
 
-        if (isLocked) {
-          return `<div class="upgrade-card locked-card">
-            <div class="upgrade-icon" style="opacity:0.3">${upg.icon}</div>
-            <div class="upgrade-info">
-              <span class="upgrade-name" style="color:#666">${upg.name}</span>
-              <span class="upgrade-desc" style="color:#555">🔒 Unlock at Shelter Lv${reqLv}</span>
-            </div>
-            <button class="btn-upgrade" disabled style="opacity:0.3">🔒 LOCKED</button>
-          </div>`;
-        }
+      let statusDot = '';
+      if (isLocked)      statusDot = '<span class="bld-dot bld-dot-locked">🔒</span>';
+      else if (isMax)    statusDot = '<span class="bld-dot bld-dot-max">✓</span>';
+      else if (isNew)    statusDot = '<span class="bld-dot bld-dot-new">NEW</span>';
+      else if (canAfford)statusDot = '<span class="bld-dot bld-dot-ready">▲</span>';
 
-        const stKey = key === 'shelter' ? 'house' : key;
-        const currentLevel = State.data.base.buildings[stKey]?.level || 0;
-        const displayLevel = Math.max(1, currentLevel);
-        const isMax        = currentLevel >= upg.maxLevel;
-        const nextLevel    = upg.levels[currentLevel] || null;
-        const canAfford    = nextLevel ? this._canAffordUpgrade(nextLevel.cost) : false;
-        const isNew        = reqLv > 0 && currentLevel === 0;
+      return `<button class="bld-tile ${isLocked?'bld-locked':''} ${isMax?'bld-maxed':''} ${isNew?'bld-new':''}"
+        onclick="Crafting._openBuildingModal('${key}')"
+        ${isLocked ? 'title="Locked — upgrade Shelter"' : ''}>
+        <span class="bld-tile-icon">${upg.icon}</span>
+        <span class="bld-tile-name">${upg.name}</span>
+        <span class="bld-tile-lv">Lv ${curLv}/${upg.maxLevel}</span>
+        ${statusDot}
+      </button>`;
+    }).join('');
 
-        const costStr = nextLevel
-          ? Object.entries(nextLevel.cost)
-              .filter(([,v]) => v > 0)
-              .map(([r,v]) => `${this.emojiMap[r]||'📦'}${v} ${r}`)
-              .join(', ') || 'Free'
-          : '—';
+    el.innerHTML = powerBar +
+      `<div class="shelter-unlock-banner">🏠 SHELTER Lv${shelterLv} — tap a building to upgrade</div>` +
+      `<div class="bld-grid">${tiles}</div>` +
+      `<div class="bld-modal-backdrop hidden" id="bld-modal-backdrop" onclick="Crafting._closeBuildingModal()"></div>` +
+      `<div class="bld-modal hidden" id="bld-modal"></div>`;
+  },
 
-        const pipsHTML = Array.from({length: upg.maxLevel}, (_, i) => `
-          <div class="level-pip ${i < currentLevel ? 'filled' : ''}"></div>
-        `).join('');
+  _openBuildingModal(key) {
+    const upg      = this.baseUpgrades[key];
+    const modal    = document.getElementById('bld-modal');
+    const backdrop = document.getElementById('bld-modal-backdrop');
+    if (!upg || !modal) return;
 
-        return `
-          <div class="upgrade-card ${isMax ? 'max-level' : ''} ${isNew ? 'new-unlock' : ''}">
-            <div class="upgrade-icon">${upg.icon}</div>
-            <div class="upgrade-info">
-              <span class="upgrade-name">${upg.name}${isNew ? ' <span class="new-badge">NEW</span>' : ''}</span>
-              <span class="upgrade-desc">${upg.levels[Math.max(0,currentLevel-1)]?.desc || upg.levels[0]?.desc || ''}</span>
-              <div class="upgrade-level-pips">${pipsHTML}</div>
-              <span class="upgrade-cost">${isMax ? '✅ MAX LEVEL' : `Next: ${costStr}`}</span>
-            </div>
-            <button class="btn-upgrade ${isMax ? 'maxed' : ''}"
-                    onclick="Crafting._upgradeBuilding('${key}')"
-                    ${isMax || !canAfford ? 'disabled' : ''}>
-              ${isMax ? '✓ MAX' : canAfford ? (currentLevel===0?'🔨 BUILD':'▲ UPGRADE') : '❌ NEED MORE'}
-            </button>
-          </div>
-        `;
-      }).join('');
+    const shelterLv  = State.data.base.buildings.house?.level || 1;
+    const reqLv      = upg.unlockReq || 0;
+    const isLocked   = reqLv > shelterLv;
+    const stKey      = key === 'shelter' ? 'house' : key;
+    const curLv      = State.data.base.buildings[stKey]?.level || 0;
+    const isMax      = curLv >= upg.maxLevel;
+    const nextDef    = !isMax ? upg.levels[curLv] : null;
+    const canAfford  = nextDef ? this._canAffordUpgrade(nextDef.cost) : false;
 
-      if (cards.trim()) {
-        groupHTML += `<div class="upgrade-group">
-          <div class="upgrade-group-label">${group.label}</div>
-          ${cards}
-        </div>`;
-      }
+    // Is THIS building currently under construction?
+    const ab         = State.data.activeBuild;
+    const isBuilding = ab && ab.key === key;
+    const otherBuilding = ab && ab.key !== key;
+
+    // Level pips
+    const pips = Array.from({length: upg.maxLevel}, (_,i) =>
+      `<div class="level-pip ${i < curLv ? 'filled' : ''}"></div>`
+    ).join('');
+
+    // Construction progress bar (shown when actively building)
+    const buildProgressHTML = isBuilding ? (() => {
+      const pct  = Math.round(((ab.secsTotal - ab.secsLeft) / ab.secsTotal) * 100);
+      const secs = Math.ceil(ab.secsLeft);
+      const cpm  = State.data.cadence?.clicksPerMinute ?? 0;
+      const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
+      const speedStr = bonus > 0 ? ` ⚡ +${bonus.toFixed(1)}s/tick from biking!` : ' Bike faster to speed up!';
+      return `<div class="bld-build-progress">
+        <div class="bld-build-header">🏗 UNDER CONSTRUCTION — ${secs}s remaining${speedStr}</div>
+        <div class="bld-build-bar-wrap">
+          <div class="bld-build-bar" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+    })() : '';
+
+    // Cost breakdown (only show if not currently building this)
+    const buildTimeStr = `⏱ Build time: 10s (bike to reduce)`;
+    const costHTML = isBuilding
+      ? ''  // replaced by progress bar above
+      : isLocked
+        ? `<div class="bld-modal-cost locked">🔒 Requires Shelter Lv${reqLv}</div>`
+        : isMax
+          ? `<div class="bld-modal-cost maxed">✅ MAX LEVEL REACHED</div>`
+          : (() => {
+              const rows = Object.entries(nextDef.cost)
+                .filter(([,v]) => v > 0)
+                .map(([r,v]) => {
+                  const have = State.data.inventory[r] || 0;
+                  const ok   = have >= v;
+                  const em   = this.emojiMap[r] || '📦';
+                  return `<div class="bld-cost-row ${ok?'ok':'short'}">
+                    <span>${em} ${r}</span>
+                    <span>${have}/${v} ${ok?'✓':'✗'}</span>
+                  </div>`;
+                }).join('');
+              return (rows
+                ? `<div class="bld-modal-cost"><div class="bld-cost-header">Cost to upgrade:</div>${rows}</div>`
+                : `<div class="bld-modal-cost ok">Free upgrade!</div>`)
+                + `<div class="bld-build-time">${buildTimeStr}</div>`;
+            })();
+
+    // All levels list
+    const levelsHTML = upg.levels.map((lv, i) => {
+      const done = i < curLv;
+      const curr = i === curLv - 1;
+      return `<div class="bld-lv-row ${curr?'current':''} ${done&&!curr?'done':''}">
+        <span class="bld-lv-num">${done||curr?'✓':i+1}</span>
+        <span class="bld-lv-desc">${lv.desc}</span>
+      </div>`;
+    }).join('');
+
+    let btnLabel, btnDisabled;
+    if (isBuilding) {
+      btnLabel = '🏗 BUILDING…'; btnDisabled = true;
+    } else if (isLocked) {
+      btnLabel = '🔒 LOCKED'; btnDisabled = true;
+    } else if (isMax) {
+      btnLabel = '✓ MAXED'; btnDisabled = true;
+    } else if (otherBuilding) {
+      btnLabel = `🚧 BUSY: ${ab.upg.name}`; btnDisabled = true;
+    } else if (!canAfford) {
+      btnLabel = '❌ NEED RESOURCES'; btnDisabled = true;
+    } else {
+      btnLabel = curLv === 0 ? '🔨 BUILD' : '▲ UPGRADE'; btnDisabled = false;
     }
 
-    el.innerHTML = powerBar + shelterBanner + groupHTML;
+    modal.innerHTML = `
+      <div class="bld-modal-header">
+        <span class="bld-modal-icon">${upg.icon}</span>
+        <div class="bld-modal-title-block">
+          <span class="bld-modal-name">${upg.name}</span>
+          <span class="bld-modal-sublv">Level ${curLv} / ${upg.maxLevel}</span>
+        </div>
+        <button class="bld-modal-close" onclick="Crafting._closeBuildingModal()">✕</button>
+      </div>
+      <div class="bld-modal-pips">${pips}</div>
+      <div class="bld-modal-scroll">
+        ${buildProgressHTML}
+        ${costHTML}
+        <div class="bld-lv-list">${levelsHTML}</div>
+      </div>
+      <button class="btn-upgrade bld-modal-btn ${isMax?'maxed':''} ${isBuilding?'building':''}"
+        onclick="Crafting._upgradeBuilding('${key}')"
+        ${btnDisabled ? 'disabled' : ''}>
+        ${btnLabel}
+      </button>
+    `;
+
+    modal.classList.remove('hidden');
+    backdrop.classList.remove('hidden');
   },
+
+  _closeBuildingModal() {
+    document.getElementById('bld-modal')?.classList.add('hidden');
+    document.getElementById('bld-modal-backdrop')?.classList.add('hidden');
+  },
+
 
   _canAffordUpgrade(cost) {
     return Object.entries(cost).every(([res, amt]) =>
@@ -1196,7 +966,6 @@ const Crafting = {
     if (!upg) return;
     const b    = State.data.base.buildings;
 
-    // 'shelter' in baseUpgrades maps to 'house' in state.buildings
     const stateKey = buildingKey === 'shelter' ? 'house' : buildingKey;
     if (!b[stateKey]) b[stateKey] = { level: buildingKey === 'shelter' ? 1 : 0 };
 
@@ -1206,40 +975,110 @@ const Crafting = {
     const nextLevel = upg.levels[currentLevel];
     if (!nextLevel || !this._canAffordUpgrade(nextLevel.cost)) return;
 
-    // Consume resources
+    // Block if another build is already running
+    if (State.data.activeBuild) {
+      Utils.toast('🚧 Already constructing! Bike to finish faster.', 'warn');
+      return;
+    }
+
+    // Consume resources immediately
     Object.entries(nextLevel.cost).forEach(([res, amt]) => {
       if (amt > 0) State.consumeResource(res, amt);
     });
 
-    b[stateKey].level = currentLevel + 1;
-    const newLvl = currentLevel + 1;
+    // Build time: use per-level buildSecs if defined, else scale by level
+    const levelDef = upg.levels ? (upg.levels[currentLevel] || {}) : {};
+    let buildSecs = levelDef.buildSecs
+      ? levelDef.buildSecs
+      : Math.max(10, 10 + (currentLevel * 8));
+    if (State.buildSecsFn) buildSecs = State.buildSecsFn(buildSecs);
 
-    // When shelter is upgraded: unlock new buildings
-    if (buildingKey === 'shelter') {
-      const shelterDef = this.baseUpgrades.shelter;
-      const unlocks = shelterDef.levels[currentLevel]?.unlocks || [];
+    State.data.activeBuild = {
+      key:       buildingKey,
+      stateKey:  stateKey,
+      newLevel:  currentLevel + 1,
+      secsLeft:  buildSecs,
+      secsTotal: buildSecs,
+      upg:       upg,
+    };
+
+    Utils.toast(`🏗 Building ${upg.name}… pedal to speed it up!`, 'info', 3000);
+    Audio.sfxCraft();
+    this._closeBuildingModal();
+    this._renderUpgradesTab();
+    this._startBuildTimer();
+    Events.emit('hud:update');
+  },
+
+  // ── Build timer ───────────────────────────
+  _buildTimer: null,
+
+  _startBuildTimer() {
+    if (this._buildTimer) clearInterval(this._buildTimer);
+    this._buildTimer = setInterval(() => this._tickBuild(), 1000);
+  },
+
+  _tickBuild() {
+    if (State.devTickFn) State.devTickFn();
+    const ab = State.data.activeBuild;
+    if (!ab) { clearInterval(this._buildTimer); this._buildTimer = null; return; }
+
+    // CPM bonus: every 10 CPM above 60 shaves 0.5 extra seconds per tick
+    const cpm   = State.data.cadence?.clicksPerMinute ?? 0;
+    const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
+    ab.secsLeft = Math.max(0, ab.secsLeft - 1 - bonus);
+
+    // Update tile countdown display
+    this._refreshBuildTile(ab.key);
+
+    // If modal is open for this building, refresh it
+    const modal = document.getElementById('bld-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      this._openBuildingModal(ab.key);
+    }
+
+    if (ab.secsLeft <= 0) this._completeBuild();
+  },
+
+  _refreshBuildTile(key) {
+    const ab = State.data.activeBuild;
+    document.querySelectorAll('.bld-tile').forEach(t => {
+      if (t.getAttribute('onclick')?.includes(`'${key}'`)) {
+        const lvEl = t.querySelector('.bld-tile-lv');
+        if (lvEl && ab) lvEl.textContent = `🏗 ${Math.ceil(ab.secsLeft)}s`;
+      }
+    });
+  },
+
+  _completeBuild() {
+    clearInterval(this._buildTimer);
+    this._buildTimer = null;
+
+    const ab = State.data.activeBuild;
+    if (!ab) return;
+    State.data.activeBuild = null;
+
+    const b = State.data.base.buildings;
+    b[ab.stateKey].level = ab.newLevel;
+
+    // Shelter unlocks
+    if (ab.key === 'shelter') {
+      const unlocks = ab.upg.levels[ab.newLevel - 1]?.unlocks || [];
       unlocks.forEach(bldKey => {
         if (!b[bldKey]) b[bldKey] = { level: 0 };
         Utils.toast(`🔓 ${this.baseUpgrades[bldKey]?.name || bldKey} UNLOCKED!`, 'good');
       });
-      // Show unlock toast
-      if (unlocks.length > 0) {
-        setTimeout(() => Audio.sfxUnlock?.(), 300);
-      }
+      if (unlocks.length > 0) setTimeout(() => Audio.sfxUnlock?.(), 300);
     }
 
-    // Apply upgrade bonuses
-    this._applyBuildingUpgrade(buildingKey, newLvl);
-
-    Utils.toast(`🏗 ${upg.name} upgraded to level ${newLvl}!`, 'good');
-    Audio.sfxCraft();
-    this._playCraftAnimation({ emoji: upg.icon, name: upg.name }, () => {
-      this._renderUpgradesTab();
-      HUD.update();
-      Base.updateNight();
-    });
-
-    console.log('[Crafting] Building upgraded:', buildingKey, 'to level', currentLevel + 1);
+    this._applyBuildingUpgrade(ab.key, ab.newLevel);
+    State.data.stats.totalBuilds = (State.data.stats.totalBuilds||0) + 1;
+    Events.emit('achievements:check');
+    Utils.toast(`✅ ${ab.upg.name} upgraded to Lv${ab.newLevel}!`, 'good', 4000);
+    Audio.sfxVictory?.();
+    this._renderUpgradesTab();
+    Events.emit('hud:update');
+    Events.emit('map:changed');
   },
 
   _applyBuildingUpgrade(buildingKey, newLevel) {
@@ -1313,13 +1152,20 @@ const Crafting = {
         b.passiveWater = [0, 0, 1, 2][newLevel - 1] || 0;
         break;
       case 'field':
-        b.cropYield = [0, 2, 3, 5][newLevel - 1] || 0;
+        // Farming system handles yields per-plot — just record level
+        b.cropYield = 0; // legacy: farming.js handles all yields now
+        Events.emit('farming:field-unlocked', { level: newLevel });
         break;
       case 'powerhouse':
         break;
-      case 'rain_collector':
-        b.passiveWater = (b.passiveWater || 0) + [1, 2, 4][newLevel - 1] || 0;
+      case 'rain_collector': {
+        const rcDef = this.baseUpgrades.rain_collector.levels[newLevel] || {};
+        b.passiveWater = rcDef.passiveWater || 0;
+        if (newLevel === 4)  Utils.toast('💧 Water never runs out!', 'good', 3500);
+        if (newLevel === 6)  Utils.toast('🌊 Cistern now gravity-feeds the well!', 'good', 3500);
+        if (newLevel === 10) Utils.toast('🏭 Pressurised hydro system online!', 'good', 4000);
         break;
+      }
       case 'compost_bin':
         b.passiveFood = (b.passiveFood || 0) + [1, 2][newLevel - 1] || 0;
         break;
@@ -1340,9 +1186,27 @@ const Crafting = {
         b.foodPreserveMult = [2, 3][newLevel - 1] || 1;
         b.passiveFood = (b.passiveFood || 0) + (newLevel >= 2 ? 2 : 0);
         break;
-      case 'radio_tower':
-        b.raidChanceReduction = (b.raidChanceReduction || 0) + [0.15, 0.30][newLevel - 1] || 0;
+      case 'radio_tower': {
+        const rtDef = this.baseUpgrades.radio_tower.levels[newLevel] || {};
+        b.raidChanceReduction = rtDef.raidReduce || 0;
+        b.radioSignalRange    = rtDef.signalRange || 0;
+        if (newLevel >= 5)  b.radioRareDropBonus  = 0.15;
+        if (newLevel >= 7)  b.radioAlertBonus     = 30;
+        if (newLevel >= 9)  b.radioPrewarnAll     = true;
+        // Unlock special missions at key levels
+        const missionUnlocks = { 2:'signal_drop', 4:'rescue_beacon', 6:'black_market', 8:'command_bunker', 10:'endgame_transmission' };
+        if (missionUnlocks[newLevel]) {
+          if (!State.data.world.unlockedMissions) State.data.world.unlockedMissions = [];
+          if (!State.data.world.unlockedMissions.includes(missionUnlocks[newLevel])) {
+            State.data.world.unlockedMissions.push(missionUnlocks[newLevel]);
+            const mNames = { signal_drop:'Signal Drop', rescue_beacon:'Rescue Beacon', black_market:'Black Market', command_bunker:'Command Bunker', endgame_transmission:'Endgame Transmission' };
+            Utils.toast('📡 Mission unlocked: ' + mNames[missionUnlocks[newLevel]] + '!', 'good', 5000);
+          }
+        }
+        const toasts = { 3:'📡 Signal range extended!', 7:'⚠️ Enemy alerts now 30s earlier!', 9:'🔊 ALL raid types pre-warned!', 10:'🌍 Global array online — 65% raid reduction!' };
+        if (toasts[newLevel]) Utils.toast(toasts[newLevel], 'good', 4000);
         break;
+      }
       case 'alarm_system':
         b.raidDamageReduction = (b.raidDamageReduction || 0) + [0.15, 0.30][newLevel - 1] || 0;
         break;
@@ -1350,15 +1214,20 @@ const Crafting = {
         b.medEfficiency = [1.25, 1.50, 2.0][newLevel - 1] || 1;
         if (newLevel >= 2) b.passiveMed = (b.passiveMed || 0) + 1;
         break;
-      case 'solar_station':
-        b.solarBoost = [1.20, 1.40][newLevel - 1] || 1;
+      case 'solar_station': {
+        const ssDef = this.baseUpgrades.solar_station.levels[newLevel] || {};
+        b.solarBoost      = ssDef.solarMult   || 1.0;
+        b.solarNightPower = ssDef.nightPower  || 0;
+        if (newLevel === 5)  Utils.toast('⚡ Solar now powers your electric fence!', 'good', 3500);
+        if (newLevel === 10) Utils.toast('☀️ Micro power station — you are always powered!', 'good', 4000);
         break;
+      }
       case 'bunker':
         b.defenceRating += [50, 80][newLevel - 1] || 0;
         b.raidDamageReduction = (b.raidDamageReduction || 0) + [0.40, 0.60][newLevel - 1] || 0;
         break;
     }
-    Base.updateNight(); // Rebuild SVG to show new buildings
+    Events.emit('map:changed'); // Rebuild SVG to show new buildings
   },
 
   // ══════════════════════════════════════════
@@ -1450,3 +1319,28 @@ const Crafting = {
   }
 
 };
+
+// ── Event subscriptions ────────────────────────────────────────────────────
+// Resume an in-progress build after load — main.js emits, Crafting handles.
+Events.on('crafting:resume-build', () => {
+  Crafting._startBuildTimer?.();
+});
+
+// Open a specific crafting tab — triggered by data-crafting-tab buttons.
+Events.on('crafting:open-tab', ({ tab }) => {
+  setTimeout(() => {
+    Crafting.render?.();
+    Crafting._selectCat?.(tab);
+    Crafting._switchTab?.('craft');
+  }, 120);
+});
+
+// Render the crafting screen — base.js navigates to 'crafting' then emits this.
+Events.on('crafting:render', () => {
+  Crafting.render?.();
+});
+
+// Trigger a building upgrade — base.js confirms, then emits this.
+Events.on('crafting:upgrade-building', ({ upgKey }) => {
+  Crafting._upgradeBuilding?.(upgKey);
+});

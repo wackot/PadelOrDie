@@ -82,6 +82,15 @@ const HUD = {
   }
 };
 
+// Subscribe: any module can emit 'hud:update' instead of calling HUD.update() directly
+Events.on('hud:update', () => HUD.update());
+
+// Subscribe: any module can navigate without importing Game
+Events.on('navigate', ({ screen }) => Game.goTo(screen));
+
+// Subscribe: save/import triggers a full UI refresh
+Events.on('game:refresh-all', () => Game.refreshAll());
+
 // ── Main Game controller ──────────────────
 const Game = {
 
@@ -112,18 +121,17 @@ const Game = {
 
     // Update night overlay on base
     if (screenName === 'base') {
-      Base.updateNight();
+      Events.emit('map:changed');
       NightSky.update();
     }
 
     // Render world map when navigating to it
-    if (screenName === 'map' && typeof WorldMap !== 'undefined') {
-      setTimeout(() => WorldMap.render(), 50);
-    }
+    // worldmap:render subscription in worldmap.js handles render on navigate
+    // (emitted by base._onBuildingClick when map tile is tapped)
 
     // Refresh power panel when navigating to it
-    if (screenName === 'power' && typeof Power !== 'undefined') {
-      setTimeout(() => Power.renderPanel(), 50);
+    if (screenName === 'power') {
+      setTimeout(() => Events.emit('power:render'), 50);
     }
 
     HUD.update();
@@ -162,6 +170,11 @@ const Game = {
       DayNight.start();
       NightSky.init();
       SaveSystem.startAutoSave(5);
+      // Resume any build that was in-progress when the game was saved
+      if (State.data.activeBuild) {
+        Events.emit('crafting:resume-build');
+        Utils.toast('🏗 Resuming build: ' + (State.data.activeBuild.upg?.name || 'building') + '…', 'info', 3000);
+      }
       Utils.toast(`📂 Loaded. Day ${State.data.world.day}. Survive.`, 'info', 3000);
       console.log('[Game] Game loaded');
     } else {
@@ -194,6 +207,19 @@ const Game = {
       const id = btn.id;
       if (id === 'btn-back-from-crafting') this.goTo('base');
     });
+
+    // data-goto delegation: any element with data-goto="screen" navigates without
+    // the rendering module needing to know about Game directly.
+    // Optional data-crafting-tab="tabname" emits crafting:open-tab so main.js
+    // doesn't need to call Crafting methods directly.
+    document.body.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-goto]');
+      if (!btn) return;
+      const dest = btn.dataset.goto;
+      this.goTo(dest);
+      const tab = btn.dataset.craftingTab;
+      if (tab) Events.emit('crafting:open-tab', { tab });
+    });
   },
 
   // ── Wire shelter buttons ──────────────────
@@ -202,14 +228,12 @@ const Game = {
       ?.querySelector('button')
       ?.addEventListener('click', () => {
         Player.sleep(8);
-        this.goTo('base');
       });
 
     document.getElementById('shelter-rest')
       ?.querySelector('button')
       ?.addEventListener('click', () => {
         Player.sleep(2);
-        this.goTo('base');
       });
   },
 
@@ -256,7 +280,7 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.6 — Power System');
+    console.log('[Game] Initializing Pedal or Die v0.12 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {
@@ -270,7 +294,7 @@ const Game = {
       // Init all modules
       State.init();
       SaveSystem.initUI();
-      Base.init();
+      Events.emit('base:init');
 
       // Wire UI
       this._bindMenu();
@@ -327,4 +351,6 @@ const Game = {
 // ── Bootstrap ─────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   Game.init();
+  // Let each module boot itself — no direct module calls needed here
+  Events.emit('game:boot');
 });

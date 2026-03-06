@@ -35,7 +35,7 @@ const WorldMap = {
       desc:'Dense mutated woodland.',
       wx: -280, wy: -180, radius: 90,
       bgColor:'#0d1a08', bgEmoji:'🌲🌲🌳🌲🌳🌲🌲',
-      tileColor:'#1a3010', fogReveal:'#1a3a10',
+      tileColor:'#1a3010', fogReveal:'#3d7a22',
       animals:['wolf','boar','insect','bear'], encounterChance:0.20,
       loot:{ common:{resources:['wood','rope','food'],weight:70}, rare:{resources:['wood','food','rope'],weight:25}, legendary:{resources:['rope','food'],weight:5} },
       events:[
@@ -52,7 +52,7 @@ const WorldMap = {
       desc:'Overgrown farmland with wild crops.',
       wx: 220,  wy: -250, radius: 80,
       bgColor:'#1a1500', bgEmoji:'🌾🚜🌾🌾🐄🌾',
-      tileColor:'#2a2010', fogReveal:'#2a2810',
+      tileColor:'#2a2010', fogReveal:'#52481e',
       animals:['wolf','boar','insect'], encounterChance:0.18,
       loot:{ common:{resources:['food','wood','rope'],weight:65}, rare:{resources:['food','food','cloth'],weight:28}, legendary:{resources:['food','food','food'],weight:7} },
       events:[
@@ -69,7 +69,7 @@ const WorldMap = {
       desc:'Abandoned fuel stop. Potentially explosive.',
       wx: 400,  wy: 80,  radius: 70,
       bgColor:'#1a1000', bgEmoji:'⛽🏪⛽🛢️⛽🏚️',
-      tileColor:'#2a1a00', fogReveal:'#2a2000',
+      tileColor:'#2a1a00', fogReveal:'#4a3c18',
       animals:['rat','bird'], encounterChance:0.22,
       loot:{ common:{resources:['gasoline','metal'],weight:60}, rare:{resources:['gasoline','chemicals','metal'],weight:30}, legendary:{resources:['electronics','gasoline'],weight:10} },
       events:[
@@ -86,7 +86,7 @@ const WorldMap = {
       desc:'Collapsed buildings, scavengers everywhere.',
       wx: -180, wy: 380, radius: 110,
       bgColor:'#0d0d12', bgEmoji:'🏚️🧱🏗️🏚️🧱🏙️',
-      tileColor:'#141418', fogReveal:'#1a1a24',
+      tileColor:'#141418', fogReveal:'#363650',
       animals:['rat','bird','zombie_dog'], encounterChance:0.28,
       loot:{ common:{resources:['metal','cloth','electronics'],weight:55}, rare:{resources:['electronics','medicine','metal'],weight:33}, legendary:{resources:['electronics','electronics'],weight:12} },
       events:[
@@ -105,7 +105,7 @@ const WorldMap = {
       desc:'Mountains of scrap. Metal heaven.',
       wx: 560,  wy: -350, radius: 80,
       bgColor:'#100d0d', bgEmoji:'🔩🗑️♻️🚗💀🔩',
-      tileColor:'#1a1010', fogReveal:'#241818',
+      tileColor:'#1a1010', fogReveal:'#442828',
       animals:['rat','bird','insect'], encounterChance:0.25,
       loot:{ common:{resources:['metal','rope','electronics','coal'],weight:58}, rare:{resources:['electronics','metal','metal','glass'],weight:30}, legendary:{resources:['electronics','electronics','coal'],weight:12} },
       events:[
@@ -122,7 +122,7 @@ const WorldMap = {
       desc:'Medical goldmine — if you survive the infected.',
       wx: -520, wy: 280, radius: 75,
       bgColor:'#100d0d', bgEmoji:'🏥🚑🏥🩺🏥🚑',
-      tileColor:'#1a0d0d', fogReveal:'#200f0f',
+      tileColor:'#1a0d0d', fogReveal:'#401a1a',
       animals:['zombie_dog','rat','insect'], encounterChance:0.35,
       loot:{ common:{resources:['medicine','cloth'],weight:50}, rare:{resources:['medicine','medicine','chemicals'],weight:35}, legendary:{resources:['medicine','medicine','electronics'],weight:15} },
       events:[
@@ -139,7 +139,7 @@ const WorldMap = {
       desc:'Dark cave system rich in minerals.',
       wx: -700, wy: -420, radius: 85,
       bgColor:'#050508', bgEmoji:'🪨🕯️🪨💎🪨🕯️',
-      tileColor:'#0a0a0f', fogReveal:'#0f0f18',
+      tileColor:'#0a0a0f', fogReveal:'#222238',
       animals:['insect','rat','bear'], encounterChance:0.30,
       loot:{ common:{resources:['metal','chemicals','rope','coal'],weight:45}, rare:{resources:['chemicals','electronics','metal','coal'],weight:35}, legendary:{resources:['electronics','chemicals','coal'],weight:20} },
       events:[
@@ -156,7 +156,7 @@ const WorldMap = {
       desc:'The last government stronghold. Now overrun.',
       wx: 680,  wy: 500, radius: 90,
       bgColor:'#0a0a05', bgEmoji:'🪖🔫🏗️🚧🪖🔫',
-      tileColor:'#0f0f08', fogReveal:'#181808',
+      tileColor:'#0f0f08', fogReveal:'#323218',
       animals:['zombie_dog','bird','boss_mutant'], encounterChance:0.45,
       loot:{ common:{resources:['metal','electronics','medicine'],weight:40}, rare:{resources:['electronics','electronics','medicine'],weight:35}, legendary:{resources:['electronics','medicine','chemicals','metal'],weight:25} },
       events:[
@@ -165,11 +165,97 @@ const WorldMap = {
         {id:'lab',text:'🔬 Research lab — unknown experiments.',reward:{chemicals:5,electronics:4},chance:0.10},
         {id:'radio',text:'📡 Radio room — salvaged electronics.',reward:{electronics:6},chance:0.10},
         {id:'tripwire',text:'⚠ Tripwire! Triggered an alarm.',reward:{energy:-25},chance:0.08},
-        {id:'cache',text:'💣 Hidden weapons cache — incredible!',reward:{metal:10,electronics:6,chemicals:4},chance:0.04}
+        {id:'cache',text:'💣 Hidden weapons cache — incredible haul!',reward:{metal:10,electronics:6,chemicals:4},chance:0.04}
       ],
       uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
       foragingScene:'🪖🔫🏗️🚧⚙️🪖🔫🏗️🚧', sceneAction:'🪖 Raiding military stores',
-      unlockAfterExpeditions: 25 }
+      unlockAfterExpeditions: 25 },
+
+    // ── SPECIAL MISSIONS — unlocked by Radio Tower ──────────────────────────
+    { id:'signal_drop', name:'SIGNAL DROP', emoji:'📦', dangerLevel:2, dangerCol:'#42a5f5',
+      desc:'A supply crate was broadcast. Find it before raiders do.',
+      wx: 150,  wy: 120, radius: 60, isMission:true, missionKey:'signal_drop',
+      bgColor:'#0a0d14', bgEmoji:'📦🪂📦🌫️📦🪂',
+      tileColor:'#111820', fogReveal:'#2a3e5c',
+      animals:['bird','rat'], encounterChance:0.20,
+      loot:{ common:{resources:['food','medicine','cloth'],weight:40}, rare:{resources:['electronics','food','medicine'],weight:38}, legendary:{resources:['electronics','medicine','chemicals','circuit_board'],weight:22} },
+      events:[
+        {id:'crate',   text:'📦 Supply crate found! Military rations and kit.',    reward:{food:8, medicine:4},        chance:0.30},
+        {id:'drone',   text:'🚁 Automated drone still circling — parts inside!',   reward:{electronics:6, metal:4},    chance:0.18},
+        {id:'trap',    text:'⚠️ Crate rigged! Blast knocked you back.',            reward:{energy:-20},                chance:0.10},
+        {id:'beacon',  text:'📡 Secondary beacon — more loot at the source!',      reward:{electronics:4, rope:3},     chance:0.15}
+      ],
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
+      foragingScene:'📦🪂🌫️📦🔍🪂📦🎖️🌫️', sceneAction:'📡 Tracking signal',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'rescue_beacon', name:'RESCUE BEACON', emoji:'🆘', dangerLevel:3, dangerCol:'#ff6d00',
+      desc:'A survivor beacon. Rescue them and share their supplies.',
+      wx: -350, wy: 180, radius: 65, isMission:true, missionKey:'rescue_beacon',
+      bgColor:'#140808', bgEmoji:'🆘🩸🚑🔦🆘🩸',
+      tileColor:'#1e0e0e', fogReveal:'#4c2020',
+      animals:['zombie_dog','rat'], encounterChance:0.35,
+      loot:{ common:{resources:['medicine','food','cloth'],weight:35}, rare:{resources:['medicine','chemicals','electronics'],weight:40}, legendary:{resources:['antiseptic','medicine','military_chip'],weight:25} },
+      events:[
+        {id:'survivor', text:'🧟 Found a survivor! They share their remaining supplies.',  reward:{food:6, medicine:5, rope:4}, chance:0.25},
+        {id:'medkit',   text:'🩺 Survivor field medkit — stocked!',                    reward:{medicine:8, antiseptic:2},   chance:0.20},
+        {id:'ambush',   text:'🔫 Ambush — raiders waiting!',                        reward:{energy:-25},                 chance:0.12},
+        {id:'cache',    text:'💼 Survivor had a cache buried nearby.',               reward:{food:5, electronics:3},      chance:0.15}
+      ],
+      uniqueMaterial:{key:'antiseptic',name:'Antiseptic',emoji:'🧫'},
+      foragingScene:'🆘🩸🔦🚑🆘🧟🔦🩺🚑', sceneAction:'🔦 Searching for beacon',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'black_market', name:'BLACK MARKET', emoji:'🏴', dangerLevel:3, dangerCol:'#ab47bc',
+      desc:'A hidden trading post. Dangerous — but the rarest goods.',
+      wx: 300,  wy: -480, radius: 70, isMission:true, missionKey:'black_market',
+      bgColor:'#0d0814', bgEmoji:'🏴🕯️💀🏴🗡️💀',
+      tileColor:'#130d1c', fogReveal:'#32204e',
+      animals:['bird','zombie_dog'], encounterChance:0.30,
+      loot:{ common:{resources:['electronics','chemicals','medicine'],weight:30}, rare:{resources:['circuit_board','military_chip','electronics'],weight:42}, legendary:{resources:['military_chip','circuit_board','chemicals','electronics'],weight:28} },
+      events:[
+        {id:'trade',    text:'🤝 Trader accepted resources — rare parts!',               reward:{circuit_board:3, military_chip:1}, chance:0.22},
+        {id:'weapons',  text:'🗡️ Illegal weapons parts — metal and more.',                reward:{metal:10, rope:5},                 chance:0.18},
+        {id:'raid',     text:'🚨 Market raided mid-trade! Run!',                           reward:{energy:-20},                       chance:0.12},
+        {id:'black',    text:'🏴 Found the back room — the real stock.',                   reward:{military_chip:2, circuit_board:4}, chance:0.10}
+      ],
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
+      foragingScene:'🏴💀🕯️🗡️🏴💀🕯️🤝🏴', sceneAction:'🏴 Negotiating trades',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'command_bunker', name:'COMMAND BUNKER', emoji:'🎖️', dangerLevel:4, dangerCol:'#e53935',
+      desc:'Last known command post. Hardened intel and mil-spec supplies.',
+      wx: -620, wy: 620, radius: 80, isMission:true, missionKey:'command_bunker',
+      bgColor:'#050508', bgEmoji:'🎖️🔐💣🎖️🔐💣',
+      tileColor:'#080810', fogReveal:'#1e1e3c',
+      animals:['zombie_dog','boss_mutant'], encounterChance:0.50,
+      loot:{ common:{resources:['metal','electronics','chemicals'],weight:30}, rare:{resources:['military_chip','electronics','chemicals'],weight:40}, legendary:{resources:['military_chip','military_chip','circuit_board','electronics'],weight:30} },
+      events:[
+        {id:'vault',    text:'🔐 Vault cracked — military ration stockpile!',              reward:{food:10, medicine:6, chemicals:4}, chance:0.18},
+        {id:'intel',    text:'📋 Intel on future raids — warning time +60s (this run).',   reward:{energy:10},                         chance:0.20},
+        {id:'mutant',   text:'☣️ Command mutant — massive, powerful!',                     reward:{energy:-30},                        chance:0.15},
+        {id:'chips',    text:'💾 Row of military CPUs still in packaging!',                reward:{military_chip:4, circuit_board:3},   chance:0.12}
+      ],
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'},
+      foragingScene:'🎖️🔐💣🎖️🔫🔐💣🎖️💾', sceneAction:'🎖️ Breaching command post',
+      unlockAfterExpeditions: 99999 },
+
+    { id:'endgame_transmission', name:'THE TRANSMISSION', emoji:'🌐', dangerLevel:4, dangerCol:'#ffd600',
+      desc:'A signal from beyond the collapse. What is still out there?',
+      wx: 0,    wy: -850, radius: 95, isMission:true, missionKey:'endgame_transmission',
+      bgColor:'#02020a', bgEmoji:'🌐📡💫🌐📡✨',
+      tileColor:'#050510', fogReveal:'#181840',
+      animals:['boss_mutant','bird','zombie_dog'], encounterChance:0.55,
+      loot:{ common:{resources:['electronics','chemicals','military_chip'],weight:25}, rare:{resources:['military_chip','circuit_board','electronics'],weight:38}, legendary:{resources:['military_chip','military_chip','circuit_board','power_core'],weight:37} },
+      events:[
+        {id:'source',   text:'📡 Found the transmission source — alien tech?',              reward:{circuit_board:6, military_chip:3, power_core:2}, chance:0.15},
+        {id:'survivor', text:'📻 Voice on the radio — someone else survived!',             reward:{food:8, medicine:8},                              chance:0.20},
+        {id:'anomaly',  text:'💫 Strange energy field — your gear charges up!',            reward:{energy:40},                                       chance:0.12},
+        {id:'core',     text:'⚡ Power core still active. Incredible!',                    reward:{power_core:3, electronics:6},                     chance:0.10}
+      ],
+      uniqueMaterial:{key:'power_core',name:'Power Core',emoji:'⚡'},
+      foragingScene:'🌐📡💫🌐✨📡💫🌐📡', sceneAction:'🌐 Decoding the transmission',
+      unlockAfterExpeditions: 99999 }
   ],
 
   // ── State ─────────────────────────────────
@@ -178,7 +264,7 @@ const WorldMap = {
   _mapData:      null,   // generated world data (stored in save)
   _viewX:        0,      // camera top-left in world-units
   _viewY:        0,
-  _scale:        0.18,   // world-units → screen pixels
+  _scale:        0.35,   // world-units → screen pixels
   _travelling:   false,
   _travelTimer:  null,
   _travelPath:   [],
@@ -264,6 +350,11 @@ const WorldMap = {
           <span class="wm-title">🗺 WORLD MAP</span>
           <div class="wm-header-right">
             <span class="wm-coords" id="wm-coords">📍 BASE</span>
+            <div class="map-zoom-controls" style="position:static;flex-direction:row;gap:4px;">
+              <button class="map-zoom-btn" id="wm-zoom-in">＋</button>
+              <button class="map-zoom-btn" id="wm-zoom-fit">⊡</button>
+              <button class="map-zoom-btn" id="wm-zoom-out">－</button>
+            </div>
             <button class="btn-pixel btn-secondary" id="btn-back-from-map" style="padding:6px 12px">← BASE</button>
           </div>
         </div>
@@ -285,9 +376,26 @@ const WorldMap = {
         // Cancel any in-progress travel
         if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
         this._travelling = false;
+
+        if (State.data?.world) State.data.world.playerAway =
+
+          (State.data?.world?.playerAway);
         this._roadEncounterActive = false;
-        Game.goTo('base');
+        Events.emit('navigate', { screen: 'base' });
       });
+
+    // World map zoom buttons
+    document.getElementById('wm-zoom-in') ?.addEventListener('click', () => {
+      this._scale = Utils.clamp(this._scale * 1.3, 0.15, 0.80);
+      this._centreOnPlayer(); this._drawMap();
+    });
+    document.getElementById('wm-zoom-out')?.addEventListener('click', () => {
+      this._scale = Utils.clamp(this._scale * 0.77, 0.15, 0.80);
+      this._centreOnPlayer(); this._drawMap();
+    });
+    document.getElementById('wm-zoom-fit')?.addEventListener('click', () => {
+      this._scale = 0.35; this._centreOnPlayer(); this._drawMap();
+    });
 
     this._setupCanvas();
     this._drawMap();
@@ -301,16 +409,26 @@ const WorldMap = {
     if (!wrap || !canvas) return;
     this._canvas = canvas;
     this._ctx    = canvas.getContext('2d');
-    canvas.width  = wrap.clientWidth  || window.innerWidth;
-    canvas.height = (wrap.clientHeight || window.innerHeight - 120);
 
-    // Centre view on player
+    const dpr  = window.devicePixelRatio || 1;
+    const cssW = wrap.clientWidth  || window.innerWidth;
+    const cssH = wrap.clientHeight || window.innerHeight - 120;
+
+    canvas.width  = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width  = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    this._ctx.scale(dpr, dpr);
+    this._cssW = cssW;
+    this._cssH = cssH;
+
     this._centreOnPlayer();
   },
 
   _centreOnPlayer() {
     if (!this._canvas) return;
-    const sw = this._canvas.width, sh = this._canvas.height;
+    const sw = this._cssW || this._canvas.width;
+    const sh = this._cssH || this._canvas.height;
     this._viewX = this._playerWX - sw / (2 * this._scale);
     this._viewY = this._playerWY - sh / (2 * this._scale);
   },
@@ -334,13 +452,17 @@ const WorldMap = {
   _drawMap() {
     const c = this._ctx;
     if (!c || !this._mapData) return;
-    const W = this._canvas.width, H = this._canvas.height;
+    const W = this._cssW || this._canvas.width;
+    const H = this._cssH || this._canvas.height;
 
-    // Background — deep dark
-    c.fillStyle = '#050508';
+    // Background — only visible under fog
+    c.fillStyle = '#090910';
     c.fillRect(0, 0, W, H);
 
-    // Draw terrain patches (roads + zones) in revealed areas
+    // Revealed terrain base (biome colours + noise)
+    this._drawTerrain(c);
+
+    // Roads + zone glows on top of terrain
     this._drawRoads(c);
     this._drawZones(c);
 
@@ -361,18 +483,27 @@ const WorldMap = {
 
   _drawRoads(c) {
     const md = this._mapData;
-    md.roads.forEach(road => {
+    md.roads.forEach((road, i) => {
+      const zone = md.zones[i];
+      const def  = zone && this.locationDefs.find(d => d.id === zone.id);
+      const danger = def?.dangerLevel || 1;
+
+      const roadCol   = danger >= 4 ? '#3a1a0a' :
+                        danger >= 3 ? '#2e1c0a' :
+                        danger >= 2 ? '#2a2010' : '#2a2418';
+      const centerCol = danger >= 3 ? '#5a3010' : '#3a3020';
+
       c.beginPath();
-      road.forEach((pt, i) => {
+      road.forEach((pt, idx) => {
         const { sx, sy } = this._toScreen(pt.x, pt.y);
-        i === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
+        idx === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
       });
-      c.strokeStyle = '#2a2418';
-      c.lineWidth = 5;
+      c.strokeStyle = roadCol;
+      c.lineWidth = 3 + danger;
       c.stroke();
-      c.strokeStyle = '#3a3020';
-      c.lineWidth = 2;
-      c.setLineDash([8, 6]);
+      c.strokeStyle = centerCol;
+      c.lineWidth = 1.5;
+      c.setLineDash(danger >= 3 ? [3, 9] : [8, 6]);
       c.stroke();
       c.setLineDash([]);
     });
@@ -386,15 +517,77 @@ const WorldMap = {
       const { sx, sy } = this._toScreen(zone.wx, zone.wy);
       const r = zone.radius * this._scale;
 
-      // Zone circle background
-      const grad = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      grad.addColorStop(0, def.tileColor + 'cc');
-      grad.addColorStop(1, def.tileColor + '00');
+      // Use fogReveal as the bright inner colour, tileColor only for outer fade
+      const grad = c.createRadialGradient(sx, sy, 0, sx, sy, r * 1.5);
+      grad.addColorStop(0,    def.fogReveal + 'cc');
+      grad.addColorStop(0.4,  def.fogReveal + '88');
+      grad.addColorStop(0.75, def.tileColor + '44');
+      grad.addColorStop(1,    def.tileColor + '00');
       c.beginPath();
-      c.arc(sx, sy, r, 0, Math.PI*2);
+      c.arc(sx, sy, r * 1.5, 0, Math.PI*2);
       c.fillStyle = grad;
       c.fill();
+
+      // Danger ring
+      c.beginPath();
+      c.arc(sx, sy, r * 0.6, 0, Math.PI*2);
+      c.strokeStyle = def.dangerCol + '70';
+      c.lineWidth = 2;
+      c.stroke();
     });
+  },
+
+  // ── Terrain base for revealed cells ──────
+  _drawTerrain(c) {
+    const md = this._mapData;
+    const fw = md.fogW, fh = md.fogH;
+    const cellWX = this.WORLD_W / fw;
+    const cellWY = this.WORLD_H / fh;
+
+    for (let fy = 0; fy < fh; fy++) {
+      for (let fx = 0; fx < fw; fx++) {
+        if (md.fog[fy * fw + fx] !== 1) continue;
+
+        const wx = (fx - fw/2 + 0.5) * cellWX;
+        const wy = (fy - fh/2 + 0.5) * cellWY;
+        const { sx, sy } = this._toScreen(wx, wy);
+        const cellPxW = cellWX * this._scale + 1;
+        const cellPxH = cellWY * this._scale + 1;
+
+        // Tint by nearest zone biome
+        let baseColor = '#3a3628';
+        let minDist = Infinity;
+        md.zones.forEach(zone => {
+          const def = this.locationDefs.find(d => d.id === zone.id);
+          if (!def) return;
+          const dx = wx - zone.wx, dy = wy - zone.wy;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < zone.radius * 2.5 && dist < minDist) {
+            minDist = dist;
+            baseColor = def.fogReveal;
+          }
+        });
+
+        c.fillStyle = baseColor;
+        c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW, cellPxH);
+
+        // Noise stipple variation
+        const n = this._cellNoise(fx, fy);
+        if (n > 0.72) {
+          c.fillStyle = 'rgba(255,245,200,0.07)';
+          c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW * 0.55, cellPxH * 0.55);
+        } else if (n < 0.28) {
+          c.fillStyle = 'rgba(0,0,0,0.15)';
+          c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW, cellPxH);
+        }
+      }
+    }
+  },
+
+  _cellNoise(fx, fy) {
+    let n = fx * 1619 + fy * 31337;
+    n = (n ^ (n >> 13)) * (n * n * 60493 + 19990303) + 1376312589;
+    return ((n & 0x7fffffff) / 0x7fffffff);
   },
 
   _drawFog(c, W, H) {
@@ -426,10 +619,10 @@ const WorldMap = {
       }
     }
 
-    // Fog border vignette
-    const vx = c.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35, W/2, H/2, Math.max(W,H)*0.7);
+    // Fog edge vignette — only darkens the outermost screen border, not centre
+    const vx = c.createRadialGradient(W/2, H/2, Math.min(W,H)*0.55, W/2, H/2, Math.max(W,H)*0.75);
     vx.addColorStop(0, 'transparent');
-    vx.addColorStop(1, 'rgba(0,0,0,0.6)');
+    vx.addColorStop(1, 'rgba(0,0,0,0.35)');
     c.fillStyle = vx;
     c.fillRect(0, 0, W, H);
   },
@@ -448,6 +641,7 @@ const WorldMap = {
   _drawLocationIcons(c) {
     const md = this._mapData;
     const unlocked = State.data.world.unlockedLocations || [];
+    const t = Date.now() / 1000;
 
     md.zones.forEach(zone => {
       const def = this.locationDefs.find(d => d.id === zone.id);
@@ -458,33 +652,62 @@ const WorldMap = {
 
       const { sx, sy } = this._toScreen(zone.wx, zone.wy);
       const isUnlocked = unlocked.includes(zone.id);
+      const isMission  = !!def.isMission;
+      const scaleFactor = this._scale / 0.18;
+
+      // Mission locations: animated pulsing ring + distinctive look
+      if (isMission && isUnlocked) {
+        // Outer slow-pulse aura
+        const pulse = 0.4 + 0.35 * Math.sin(t * 2.5);
+        c.beginPath();
+        c.arc(sx, sy, 28 * scaleFactor, 0, Math.PI*2);
+        c.strokeStyle = def.dangerCol;
+        c.lineWidth = 3;
+        c.globalAlpha = pulse;
+        c.stroke();
+        c.globalAlpha = 1;
+        // Diamond marker
+        const dm = 14 * scaleFactor;
+        c.save();
+        c.translate(sx, sy - dm * 1.8);
+        c.rotate(Math.PI / 4);
+        c.fillStyle = def.dangerCol;
+        c.globalAlpha = 0.85;
+        c.fillRect(-5 * scaleFactor, -5 * scaleFactor, 10 * scaleFactor, 10 * scaleFactor);
+        c.globalAlpha = 1;
+        c.restore();
+      }
 
       // Glow ring
       const glowCol = isUnlocked ? def.dangerCol : '#555';
       c.beginPath();
-      c.arc(sx, sy, 18 * this._scale / 0.18, 0, Math.PI*2);
+      c.arc(sx, sy, 18 * scaleFactor, 0, Math.PI*2);
       c.strokeStyle = glowCol;
-      c.lineWidth = 2;
-      c.globalAlpha = 0.5;
+      c.lineWidth = isMission && isUnlocked ? 3 : 2;
+      c.globalAlpha = isMission && isUnlocked ? 0.8 : 0.5;
       c.stroke();
       c.globalAlpha = 1;
 
       // Icon
-      c.font = `${Math.max(14, 22 * this._scale / 0.18)}px serif`;
+      c.font = Math.max(14, 22 * scaleFactor) + 'px serif';
       c.textAlign = 'center';
       c.textBaseline = 'middle';
       c.fillText(isUnlocked ? def.emoji : '❓', sx, sy);
 
       // Name label below
       if (this._scale > 0.12) {
-        c.font = `bold ${Math.max(8, 10 * this._scale / 0.18)}px 'VT323', monospace`;
-        c.fillStyle = isUnlocked ? '#d4d4a0' : '#555';
-        c.fillText(def.name, sx, sy + 20 * this._scale / 0.18);
+        c.font = 'bold ' + Math.max(8, 10 * scaleFactor) + "px 'VT323', monospace";
+        c.fillStyle = isUnlocked ? (isMission ? def.dangerCol : '#d4d4a0') : '#555';
+        c.fillText(def.name, sx, sy + 20 * scaleFactor);
 
-        if (!isUnlocked) {
-          c.fillStyle = '#e53935';
-          c.font = `${Math.max(8, 9 * this._scale / 0.18)}px 'VT323', monospace`;
-          c.fillText('🔒 LOCKED', sx, sy + 30 * this._scale / 0.18);
+        if (isMission && isUnlocked) {
+          c.fillStyle = def.dangerCol;
+          c.font = Math.max(7, 8 * scaleFactor) + "px 'VT323', monospace";
+          c.fillText('◆ MISSION ◆', sx, sy + 30 * scaleFactor);
+        } else if (!isUnlocked) {
+          c.fillStyle = isMission ? '#555' : '#e53935';
+          c.font = Math.max(8, 9 * scaleFactor) + "px 'VT323', monospace";
+          c.fillText(isMission ? '📡 Radio Tower needed' : '🔒 LOCKED', sx, sy + 30 * scaleFactor);
         }
       }
     });
@@ -591,84 +814,127 @@ const WorldMap = {
     const canvas = this._canvas;
     if (!canvas) return;
 
-    let lastPinchDist = null;
-    let isDragging = false, dragStartX = 0, dragStartY = 0, viewStartX = 0, viewStartY = 0;
+    let ptrs = {};
+    let lastPinchDist = 0;
+    let tapStart = 0, tapX = 0, tapY = 0;
+    let lastTouchX = 0, lastTouchY = 0;
 
-    // Pinch zoom
-    canvas.addEventListener('touchmove', e => {
+    // ── Touch events (mobile) ─────────────────
+    // Use touch events directly — more reliable than pointer events on mobile
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      lastTouchX = t.clientX;
+      lastTouchY = t.clientY;
+      tapStart = Date.now(); tapX = t.clientX; tapY = t.clientY;
       if (e.touches.length === 2) {
-        e.preventDefault();
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (lastPinchDist) {
-          const delta = dist / lastPinchDist;
-          this._scale = Utils.clamp(this._scale * delta, 0.06, 0.40);
-          this._centreOnPlayer();
-          this._drawMap();
-        }
-        lastPinchDist = dist;
+        const t2 = e.touches[1];
+        const dx = t.clientX - t2.clientX, dy = t.clientY - t2.clientY;
+        lastPinchDist = Math.sqrt(dx*dx + dy*dy);
       }
     }, { passive: false });
 
-    canvas.addEventListener('touchend', () => { lastPinchDist = null; });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        // Pinch zoom
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (lastPinchDist > 0) {
+          const ratio = dist / lastPinchDist;
+          const midX = (t1.clientX + t2.clientX) / 2;
+          const midY = (t1.clientY + t2.clientY) / 2;
+          const rect = canvas.getBoundingClientRect();
+          const sx = midX - rect.left, sy = midY - rect.top;
+          const wx = sx / this._scale + this._viewX;
+          const wy = sy / this._scale + this._viewY;
+          this._scale = Utils.clamp(this._scale * ratio, 0.15, 0.80);
+          this._viewX = wx - sx / this._scale;
+          this._viewY = wy - sy / this._scale;
+          this._drawMap();
+        }
+        lastPinchDist = dist;
+        lastTouchX = (t1.clientX + t2.clientX) / 2;
+        lastTouchY = (t1.clientY + t2.clientY) / 2;
+      } else {
+        // Single finger pan
+        const t = e.touches[0];
+        const ddx = t.clientX - lastTouchX;
+        const ddy = t.clientY - lastTouchY;
+        this._viewX -= ddx / this._scale;
+        this._viewY -= ddy / this._scale;
+        lastTouchX = t.clientX;
+        lastTouchY = t.clientY;
+        this._drawMap();
+      }
+    }, { passive: false });
 
-    // Drag to pan
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (e.changedTouches.length > 0) {
+        const t = e.changedTouches[0];
+        const elapsed = Date.now() - tapStart;
+        const movedX = Math.abs(t.clientX - tapX);
+        const movedY = Math.abs(t.clientY - tapY);
+        if (elapsed < 350 && movedX < 12 && movedY < 12 && !this._travelling) {
+          const rect = canvas.getBoundingClientRect();
+          this._onTap(t.clientX - rect.left, t.clientY - rect.top);
+        }
+      }
+      lastPinchDist = 0;
+    }, { passive: false });
+
+    // ── Mouse events (desktop) ─────────────────
+    let mouseDown = false, mousePrevX = 0, mousePrevY = 0;
+    let mouseDownX = 0, mouseDownY = 0, mouseDownTime = 0;
+
     canvas.addEventListener('mousedown', e => {
-      isDragging = true;
-      dragStartX = e.clientX; dragStartY = e.clientY;
-      viewStartX = this._viewX; viewStartY = this._viewY;
+      mouseDown = true;
+      mousePrevX = e.clientX; mousePrevY = e.clientY;
+      mouseDownX = e.clientX; mouseDownY = e.clientY;
+      mouseDownTime = Date.now();
+      e.preventDefault();
     });
+
     canvas.addEventListener('mousemove', e => {
-      if (!isDragging) return;
-      const dx = (e.clientX - dragStartX) / this._scale;
-      const dy = (e.clientY - dragStartY) / this._scale;
-      this._viewX = viewStartX - dx;
-      this._viewY = viewStartY - dy;
+      if (!mouseDown) return;
+      const ddx = e.clientX - mousePrevX;
+      const ddy = e.clientY - mousePrevY;
+      this._viewX -= ddx / this._scale;
+      this._viewY -= ddy / this._scale;
+      mousePrevX = e.clientX;
+      mousePrevY = e.clientY;
       this._drawMap();
     });
-    canvas.addEventListener('mouseup', () => { isDragging = false; });
+
+    canvas.addEventListener('mouseup', e => {
+      if (!mouseDown) return;
+      mouseDown = false;
+      const elapsed = Date.now() - mouseDownTime;
+      const movedX = Math.abs(e.clientX - mouseDownX);
+      const movedY = Math.abs(e.clientY - mouseDownY);
+      if (elapsed < 350 && movedX < 8 && movedY < 8 && !this._travelling) {
+        const rect = canvas.getBoundingClientRect();
+        this._onTap(e.clientX - rect.left, e.clientY - rect.top);
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => { mouseDown = false; });
 
     // Mouse wheel zoom
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      this._scale = Utils.clamp(this._scale * (e.deltaY > 0 ? 0.9 : 1.1), 0.06, 0.40);
-      this._centreOnPlayer();
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const wx = sx / this._scale + this._viewX;
+      const wy = sy / this._scale + this._viewY;
+      this._scale = Utils.clamp(this._scale * (e.deltaY > 0 ? 0.88 : 1.14), 0.15, 0.80);
+      this._viewX = wx - sx / this._scale;
+      this._viewY = wy - sy / this._scale;
       this._drawMap();
     }, { passive: false });
-
-    // Tap / click — show travel panel
-    let tapStart = 0;
-    canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        tapStart = Date.now();
-        dragStartX = e.touches[0].clientX;
-        dragStartY = e.touches[0].clientY;
-        isDragging = true;
-        viewStartX = this._viewX; viewStartY = this._viewY;
-      }
-    }, { passive: true });
-
-    canvas.addEventListener('touchend', e => {
-      isDragging = false;
-      if (this._travelling) return;
-      const t = e.changedTouches[0];
-      const movedX = Math.abs(t.clientX - dragStartX);
-      const movedY = Math.abs(t.clientY - dragStartY);
-      const elapsed = Date.now() - tapStart;
-      if (elapsed < 400 && movedX < 10 && movedY < 10) {
-        const rect = canvas.getBoundingClientRect();
-        const sx = t.clientX - rect.left;
-        const sy = t.clientY - rect.top;
-        this._onTap(sx, sy);
-      }
-    });
-
-    canvas.addEventListener('click', e => {
-      if (this._travelling) return;
-      const rect = canvas.getBoundingClientRect();
-      this._onTap(e.clientX - rect.left, e.clientY - rect.top);
-    });
   },
 
   // ── Tap on map ────────────────────────────
@@ -794,6 +1060,7 @@ const WorldMap = {
     if (active) active.classList.remove('hidden');
 
     this._travelling   = true;
+    if (State.data?.world) State.data.world.playerAway = true;
     this._pendingTravel = null;
 
     // Build travel path: linear interpolation from player to target, many steps
@@ -873,9 +1140,13 @@ const WorldMap = {
     document.getElementById('btn-abort-travel')?.addEventListener('click', () => {
       if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
       this._travelling = false;
+
+      if (State.data?.world) State.data.world.playerAway =
+
+        (State.data?.world?.playerAway);
       this._roadEncounterActive = false;
       Utils.toast('↩ Turned back.', 'info');
-      Game.goTo('base');
+      Events.emit('navigate', { screen: 'base' });
     });
   },
 
@@ -886,7 +1157,7 @@ const WorldMap = {
       this._roadEncounterClick();
     }
     // Extra progress per click — scales with CPM
-    const ratio = Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM()||60), 0, 2);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
     this._travelClickBonus = (this._travelClickBonus || 0) + ratio * 0.003;
   },
 
@@ -910,13 +1181,14 @@ const WorldMap = {
     const tick = () => {
       if (!this._travelling) return;
 
-      const cpm   = Cadence.getCPM();
-      const target = Cadence.getTargetCPM() || 60;
+      const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
       const ratio  = Utils.clamp(cpm / target, 0, 2);
 
       // DEV: fast travel — completes in ~10 real seconds
       const baseSpeed = Utils.lerp(0.08, 0.12, Math.min(totalDist / 900, 1));
-      const speed = this._roadEncounterActive ? 0 : baseSpeed * (0.3 + ratio * 0.85) + this._travelClickBonus;
+      const _devSpeedMult = State.travelSpeedMultFn ? State.travelSpeedMultFn() : 1;
+      const speed = this._roadEncounterActive ? 0 : baseSpeed * (0.3 + ratio * 0.85) * _devSpeedMult + this._travelClickBonus;
       this._travelClickBonus = 0;
 
       if (!this._roadEncounterActive) progress = Math.min(1, progress + speed);
@@ -927,8 +1199,15 @@ const WorldMap = {
       this._mapData.playerWX = this._playerWX;
       this._mapData.playerWY = this._playerWY;
 
-      // Reveal fog along travel path
-      this._revealAround(this._playerWX, this._playerWY, 80);
+      // Reveal a solid corridor — steps spaced close enough that circles overlap
+      // Fog cell = 20 world units wide; radius 80 = 4 cells, steps every 15 units = guaranteed solid
+      const pathSteps = Math.max(30, Math.ceil(totalDist / 15));
+      for (let i = 0; i <= pathSteps; i++) {
+        const t = (i / pathSteps) * progress;
+        const rx = startWX + (targetWX - startWX) * t;
+        const ry = startWY + (targetWY - startWY) * t;
+        this._revealAround(rx, ry, 80);
+      }
 
       // Redraw map (partial — just reposition, don't full rebuild)
       this._drawMap();
@@ -1069,7 +1348,7 @@ const WorldMap = {
 
   _roadEncounterClick() {
     if (!this._roadEncounterActive) return;
-    const ratio = Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM()||60), 0, 2);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
     // Clicking always does damage — base + pedal bonus
     const baseDmg = Utils.randFloat(3, 6);
     const speedBonus = ratio >= 1.2 ? ratio * 2 : ratio >= 0.8 ? 1.0 : 0.5;
@@ -1105,7 +1384,7 @@ const WorldMap = {
         const actual = Math.round(amt * 1.5);
         this._gathered = this._gathered || {};
         this._gathered[res] = (this._gathered[res] || 0) + actual;
-        dropStr += ` ${Foraging.emojiMap[res]||'📦'}+${actual}`;
+        dropStr += ` ${Utils.emojiMap[res]||'📦'}+${actual}`;
       });
       if (statusEl) statusEl.textContent = `✅ ${animal.emoji} defeated!${dropStr}`;
       Audio.sfxVictory?.();
@@ -1127,6 +1406,10 @@ const WorldMap = {
   _arriveAtDestination(locationId) {
     clearTimeout(this._travelTimer);
     this._travelling = false;
+
+    if (State.data?.world) State.data.world.playerAway =
+
+      (State.data?.world?.playerAway);
     Cadence.stop();
 
     // Save gathered road loot
@@ -1178,8 +1461,8 @@ const WorldMap = {
         <div class="wm-arrival-name">${def.name}</div>
         <div class="wm-arrival-desc">${def.desc}</div>
         <div class="wm-arrival-loot">
-          Common: ${def.loot.common.resources.map(r=>Foraging.emojiMap[r]||'📦').join(' ')}
-          <span style="color:#ffd600"> · Rare: ${def.loot.rare.resources.map(r=>Foraging.emojiMap[r]||'📦').join(' ')}</span>
+          Common: ${def.loot.common.resources.map(r=>Utils.emojiMap[r]||'📦').join(' ')}
+          <span style="color:#ffd600"> · Rare: ${def.loot.rare.resources.map(r=>Utils.emojiMap[r]||'📦').join(' ')}</span>
         </div>
         <div style="color:#7a7a9a;font-size:0.85rem;margin-top:4px">
           ✨ Unique: ${def.uniqueMaterial.emoji} ${def.uniqueMaterial.name}
@@ -1207,7 +1490,7 @@ const WorldMap = {
     const def = this.locationDefs.find(d => d.id === locationId);
     if (!def) { this._returnToBase(); return; }
 
-    // Convert WorldMap locationDef to MapScreen.locations format for Foraging.start()
+    // Convert WorldMap locationDef to State.locations format for Foraging.start()
     const locData = {
       id:             locationId,
       name:           def.name,
@@ -1223,8 +1506,8 @@ const WorldMap = {
       energyCost:     0    // already paid with travel
     };
 
-    // Temporarily register in MapScreen.locations for Foraging to use
-    MapScreen.locations[locationId] = locData;
+    // Temporarily register in State.locations for Foraging to use
+    State.locations[locationId] = locData;
 
     const intensityCfg = { lootMult: 1.5, durationMult: 1, encounterMult: 1.2 };
     Foraging.start(locationId, intensityCfg);
@@ -1236,29 +1519,48 @@ const WorldMap = {
     this._playerWY = 0;
     this._mapData.playerWX = 0;
     this._mapData.playerWY = 0;
-    HUD.update();
+    Events.emit('hud:update');
     Audio.play('base');
-    setTimeout(() => Game.goTo('base'), 300);
+    setTimeout(() => Events.emit('navigate', { screen: 'base' }), 300);
   },
 
   // ── Unlock progression ────────────────────
   _checkUnlocks() {
     const n = State.data.stats.totalExpeditions;
+    const unlockedMissions = State.data.world.unlockedMissions || [];
     const unlock = (id) => {
       if (!State.data.world.unlockedLocations.includes(id)) {
         State.data.world.unlockedLocations.push(id);
         const def = this.locationDefs.find(d => d.id === id);
-        if (def) Utils.toast(`🗺 ${def.emoji} ${def.name} unlocked!`, 'good', 4000);
+        if (def) Utils.toast('🗺 ' + def.emoji + ' ' + def.name + ' unlocked!', 'good', 4000);
         Audio.sfxUnlock?.();
       }
     };
     this.locationDefs.forEach(def => {
-      if (n >= def.unlockAfterExpeditions) unlock(def.id);
+      // Regular locations: unlock by expedition count
+      if (!def.isMission && n >= def.unlockAfterExpeditions) unlock(def.id);
+      // Special missions: unlock by radio tower level
+      if (def.isMission && def.missionKey && unlockedMissions.includes(def.missionKey)) {
+        unlock(def.id);
+      }
     });
+  },
+
+  // Check and show mission count badge on world map icon
+  getMissionCount() {
+    const missions = State.data.world.unlockedMissions || [];
+    return missions.length;
+  },
+
+  // Returns true if id is a special mission location
+  isMission(id) {
+    const def = this.locationDefs.find(d => d.id === id);
+    return !!(def && def.isMission);
   }
 };
 
-// Extend MapScreen (declared in map.js) with WorldMap routing
-// Use assignment instead of re-declaring const
-MapScreen.unlock  = (id) => WorldMap._checkUnlocks();
-MapScreen.render  = ()   => WorldMap.render();
+// Subscribe: base emits when player opens the world map
+Events.on('worldmap:render', () => { setTimeout(() => WorldMap.render(), 50); });
+
+// Subscribe: foraging/other modules emit map:unlock instead of calling MapScreen.unlock()
+Events.on('map:unlock', () => WorldMap._checkUnlocks());

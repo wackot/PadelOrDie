@@ -54,47 +54,53 @@ const DayNight = {
   // ── Advance one game hour ─────────────────
   _tick() {
     if (this._paused) return;
+    const wasNight = State.data.world.isNight;  // capture BEFORE advanceTime mutates it
     State.advanceTime(1);
-    const hour    = State.data.world.hour;
-    const wasNight = State.data.world.isNight;
+    const hour = State.data.world.hour;
 
     this._applyHour(hour, true);
-    HUD.update();
+    Events.emit('hud:update');
 
     // Transitions
     if (hour === 6 && wasNight) {
       this._onDawn();
     } else if (hour === 20 && !wasNight) {
+      Events.emit('player:check-milestones');
+      Events.emit('achievements:check');
       this._onDusk();
     }
 
     // Hourly survival drain — reduced when actively pedalling
-    // Being on an expedition (Foraging._active) and pedalling slows consumption.
+    // Being on an expedition (Foraging.isActive()) and pedalling slows consumption.
     // ratio 0 (idle at base): full drain
     // ratio 1.0 (on target):  60% drain
     // ratio 1.5 (hammering):  35% drain
-    const cpm    = Cadence.getCPM();
-    const target = Cadence.getTargetCPM() || 60;
+    const cpm    = State.data.cadence.clicksPerMinute;
+    const target = (State.data.world.activeRaid
+      ? State.data.cadence.raidTargetCPM
+      : State.data.cadence.targetCPM) || 60;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
-    const isForaging = typeof Foraging !== 'undefined' && Foraging._active;
+    const isForaging = State.data?.world?.playerAway ?? false;
+    // Fitness: track pedalling time (each tick = 1 game-hour = ~_tickMs ms real time)
+    if (cpm > 10) {
+      const minPerTick = (this._tickMs || 6000) / 60000;
+      State.data.stats.totalPedalMinutes = (State.data.stats.totalPedalMinutes || 0) + minPerTick;
+    }
     // Drain multiplier: pedalling reduces hunger/thirst by up to 65%
     const drainMult = isForaging ? Utils.clamp(1.0 - ratio * 0.43, 0.35, 1.0) : 1.0;
     State.tickSurvival(0.5 * drainMult);
-    Player.checkCritical();
+    Events.emit('player:check-critical');
 
-    // Power system hourly tick
-    if (typeof Power !== 'undefined' && State.data.power) {
-      Power.hourlyTick();
-    }
+    // Power system hourly tick — Power subscribes to this in power.js
+    Events.emit('tick:hour');
 
     // Night raid check (higher probability at night)
     if (State.data.world.isNight && !State.data.world.activeRaid) {
       // Don't raid while player is away from base
-      const playerAway = (typeof Foraging !== 'undefined' && Foraging._active)
-                      || (typeof WorldMap !== 'undefined' && WorldMap._travelling);
+      const playerAway = State.data?.world?.playerAway ?? false;
       const nightChance = 0.08;
       if (!playerAway && Math.random() < nightChance) {
-        Raids.triggerRaid('night');
+        Events.emit('raid:trigger', { type: 'night' });
       }
     }
   },
@@ -205,18 +211,10 @@ const DayNight = {
     State.data.player.energy = Utils.clamp(State.data.player.energy + 5, 0, 100);
 
     const b = State.data.base;
-    const pw = State.data.power;
 
-    // Electric pump — auto-produces water each dawn when powered
-    if (pw?.consumers?.waterPump && Power.hasPowerForCrafting(0.5)) {
-      State.addResource('water', 5);
-      Utils.toast('💧 Electric pump filled 5 water overnight.', 'info', 2500);
-    }
-
-    // Electric grow lights — bonus food each dawn
-    if (pw?.consumers?.lights && b.passiveFood > 0 && Power.hasPowerForCrafting(0.5)) {
-      State.addResource('food', 1); // bonus food from grow lights
-    }
+    // Electric pump + grow lights — Power subscribes to 'tick:dawn' and handles these internally
+    // (Power checks its own consumers state; no need for dayNight to know about Power)
+    Events.emit('tick:dawn:power');
 
     // Greenhouse passive food + water
     if ((b.passiveFood || 0) > 0) {
@@ -228,19 +226,12 @@ const DayNight = {
       Utils.toast(`🌿 Greenhouse produced ${b.passiveWater} water!`, 'good', 3000);
     }
 
-    // Crop field yield (every 2nd day for Lv1, every day for Lv2+)
-    const fieldLevel = State.data.base.buildings?.field?.level || 0;
-    const cropYield  = b.cropYield || 0;
-    if (cropYield > 0) {
-      const everyDay = fieldLevel >= 2;
-      if (everyDay || State.data.world.day % 2 === 0) {
-        State.addResource('food', cropYield);
-        Utils.toast(`🌾 Field harvested ${cropYield} food!`, 'good', 3000);
-      }
-    }
+    // Advanced farming system — grow all plots by 1 day, alert when ready
+    // Farming subscribes to 'tick:dawn' in farming.js
+    Events.emit('tick:dawn');
 
-    HUD.update();
-    Base.updateNight();
+    Events.emit('hud:update');
+    Events.emit('map:changed');
   },
 
   // ── Dusk event ────────────────────────────
@@ -252,16 +243,27 @@ const DayNight = {
         : '🌙 Night falls. Stay alert — they come in darkness.',
       'warn', 4000
     );
-    Base.updateNight();
+    Events.emit('map:changed');
   },
 
   // ── Skip to morning (used by sleep) ───────
   skipToMorning() {
-    State.data.world.hour   = 8;
+    const prevHour = State.data.world.hour;
+    // If sleeping past midnight (hour >= 20 or < 8), the day should tick over
+    if (prevHour >= 20 || prevHour < 6) {
+      State.data.world.day += 1;
+      State.data.world.daysSinceLastRaid += 1;
+      State.data.stats.highestDay = Math.max(
+        State.data.stats.highestDay, State.data.world.day
+      );
+    }
+    State.data.world.hour    = 8;
     State.data.world.isNight = false;
     this._applyHour(8, true);
-    Base.updateNight();
-    HUD.update();
+    // Fire dawn passives (greenhouse, electric pump, farming) so sleep isn't penalised
+    this._onDawn();
+    Events.emit('map:changed');
+    Events.emit('hud:update');
   },
 
   // ── Get current phase label ───────────────
@@ -274,3 +276,11 @@ const DayNight = {
   }
 
 };
+
+// Subscribe: Player emits this after sleep to fast-forward time
+Events.on('daynight:skip-to-morning', () => DayNight.skipToMorning());
+
+// Subscribe: devMode emits when skipping days to re-apply visual hour state
+Events.on('daynight:apply-hour', ({ hour }) => {
+  DayNight._applyHour?.(hour, false);
+});

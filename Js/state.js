@@ -64,6 +64,11 @@ const State = {
         workshop:     { level: 0, name: 'Workshop',       emoji: '🔧' },
         smokehouse:   { level: 0, name: 'Smokehouse',     emoji: '🏭' },
         powerhouse:   { level: 0, name: 'Power House',    emoji: '⚡' },
+        dynamo_bike:  { level: 0, name: 'Dynamo Bike',    emoji: '🚴' },
+        woodburner:   { level: 0, name: 'Wood Burner',    emoji: '🪵' },
+        coal_plant:   { level: 0, name: 'Coal Plant',     emoji: '⛏️' },
+        solar_array:  { level: 0, name: 'Solar Array',    emoji: '☀️' },
+        battery_bank: { level: 0, name: 'Battery Bank',   emoji: '🔋' },
         elecbench:    { level: 0, name: 'Electric Bench', emoji: '🔬' },
         radio_tower:  { level: 0, name: 'Radio Tower',    emoji: '📡' },
         alarm_system: { level: 0, name: 'Alarm System',   emoji: '🔔' },
@@ -118,6 +123,15 @@ const State = {
       // Location-unique materials (only found at specific locations)
       spores:         0,  // Forest
       wild_seeds:     0,  // Abandoned Farm
+      // Farming seeds (start with a few wheat/potato/carrot to get going)
+      seeds_wheat:    3,
+      seeds_potato:   2,
+      seeds_carrot:   2,
+      seeds_beans:    0,
+      seeds_herb:     0,
+      seeds_sunflower:0,
+      seeds_mushroom: 0,
+      seeds_mutant:   0,
       engine_parts:   0,  // Gas Station
       scrap_wire:     0,  // City Ruins
       circuit_board:  0,  // Junkyard
@@ -142,6 +156,8 @@ const State = {
       A: ['wood','metal','food','water','cloth','rope'],
       B: ['electronics','chemicals','gasoline','medicine','coal','glass'],
       C: ['spores','wild_seeds','engine_parts','scrap_wire','circuit_board','antiseptic','cave_crystal','military_chip'],
+      // Farming seeds use tier B storage (accessible early)
+      // (seeds_* are added dynamically by Farming._ensureState)
       D: ['battery_cell','copper_wire','steel_casing','capacitor','power_core']
     },
 
@@ -156,8 +172,13 @@ const State = {
       discoveredResources: [],
       activeRaid:         false,
       raidStrength:       0,
-      daysSinceLastRaid:  0
+      daysSinceLastRaid:  0,
+      playerAway:         false   // true when foraging or travelling — set by Foraging/WorldMap
     },
+
+    // Active building construction (one at a time)
+    activeBuild: null,
+    // { key, stateKey, newLevel, upg, secsLeft, secsTotal, onComplete }
 
     cadence: {
       clicksPerMinute:  0,
@@ -168,17 +189,44 @@ const State = {
     },
 
     stats: {
+      // Survival
       totalSessions:          0,
       totalClicksAllTime:     0,
       totalExpeditions:       0,
       totalResourcesGathered: 0,
       highestDay:             1,
       raidsRepelled:          0,
-      raidsFailed:            0
+      raidsFailed:            0,
+      animalsDefeated:        0,
+      animalsFled:            0,
+      // Fitness
+      totalPedalMinutes:      0,   // cumulative pedalling time in minutes
+      totalCaloriesBurned:    0,   // estimated calories
+      totalDistanceKm:        0,   // estimated km ridden
+      bestCPM:                0,   // all-time peak CPM in any session
+      avgCPM:                 0,   // running average CPM across all sessions
+      sessionCPMSum:          0,   // sum of session avg CPMs (for rolling avg)
+      sessionCount:           0,   // sessions with actual pedalling
+      // This session
+      sessionStartTime:       0,   // timestamp when current session began
+      sessionPedalSecs:       0,   // pedalling seconds this session
+      sessionBestCPM:         0,   // best CPM this session
+      // Milestones (day first achieved)
+      milestones: {},
+      // Achievement tracking counters
+      totalBuilds:          0,   // cumulative build/upgrade completions
+      totalCrafted:         0,   // cumulative items crafted
+      nightExpeditions:     0,   // expeditions started at night
+      everStarved:          false, // hunger ever reached 0
+      bossKilled:           false,
+      titanKilled:          false,
+      craftedCircuitBoard:  0,
+      craftedMilitaryChip:  0,
+      craftedPowerCore:     0
     },
 
     meta: {
-      version:    '0.6',
+      version:    '0.16',
       savedAt:    null,
       newGame:    true
     }
@@ -221,9 +269,9 @@ const State = {
     const b = this.data.base;
     if (tiers.D.includes(type)) return b.storageCapD > 0 ? b.storageCapD : 0;
     if (tiers.C.includes(type)) return b.storageCapC > 0 ? b.storageCapC : 0;
-    if (tiers.B.includes(type)) return b.storageCapB > 0 ? b.storageCapB : Infinity;
+    if (tiers.B.includes(type)) return b.storageCapB > 0 ? b.storageCapB : 0;
     if (tiers.A.includes(type)) return b.storageCapA > 0 ? b.storageCapA : 50;
-    return Infinity; // unknown resources: no cap
+    return Infinity; // unknown / seed resources: no cap
   },
 
   addResource(type, amount) {
@@ -276,12 +324,39 @@ const State = {
     );
   },
 
+  // Hook for DevMode to override survival drain (god mode / no drain).
+  // devmode.js sets this: State.survivalMultiplierFn = () => DevMode.survivalMultiplier()
+  // State never imports DevMode directly.
+  survivalMultiplierFn: null,
+
+  // Hook for DevMode to override build duration (instant build = 1s).
+  buildSecsFn: null,
+
+  // Hook for DevMode click-mode (mouse clicks count as pedalling).
+  clickModeActiveFn: null,
+
+  // Hook for DevMode.tick() — called each build timer tick.
+  devTickFn: null,
+
+  // Hook for DevMode.raidsBlocked() — lets raids.js check dev flags without importing DevMode.
+  raidsBlockedFn: null,
+
+  // Hook for Foraging._monsterSVG() — lets raids.js render monster art without importing Foraging.
+  monsterSvgFn: null,
+
+  // Hook for DevMode.forageDuration() — lets foraging.js check dev flags without importing DevMode.
+  forageDurationFn: null,
+
+  // Hook for DevMode.travelSpeedMultiplier() — lets worldmap.js check dev flags without importing DevMode.
+  travelSpeedMultFn: null,
+
   // Adjust survival stats (hunger/thirst/energy)
   tickSurvival(deltaHours = 1) {
     const p = this.data.player;
-    p.hunger = Utils.clamp(p.hunger - (5  * deltaHours), 0, 100);
-    p.thirst = Utils.clamp(p.thirst - (8  * deltaHours), 0, 100);
-    p.energy = Utils.clamp(p.energy - (3  * deltaHours), 0, 100);
+    const mult = this.survivalMultiplierFn ? this.survivalMultiplierFn() : 1;
+    p.hunger = Utils.clamp(p.hunger - (5  * deltaHours * mult), 0, 100);
+    p.thirst = Utils.clamp(p.thirst - (8  * deltaHours * mult), 0, 100);
+    p.energy = Utils.clamp(p.energy - (3  * deltaHours * mult), 0, 100);
   },
 
   // Serialise for saving
@@ -290,6 +365,15 @@ const State = {
     copy.meta.savedAt = new Date().toISOString();
     copy.meta.newGame = false;
     return copy;
+  },
+
+  // Check whether the player's current inventory covers a cost object.
+  // Used by Base (upgrade UI) and Crafting — keeps the check in one place.
+  canAfford(cost) {
+    if (!cost || !this.data) return false;
+    return Object.entries(cost).every(([res, amt]) =>
+      amt === 0 || (this.data.inventory[res] || 0) >= amt
+    );
   },
 
   // ── Private ───────────────────────────────

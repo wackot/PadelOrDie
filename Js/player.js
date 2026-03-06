@@ -24,6 +24,7 @@ const Player = {
 
     if (p.hunger <= 10) {
       Utils.toast('☠ STARVING! Find food immediately!', 'bad', 5000);
+      if (p.hunger <= 0) State.data.stats.everStarved = true;
       // Starving costs energy faster
       p.energy = Utils.clamp(p.energy - 5, 0, 100);
     } else if (p.hunger <= 25) {
@@ -43,7 +44,7 @@ const Player = {
 
     // Update bar colours to reflect urgency
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Update HUD bar colours ─────────────────
@@ -80,7 +81,7 @@ const Player = {
     State.data.player.hunger = Utils.clamp(before + amount, 0, 100);
     Utils.toast(`🍖 Ate food. Hunger +${amount}`, 'good');
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
     return true;
   },
 
@@ -94,14 +95,17 @@ const Player = {
     State.data.player.thirst = Utils.clamp(State.data.player.thirst + amount, 0, 100);
     Utils.toast(`💧 Drank water. Thirst +${amount}`, 'good');
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
     return true;
   },
 
   // ── Sleep ────────────────────────────────
   sleep(hours = 8) {
     Audio.sfxSleep();
-    const energyGain = hours === 8 ? 80 : 25;
+    const wasNight = State.data.world.isNight;
+    const baseGain   = hours === 8 ? 80 : 25;
+    const bonusMult  = 1 + (State.data.base.sleepEnergyBonus || 0);
+    const energyGain = Math.round(baseGain * bonusMult);
     State.data.player.energy = Utils.clamp(State.data.player.energy + energyGain, 0, 100);
 
     // Slower drain while sleeping
@@ -109,20 +113,23 @@ const Player = {
     State.data.player.thirst = Utils.clamp(State.data.player.thirst - hours * 2, 0, 100);
 
     // Skip time to morning
-    DayNight.skipToMorning();
+    Events.emit('daynight:skip-to-morning');
 
     Utils.toast(
       `😴 Slept ${hours}h. Energy restored. Day ${State.data.world.day}.`,
       'info', 4000
     );
 
-    // Night raid chance while sleeping
-    if (hours >= 4 && Math.random() < 0.3) {
-      setTimeout(() => Raids.triggerRaid('night'), 2000);
+    // Always navigate back to base map after sleeping
+    Events.emit('navigate', { screen: 'base' });
+
+    // Night raid only fires if it was actually night when the player went to sleep
+    if (wasNight && hours >= 4 && Math.random() < 0.3) {
+      setTimeout(() => Events.emit('raid:trigger', { type: 'night' }), 2000);
     }
 
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Draw water from well ──────────────────
@@ -131,7 +138,7 @@ const Player = {
     State.addResource('water', amount);
     Audio.sfxWater();
     Utils.toast(`🪣 Drew ${amount} water units`, 'good');
-    HUD.update();
+    Events.emit('hud:update');
   },
 
   // ── Public checkCritical ──────────────────
@@ -188,7 +195,12 @@ const Player = {
     State.data.player.energy = Utils.clamp(State.data.player.energy + 30, 0, 100);
     Utils.toast('💊 Medicine used. All stats +boost.', 'good');
     this._updateBarColours();
-    HUD.update();
+    Events.emit('hud:update');
   }
 
 };
+
+// Subscribe: dayNight emits this every hour after survival drain
+Events.on('player:check-critical', () => {
+  Player.checkCritical();
+});

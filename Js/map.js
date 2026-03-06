@@ -408,3 +408,8 @@ const MapScreen = {
     }
   }
 };
+
+// Expose location data on State so foraging.js and worldmap.js
+// can read locations without importing MapScreen directly.
+// This is a reference alias — no data is copied.
+State.locations = MapScreen.locations;

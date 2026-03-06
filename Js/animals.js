@@ -142,6 +142,197 @@ const Animals = {
       fleeText: 'The zombie hound collapses, twitching.'
     },
 
+    // ── 10 NEW MONSTERS ────────────────────────────────────────────────────
+
+    swarm: {
+      id: 'swarm', name: 'Tick Swarm', emoji: '🕷',
+      baseStrength: 8, speed: 'very_fast',
+      locations: ['forest', 'cave', 'abandoned_farm'],
+      raidWeight: 35, encounterWeight: 30,
+      fleeThreshold: 0.6,
+      drops: [
+        { resource: 'chemicals', amount: [1,2], chance: 0.5 },
+        { resource: 'cloth',     amount: [1,1], chance: 0.4 }
+      ],
+      encounterText: [
+        'A seething cloud of mutant ticks erupts from the bark!',
+        'The ground moves — it\'s alive with crawling ticks!',
+        'Biting. Everywhere. BITING.'
+      ],
+      fleeText: 'The swarm scatters into cracks in the earth.'
+    },
+
+    serpent: {
+      id: 'serpent', name: 'Venom Serpent', emoji: '🐍',
+      baseStrength: 22, speed: 'fast',
+      locations: ['forest', 'abandoned_farm', 'cave'],
+      raidWeight: 18, encounterWeight: 16,
+      fleeThreshold: 0.2,
+      drops: [
+        { resource: 'chemicals', amount: [2,4], chance: 0.7 },
+        { resource: 'medicine',  amount: [1,2], chance: 0.4 }
+      ],
+      encounterText: [
+        'A massive venom serpent drops from the canopy!',
+        'Yellow eyes glint between the roots — a huge snake!',
+        'It rattles. Louder. LOUDER.'
+      ],
+      fleeText: 'The serpent coils back and vanishes into the undergrowth.'
+    },
+
+    scorpion: {
+      id: 'scorpion', name: 'Acid Scorpion', emoji: '🦂',
+      baseStrength: 35, speed: 'medium',
+      locations: ['cave', 'junkyard', 'gas_station'],
+      raidWeight: 14, encounterWeight: 12,
+      fleeThreshold: 0.15,
+      drops: [
+        { resource: 'chemicals', amount: [3,5], chance: 0.8 },
+        { resource: 'medicine',  amount: [1,3], chance: 0.5 }
+      ],
+      encounterText: [
+        'An armoured scorpion the size of a dog snaps its claws!',
+        'Acid drips from its stinger — it\'s going to strike!',
+        'The cave floor cracks as something huge scuttles toward you.'
+      ],
+      fleeText: 'The scorpion retreats into a crevice, hissing.'
+    },
+
+    crab: {
+      id: 'crab', name: 'Mutant Crab', emoji: '🦀',
+      baseStrength: 45, speed: 'slow',
+      locations: ['city_ruins', 'junkyard', 'gas_station'],
+      raidWeight: 10, encounterWeight: 9,
+      fleeThreshold: 0.0,
+      drops: [
+        { resource: 'metal',  amount: [3,6], chance: 0.8 },
+        { resource: 'food',   amount: [2,4], chance: 0.6 },
+        { resource: 'rope',   amount: [1,3], chance: 0.4 }
+      ],
+      encounterText: [
+        'A mutant crab the size of a car scuttles from the wreckage!',
+        'Its shell is reinforced with scrap metal — natural armour!',
+        'CLACK CLACK CLACK — something giant is closing in sideways.'
+      ],
+      fleeText: 'The crab retreats back into the rubble pile.'
+    },
+
+    blob: {
+      id: 'blob', name: 'Acid Blob', emoji: '🟢',
+      baseStrength: 30, speed: 'slow',
+      locations: ['hospital', 'cave', 'city_ruins'],
+      raidWeight: 12, encounterWeight: 10,
+      fleeThreshold: 0.0,
+      drops: [
+        { resource: 'chemicals', amount: [4,7], chance: 0.9 },
+        { resource: 'medicine',  amount: [2,4], chance: 0.5 }
+      ],
+      encounterText: [
+        'A pulsing translucent blob oozes from the drain!',
+        'It burns through metal on contact — don\'t let it touch you!',
+        'The floor is melting where it slides...'
+      ],
+      fleeText: 'The blob dissolves through a crack in the floor.'
+    },
+
+    phantom: {
+      id: 'phantom', name: 'Shadow Phantom', emoji: '👻',
+      baseStrength: 55, speed: 'very_fast',
+      locations: ['hospital', 'cave', 'city_ruins'],
+      raidWeight: 8, encounterWeight: 7,
+      fleeThreshold: 0.35,
+      drops: [
+        { resource: 'electronics', amount: [2,4], chance: 0.6 },
+        { resource: 'chemicals',   amount: [2,3], chance: 0.5 },
+        { resource: 'medicine',    amount: [1,3], chance: 0.4 }
+      ],
+      encounterText: [
+        'A spectral shape coalesces from the dark — is it even real?',
+        'Your instruments go haywire. Something\'s here that shouldn\'t be.',
+        'Cold. Instantly bone-deep cold. It\'s behind you.'
+      ],
+      fleeText: 'The phantom dissolves into mist and silence.'
+    },
+
+    golem: {
+      id: 'golem', name: 'Scrap Golem', emoji: '🤖',
+      baseStrength: 75, speed: 'slow',
+      locations: ['junkyard', 'military_base', 'city_ruins'],
+      raidWeight: 6, encounterWeight: 5,
+      fleeThreshold: 0.0,
+      drops: [
+        { resource: 'metal',       amount: [6,12], chance: 0.95 },
+        { resource: 'electronics', amount: [4,8],  chance: 0.8 },
+        { resource: 'rope',        amount: [2,4],  chance: 0.5 }
+      ],
+      encounterText: [
+        'A walking heap of scrap and rebar LURCHES toward you!',
+        'Steam hisses from its joints — it\'s been built to kill.',
+        'The whole junkyard is shaking. Something assembled itself.'
+      ],
+      fleeText: 'The golem ceases movement and collapses into a heap.'
+    },
+
+    hydra: {
+      id: 'hydra', name: 'Sewer Hydra', emoji: '🐲',
+      baseStrength: 90, speed: 'medium',
+      locations: ['city_ruins', 'hospital', 'cave'],
+      raidWeight: 4, encounterWeight: 4,
+      fleeThreshold: 0.1,
+      drops: [
+        { resource: 'food',      amount: [4,8],  chance: 0.7 },
+        { resource: 'chemicals', amount: [4,7],  chance: 0.8 },
+        { resource: 'rope',      amount: [3,5],  chance: 0.6 },
+        { resource: 'medicine',  amount: [3,5],  chance: 0.6 }
+      ],
+      encounterText: [
+        'THREE heads rise from the sewage — a hydra mutation!',
+        'Cut one head off and two grow back... probably.',
+        'The sewer wall explodes. Something massive and many-headed emerges.'
+      ],
+      fleeText: 'The hydra retreats underground with a thunderous splash.'
+    },
+
+    wraith: {
+      id: 'wraith', name: 'Cyber Wraith', emoji: '💀',
+      baseStrength: 120, speed: 'fast',
+      locations: ['military_base', 'command_bunker', 'endgame_transmission'],
+      raidWeight: 3, encounterWeight: 3,
+      fleeThreshold: 0.0,
+      drops: [
+        { resource: 'military_chip', amount: [2,5],  chance: 0.85 },
+        { resource: 'electronics',   amount: [5,10], chance: 0.9 },
+        { resource: 'chemicals',     amount: [3,6],  chance: 0.7 }
+      ],
+      encounterText: [
+        'A digital ghost of a soldier flickers into view — weapons raised.',
+        'WARNING: MILITARY AI CONSTRUCT — LETHAL ENGAGEMENT AUTHORISED.',
+        'Its skull face glows red in the dark. It has been waiting.'
+      ],
+      fleeText: 'The wraith fragments into static and disappears.'
+    },
+
+    titan: {
+      id: 'titan', name: 'APEX TITAN', emoji: '👹',
+      baseStrength: 200, speed: 'slow',
+      locations: ['endgame_transmission', 'command_bunker', 'military_base'],
+      raidWeight: 1, encounterWeight: 1,
+      fleeThreshold: 0.0,
+      drops: [
+        { resource: 'military_chip', amount: [5,10],  chance: 1.0 },
+        { resource: 'electronics',   amount: [8,15],  chance: 1.0 },
+        { resource: 'chemicals',     amount: [6,12],  chance: 1.0 },
+        { resource: 'medicine',      amount: [5,10],  chance: 0.9 },
+        { resource: 'metal',         amount: [10,20], chance: 1.0 }
+      ],
+      encounterText: [
+        'THE GROUND SPLITS. AN APEX TITAN RISES.',
+        'It is three metres tall and accelerating toward you.',
+        'YOUR INSTRUMENTS FAIL. YOUR BODY SHAKES. PEDAL.'
+      ],
+      fleeText: 'Impossible. It retreats. Watching. Learning.'
+    },
+
     boss_mutant: {
       id: 'boss_mutant', name: '??? UNKNOWN', emoji: '👾',
       baseStrength: 100, speed: 'medium',
@@ -168,8 +359,8 @@ const Animals = {
   getStrength(animalId) {
     const animal = this.types[animalId];
     if (!animal) return 10;
-    const day      = State.data?.world?.day || 1;
-    const scale    = 1 + (day - 1) * 0.08;   // +8% per day
+    const day   = State.data?.world?.day || 1;
+    const scale = Math.min(5.0, 1 + (day - 1) * 0.08);  // +8%/day, capped at 5× (day ~51)
     return Math.round(animal.baseStrength * scale);
   },
 
