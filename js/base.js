@@ -21,6 +21,7 @@ const Base = {
     greenhouse: { id:'greenhouse',  title:'Greenhouse',     desc:'Passive food production. Upgrade in Crafting.',         action:'upgrades'   },
     field:      { id:'field',       title:'Crop Field',     desc:'Daily crop harvest. Upgrade in Crafting.',              action:'upgrades'   },
     powerhouse: { id:'powerhouse',  title:'Power House',    desc:'Manage your generators and battery bank.',              action:'power'      },
+    dynamo_bike:{ id:'dynamo_bike', title:'Dynamo Bike',    desc:'Pedal to generate electricity and charge your battery.', action:'dynamo_bike' },
     elecbench:      { id:'elecbench',      title:'Electric Bench',   desc:'Craft electrical components and advanced upgrades.',  action:'elecbench'  },
     radio_tower:    { id:'radio_tower',    title:'Radio Tower',    desc:'Intercept raids. Unlock special world missions.',      action:'upgrades'   },
     rain_collector: { id:'rain_collector', title:'Rain Collector',   desc:'Passively collects rainwater every day.',              action:'upgrades'   },
@@ -230,6 +231,7 @@ const Base = {
     const rcLvl  = State.data?.base?.buildings?.rain_collector?.level || 0;
     const rtLvl  = State.data?.base?.buildings?.radio_tower?.level    || 0;
     const ssLvl  = State.data?.base?.buildings?.solar_station?.level  || 0;
+    const dbLvl  = State.data?.base?.buildings?.dynamo_bike?.level    || 0;
     const dr     = State.data?.base?.defenceRating || 0;
     const hasPwr= phLvl > 0 && (State.data?.power?.generators?.bike?.level > 0
                               || State.data?.power?.generators?.woodburner?.level > 0
@@ -322,6 +324,10 @@ const Base = {
     const bnX    = cx;
     const bnY    = cy + fh * 0.44;
 
+    // Dynamo bike — beside the powerhouse, lower-left
+    const dbX    = cx - fw * 0.44;
+    const dbY    = cy + fh * 0.10;
+
     svg.innerHTML = `
       <defs>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -383,6 +389,9 @@ const Base = {
       ${mkLvl > 0 ? BuildingMedkitStation.svg(mkX, mkY, mkLvl)     : BuildingBuildPrompt.svg(mkX, mkY, 'medkit_station')}
       ${bnLvl > 0 ? BuildingBunker.svg(bnX, bnY, bnLvl)            : BuildingBuildPrompt.svg(bnX, bnY, 'bunker')}
 
+      <!-- Dynamo bike -->
+      ${dbLvl > 0 ? DynamoBike.svg(dbX, dbY, dbLvl) : BuildingBuildPrompt.svg(dbX, dbY, 'dynamo_bike')}
+
       <!-- Hit zones -->
       ${this._hitZone('house',          houseX, houseY, 90,  100, 'SHELTER')}
       ${this._hitZone('fridge',         barnX,  barnY,  70,  80,  'FOOD STORE')}
@@ -405,6 +414,7 @@ const Base = {
       ${this._hitZone('alarm_system',   alX,    alY,    70,  60,  '🔔 ALARM Lv' + alLvl)}
       ${this._hitZone('medkit_station', mkX,    mkY,    80,  70,  '🏥 MEDKIT Lv' + mkLvl)}
       ${this._hitZone('bunker',         bnX,    bnY,    90,  60,  '🏗️ BUNKER Lv' + bnLvl)}
+      ${this._hitZone('dynamo_bike',    dbX,    dbY,    80,  80,  '⚡🚴 DYNAMO Lv' + dbLvl)}
     `;
 
     // Building clicks handled by pointerup tap detection above
@@ -429,6 +439,7 @@ const Base = {
       case 'fridge':      BuildingBarn.onOpen();                                                       break;
       case 'well':        BuildingWell.onOpen();                                                       break;
       case 'powerhouse':  Events.emit('navigate', { screen: 'power' }); Events.emit('power:render');   break;
+      case 'dynamo_bike': Events.emit('navigate', { screen: 'dynamo-bike' }); Events.emit('dynamo_bike:render'); break;
       case 'table':       Events.emit('navigate', { screen: 'crafting' }); Events.emit('crafting:render'); break;
       case 'map':         Events.emit('navigate', { screen: 'map' }); Events.emit('worldmap:render');  break;
       case 'radio_tower':

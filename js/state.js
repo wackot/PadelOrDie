@@ -64,6 +64,7 @@ const State = {
         workshop:     { level: 0, name: 'Workshop',       emoji: '🔧' },
         smokehouse:   { level: 0, name: 'Smokehouse',     emoji: '🏭' },
         powerhouse:   { level: 0, name: 'Power House',    emoji: '⚡' },
+        dynamo_bike:  { level: 0, name: 'Dynamo Bike',   emoji: '⚡🚴' },
         elecbench:    { level: 0, name: 'Electric Bench', emoji: '🔬' },
         radio_tower:  { level: 0, name: 'Radio Tower',    emoji: '📡' },
         alarm_system: { level: 0, name: 'Alarm System',   emoji: '🔔' },

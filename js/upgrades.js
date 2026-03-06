@@ -338,5 +338,27 @@ const BuildingUpgrades = {
         { desc:'Lv1 — Power house built. Houses all generators. Access Power Panel to upgrade.',
           cost:{ wood:15, metal:10, rope:4 } }
       ]
+    },
+
+    // ── DYNAMO BIKE — standalone pedal-to-charge building ───────────────
+    dynamo_bike: {
+      name:'Dynamo Bike', icon:'⚡', maxLevel:5, unlockReq:6,
+      levels: [
+        { desc:'Rickety dynamo rig. Generates up to 8W while pedalling. Chain drive, basic coil.',
+          cost:{ metal:8, rope:4, electronics:2 },
+          maxWatts: 8 },
+        { desc:'Reinforced frame + better coil. Up to 16W. More efficient at low cadence.',
+          cost:{ metal:14, rope:6, electronics:4 },
+          maxWatts: 16 },
+        { desc:'Dual-coil dynamo. Up to 24W. Voltage regulator fitted — no power waste.',
+          cost:{ metal:22, electronics:8, rope:6, chemicals:2 },
+          maxWatts: 24 },
+        { desc:'High-output alternator. Up to 32W. Charges battery 50% faster.',
+          cost:{ metal:32, electronics:14, chemicals:4, circuit_board:2 },
+          maxWatts: 32 },
+        { desc:'Military-spec dynamo. Up to 40W. Peak output rivals a small solar array.',
+          cost:{ metal:45, electronics:22, chemicals:8, circuit_board:4, military_chip:2 },
+          maxWatts: 40 }
+      ]
     }
 };
