@@ -409,8 +409,25 @@ const WorldMap = {
     if (!wrap || !canvas) return;
     this._canvas = canvas;
     this._ctx    = canvas.getContext('2d');
-    canvas.width  = wrap.clientWidth  || window.innerWidth;
-    canvas.height = (wrap.clientHeight || window.innerHeight - 120);
+
+    const dpr  = window.devicePixelRatio || 1;
+    const cssW = wrap.clientWidth  || window.innerWidth;
+    const cssH = wrap.clientHeight || window.innerHeight - 120;
+
+    // Set buffer at full device resolution so pointer coords stay correct
+    canvas.width  = cssW * dpr;
+    canvas.height = cssH * dpr;
+
+    // Keep CSS display size unchanged
+    canvas.style.width  = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+
+    // Scale context — all drawing uses CSS pixel units from here on
+    this._ctx.scale(dpr, dpr);
+
+    // Store CSS dimensions for pan/draw math
+    this._cssW = cssW;
+    this._cssH = cssH;
 
     // Centre view on player
     this._centreOnPlayer();
@@ -418,7 +435,8 @@ const WorldMap = {
 
   _centreOnPlayer() {
     if (!this._canvas) return;
-    const sw = this._canvas.width, sh = this._canvas.height;
+    const sw = this._cssW || this._canvas.width;
+    const sh = this._cssH || this._canvas.height;
     this._viewX = this._playerWX - sw / (2 * this._scale);
     this._viewY = this._playerWY - sh / (2 * this._scale);
   },
@@ -442,11 +460,15 @@ const WorldMap = {
   _drawMap() {
     const c = this._ctx;
     if (!c || !this._mapData) return;
-    const W = this._canvas.width, H = this._canvas.height;
+    const W = this._cssW || this._canvas.width;
+    const H = this._cssH || this._canvas.height;
 
-    // Background — deep dark
+    // Background — deep dark (only visible in fogged/unrevealed areas)
     c.fillStyle = '#050508';
     c.fillRect(0, 0, W, H);
+
+    // Terrain base — revealed cells get biome colour + noise stipple
+    this._drawTerrain(c);
 
     // Draw terrain patches (roads + zones) in revealed areas
     this._drawRoads(c);
@@ -467,20 +489,92 @@ const WorldMap = {
     }
   },
 
+  // ── Terrain base (revealed cells only) ───
+  _drawTerrain(c) {
+    const md = this._mapData;
+    const fw = md.fogW, fh = md.fogH;
+    const cellWX = this.WORLD_W / fw;
+    const cellWY = this.WORLD_H / fh;
+
+    for (let fy = 0; fy < fh; fy++) {
+      for (let fx = 0; fx < fw; fx++) {
+        if (md.fog[fy * fw + fx] !== 1) continue; // only paint revealed cells
+
+        const wx = (fx - fw/2 + 0.5) * cellWX;
+        const wy = (fy - fh/2 + 0.5) * cellWY;
+        const { sx, sy } = this._toScreen(wx, wy);
+        const cellPxW = cellWX * this._scale + 1;
+        const cellPxH = cellWY * this._scale + 1;
+
+        // Find nearest zone to tint cell with biome fogReveal colour
+        let baseColor = '#2a2618'; // default wasteland — warmer than before
+        let minDist = Infinity;
+        md.zones.forEach(zone => {
+          const def = this.locationDefs.find(d => d.id === zone.id);
+          if (!def) return;
+          const dx = wx - zone.wx, dy = wy - zone.wy;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < zone.radius * 2.5 && dist < minDist) {
+            minDist = dist;
+            baseColor = def.fogReveal;
+          }
+        });
+
+        c.fillStyle = baseColor;
+        c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW, cellPxH);
+
+        // Noise stipple for visual texture variation
+        const n = this._cellNoise(fx, fy);
+        if (n > 0.72) {
+          // Bright highlight patch
+          c.fillStyle = 'rgba(255,245,200,0.06)';
+          c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW * 0.55, cellPxH * 0.55);
+        } else if (n < 0.28) {
+          // Dark shadow patch
+          c.fillStyle = 'rgba(0,0,0,0.18)';
+          c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW, cellPxH);
+        } else if (n > 0.55 && n < 0.60) {
+          // Subtle mid scatter dot
+          c.fillStyle = 'rgba(180,160,120,0.05)';
+          c.fillRect(sx, sy, cellPxW * 0.4, cellPxH * 0.4);
+        }
+      }
+    }
+  },
+
+  // Fast deterministic per-cell noise — no external lib needed
+  _cellNoise(fx, fy) {
+    let n = fx * 1619 + fy * 31337;
+    n = (n ^ (n >> 13)) * (n * n * 60493 + 19990303) + 1376312589;
+    return ((n & 0x7fffffff) / 0x7fffffff);
+  },
+
   _drawRoads(c) {
     const md = this._mapData;
-    md.roads.forEach(road => {
+    md.roads.forEach((road, i) => {
+      const zone = md.zones[i];
+      const def  = zone && this.locationDefs.find(d => d.id === zone.id);
+      const danger = def?.dangerLevel || 1;
+
+      // Road colour gets redder/darker with danger level
+      const roadCol   = danger >= 4 ? '#3a1a0a' :
+                        danger >= 3 ? '#2e1c0a' :
+                        danger >= 2 ? '#2a2010' : '#2a2418';
+      const centerCol = danger >= 3 ? '#5a3010' : '#3a3020';
+
       c.beginPath();
-      road.forEach((pt, i) => {
+      road.forEach((pt, idx) => {
         const { sx, sy } = this._toScreen(pt.x, pt.y);
-        i === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
+        idx === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
       });
-      c.strokeStyle = '#2a2418';
-      c.lineWidth = 5;
+      c.strokeStyle = roadCol;
+      c.lineWidth = 3 + danger;
       c.stroke();
-      c.strokeStyle = '#3a3020';
-      c.lineWidth = 2;
-      c.setLineDash([8, 6]);
+
+      // Centre dash — spacing varies by danger (more erratic = more dangerous)
+      c.strokeStyle = centerCol;
+      c.lineWidth = 1.5;
+      c.setLineDash(danger >= 3 ? [3, 9] : [8, 6]);
       c.stroke();
       c.setLineDash([]);
     });
@@ -494,14 +588,23 @@ const WorldMap = {
       const { sx, sy } = this._toScreen(zone.wx, zone.wy);
       const r = zone.radius * this._scale;
 
-      // Zone circle background
-      const grad = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      grad.addColorStop(0, def.tileColor + 'cc');
-      grad.addColorStop(1, def.tileColor + '00');
+      // Wide soft outer biome glow — extends further than before
+      const grad = c.createRadialGradient(sx, sy, 0, sx, sy, r * 1.5);
+      grad.addColorStop(0,    def.tileColor + 'ee');
+      grad.addColorStop(0.45, def.tileColor + 'bb');
+      grad.addColorStop(0.75, def.tileColor + '55');
+      grad.addColorStop(1,    def.tileColor + '00');
       c.beginPath();
-      c.arc(sx, sy, r, 0, Math.PI*2);
+      c.arc(sx, sy, r * 1.5, 0, Math.PI*2);
       c.fillStyle = grad;
       c.fill();
+
+      // Hard inner ring — gives zones a defined boundary
+      c.beginPath();
+      c.arc(sx, sy, r * 0.55, 0, Math.PI*2);
+      c.strokeStyle = def.dangerCol + '60';
+      c.lineWidth = 1.5;
+      c.stroke();
     });
   },
 
@@ -540,9 +643,7 @@ const WorldMap = {
     vx.addColorStop(1, 'rgba(0,0,0,0.6)');
     c.fillStyle = vx;
     c.fillRect(0, 0, W, H);
-  },
-
-  _isEdgeFog(fx, fy) {
+  },(fx, fy) {
     const md = this._mapData;
     const fw = md.fogW, fh = md.fogH;
     const neighbors = [[-1,0],[1,0],[0,-1],[0,1]];
