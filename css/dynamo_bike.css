@@ -1,0 +1,184 @@
+/* ═══════════════════════════════════════════
+   PEDAL OR DIE — dynamo_bike.css
+   Dynamo Bike building screen styles
+═══════════════════════════════════════════ */
+
+/* ── Screen container ─────────────────────── */
+#screen-dynamo-bike {
+  background: #05050a;
+  overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.db-screen {
+  width: 100%;
+  max-width: 480px;
+  padding: 14px 14px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Header ───────────────────────────────── */
+.db-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 2px solid #1e1e30;
+  padding-bottom: 8px;
+}
+.db-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.5rem, 2vw, 0.75rem);
+  color: var(--col-yellow);
+  text-shadow: 0 0 10px rgba(255,214,0,0.5);
+  letter-spacing: 2px;
+}
+.db-level {
+  font-family: var(--font-mono);
+  font-size: clamp(0.8rem, 2.5vw, 1rem);
+  color: #ffd600;
+}
+.db-desc {
+  font-family: var(--font-mono);
+  font-size: clamp(0.75rem, 2vw, 0.88rem);
+  color: var(--col-text-dim);
+  line-height: 1.5;
+}
+
+/* ── Section title ────────────────────────── */
+.db-section-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.32rem, 1.1vw, 0.46rem);
+  color: #888;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+.db-maxed {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.35rem, 1.2vw, 0.5rem);
+  color: #ffd600;
+  text-align: center;
+  padding: 8px;
+}
+
+/* ── Upgrade rows ─────────────────────────── */
+.db-upgrades { display: flex; flex-direction: column; gap: 6px; }
+.db-upgrade-row {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.db-upgrade-row.next  { border-color: rgba(255,214,0,0.4); background: rgba(255,214,0,0.04); }
+.db-upgrade-row.dim   { opacity: 0.45; }
+.db-upg-title {
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
+  color: var(--col-text);
+  line-height: 1.4;
+}
+.db-upg-cost {
+  font-family: var(--font-mono);
+  font-size: clamp(0.72rem, 1.8vw, 0.83rem);
+  color: var(--col-text-dim);
+}
+.db-build-btn { margin-top: 4px; }
+
+/* ── Session wrapper ──────────────────────── */
+.db-session-wrap {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,214,0,0.15);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Idle stats ───────────────────────────── */
+.db-session-stats { display: flex; flex-direction: column; gap: 6px; }
+.db-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
+}
+.db-stat-label { color: var(--col-text-dim); }
+.db-stat-val   { color: var(--col-yellow); font-weight: bold; }
+
+.db-hint {
+  font-family: var(--font-mono);
+  font-size: clamp(0.75rem, 2vw, 0.88rem);
+  color: var(--col-text-dim);
+  line-height: 1.6;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Active session ───────────────────────── */
+.db-live-watts {
+  font-family: var(--font-pixel);
+  font-size: clamp(1.4rem, 6vw, 2.2rem);
+  color: #ffd600;
+  text-align: center;
+  text-shadow: 0 0 16px rgba(255,214,0,0.6);
+  transition: color 0.2s;
+}
+.db-session-wh {
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
+  color: var(--col-text-dim);
+  text-align: center;
+}
+
+/* ── Battery bar ──────────────────────────── */
+.db-bat-bar-wrap {
+  height: 12px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.db-bat-bar {
+  height: 100%;
+  background: #4caf50;
+  border-radius: 6px;
+  transition: width 0.8s ease, background 0.4s;
+}
+.db-bat-label {
+  font-family: var(--font-mono);
+  font-size: clamp(0.75rem, 2vw, 0.88rem);
+  color: #29b6f6;
+  text-align: center;
+}
+
+/* ── Idle warning ─────────────────────────── */
+.db-idle-warn {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.3rem, 1.1vw, 0.44rem);
+  color: #ef5350;
+  text-align: center;
+  animation: warnPulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes warnPulse {
+  from { opacity: 0.6; }
+  to   { opacity: 1.0; }
+}
+
+/* ── Locked message ───────────────────────── */
+.db-locked-msg {
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
+  color: var(--col-text-dim);
+  text-align: center;
+  padding: 16px;
+  border: 1px dashed rgba(255,255,255,0.1);
+  border-radius: 6px;
+}
