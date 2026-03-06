@@ -817,93 +817,122 @@ const WorldMap = {
     let ptrs = {};
     let lastPinchDist = 0;
     let tapStart = 0, tapX = 0, tapY = 0;
+    let lastTouchX = 0, lastTouchY = 0;
 
-    const getPinchDist = () => {
-      const pts = Object.values(ptrs);
-      if (pts.length < 2) return 0;
-      const dx = pts[0].x - pts[1].x, dy = pts[0].y - pts[1].y;
-      return Math.sqrt(dx*dx + dy*dy);
-    };
-    const getMid = () => {
-      const pts = Object.values(ptrs);
-      return pts.length < 2
-        ? { x: pts[0].x, y: pts[0].y }
-        : { x: (pts[0].x+pts[1].x)/2, y: (pts[0].y+pts[1].y)/2 };
-    };
-
-    canvas.addEventListener('pointerdown', e => {
-      canvas.setPointerCapture(e.pointerId);
-      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-      lastPinchDist = getPinchDist();
-      if (Object.keys(ptrs).length === 1) {
-        tapStart = Date.now(); tapX = e.clientX; tapY = e.clientY;
-      }
+    // ── Touch events (mobile) ─────────────────
+    // Use touch events directly — more reliable than pointer events on mobile
+    canvas.addEventListener('touchstart', e => {
       e.preventDefault();
+      const t = e.touches[0];
+      lastTouchX = t.clientX;
+      lastTouchY = t.clientY;
+      tapStart = Date.now(); tapX = t.clientX; tapY = t.clientY;
+      if (e.touches.length === 2) {
+        const t2 = e.touches[1];
+        const dx = t.clientX - t2.clientX, dy = t.clientY - t2.clientY;
+        lastPinchDist = Math.sqrt(dx*dx + dy*dy);
+      }
     }, { passive: false });
 
-    canvas.addEventListener('pointermove', e => {
-      if (!ptrs[e.pointerId]) return;
-      const prev = ptrs[e.pointerId];
-      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-
-      if (Object.keys(ptrs).length === 2) {
-        // Pinch zoom — zoom towards pinch midpoint
-        const dist = getPinchDist();
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        // Pinch zoom
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
         if (lastPinchDist > 0) {
           const ratio = dist / lastPinchDist;
-          const mid   = getMid();
-          const rect  = canvas.getBoundingClientRect();
-          const scaleX = (this._cssW || rect.width) / rect.width;
-          const wx = (mid.x - rect.left) * scaleX / this._scale + this._viewX;
-          const wy = (mid.y - rect.top)  * scaleX / this._scale + this._viewY;
+          const midX = (t1.clientX + t2.clientX) / 2;
+          const midY = (t1.clientY + t2.clientY) / 2;
+          const rect = canvas.getBoundingClientRect();
+          const sx = midX - rect.left, sy = midY - rect.top;
+          const wx = sx / this._scale + this._viewX;
+          const wy = sy / this._scale + this._viewY;
           this._scale = Utils.clamp(this._scale * ratio, 0.15, 0.80);
-          this._viewX = wx - (mid.x - rect.left) * scaleX / this._scale;
-          this._viewY = wy - (mid.y - rect.top)  * scaleX / this._scale;
+          this._viewX = wx - sx / this._scale;
+          this._viewY = wy - sy / this._scale;
           this._drawMap();
         }
         lastPinchDist = dist;
+        lastTouchX = (t1.clientX + t2.clientX) / 2;
+        lastTouchY = (t1.clientY + t2.clientY) / 2;
       } else {
-        // Pan — use per-frame delta, no anchor needed
-        const ddx = e.clientX - prev.x;
-        const ddy = e.clientY - prev.y;
+        // Single finger pan
+        const t = e.touches[0];
+        const ddx = t.clientX - lastTouchX;
+        const ddy = t.clientY - lastTouchY;
         this._viewX -= ddx / this._scale;
         this._viewY -= ddy / this._scale;
+        lastTouchX = t.clientX;
+        lastTouchY = t.clientY;
         this._drawMap();
       }
-      e.preventDefault();
     }, { passive: false });
 
-    const endPtr = e => {
-      const wasSingle = Object.keys(ptrs).length === 1;
-      delete ptrs[e.pointerId];
-      if (wasSingle && !this._travelling) {
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (e.changedTouches.length > 0) {
+        const t = e.changedTouches[0];
         const elapsed = Date.now() - tapStart;
-        const movedX  = Math.abs(e.clientX - tapX);
-        const movedY  = Math.abs(e.clientY - tapY);
-        if (elapsed < 350 && movedX < 12 && movedY < 12) {
+        const movedX = Math.abs(t.clientX - tapX);
+        const movedY = Math.abs(t.clientY - tapY);
+        if (elapsed < 350 && movedX < 12 && movedY < 12 && !this._travelling) {
           const rect = canvas.getBoundingClientRect();
-          const scaleX = (this._cssW || rect.width) / rect.width;
-          this._onTap((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleX);
+          this._onTap(t.clientX - rect.left, t.clientY - rect.top);
         }
       }
-      if (Object.keys(ptrs).length > 0) {
-        lastPinchDist = getPinchDist();
-      }
-    };
-    canvas.addEventListener('pointerup',     endPtr);
-    canvas.addEventListener('pointercancel', e => { delete ptrs[e.pointerId]; });
+      lastPinchDist = 0;
+    }, { passive: false });
 
-    // Mouse wheel zoom — zoom towards cursor
+    // ── Mouse events (desktop) ─────────────────
+    let mouseDown = false, mousePrevX = 0, mousePrevY = 0;
+    let mouseDownX = 0, mouseDownY = 0, mouseDownTime = 0;
+
+    canvas.addEventListener('mousedown', e => {
+      mouseDown = true;
+      mousePrevX = e.clientX; mousePrevY = e.clientY;
+      mouseDownX = e.clientX; mouseDownY = e.clientY;
+      mouseDownTime = Date.now();
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!mouseDown) return;
+      const ddx = e.clientX - mousePrevX;
+      const ddy = e.clientY - mousePrevY;
+      this._viewX -= ddx / this._scale;
+      this._viewY -= ddy / this._scale;
+      mousePrevX = e.clientX;
+      mousePrevY = e.clientY;
+      this._drawMap();
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (!mouseDown) return;
+      mouseDown = false;
+      const elapsed = Date.now() - mouseDownTime;
+      const movedX = Math.abs(e.clientX - mouseDownX);
+      const movedY = Math.abs(e.clientY - mouseDownY);
+      if (elapsed < 350 && movedX < 8 && movedY < 8 && !this._travelling) {
+        const rect = canvas.getBoundingClientRect();
+        this._onTap(e.clientX - rect.left, e.clientY - rect.top);
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => { mouseDown = false; });
+
+    // Mouse wheel zoom
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      const rect   = canvas.getBoundingClientRect();
-      const sx     = e.clientX - rect.left;
-      const sy     = e.clientY - rect.top;
-      const wx     = sx / this._scale + this._viewX;
-      const wy     = sy / this._scale + this._viewY;
-      this._scale  = Utils.clamp(this._scale * (e.deltaY > 0 ? 0.88 : 1.14), 0.15, 0.80);
-      this._viewX  = wx - sx / this._scale;
-      this._viewY  = wy - sy / this._scale;
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const wx = sx / this._scale + this._viewX;
+      const wy = sy / this._scale + this._viewY;
+      this._scale = Utils.clamp(this._scale * (e.deltaY > 0 ? 0.88 : 1.14), 0.15, 0.80);
+      this._viewX = wx - sx / this._scale;
+      this._viewY = wy - sy / this._scale;
       this._drawMap();
     }, { passive: false });
   },
@@ -1170,8 +1199,14 @@ const WorldMap = {
       this._mapData.playerWX = this._playerWX;
       this._mapData.playerWY = this._playerWY;
 
-      // Reveal fog along travel path
-      this._revealAround(this._playerWX, this._playerWY, 80);
+      // Reveal fog along entire path so far (not just current position)
+      const revealSteps = 8;
+      for (let i = 0; i <= revealSteps; i++) {
+        const t = i / revealSteps * progress;
+        const rx = startWX + (targetWX - startWX) * t;
+        const ry = startWY + (targetWY - startWY) * t;
+        this._revealAround(rx, ry, 60);
+      }
 
       // Redraw map (partial — just reposition, don't full rebuild)
       this._drawMap();
