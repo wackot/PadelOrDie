@@ -51,9 +51,10 @@
   overflow: hidden;
   cursor: crosshair;
   min-height: 0;
+  touch-action: none;
 }
 
-#wm-canvas { display:block; width:100%; height:100%; }
+#wm-canvas { display:block; width:100%; height:100%; touch-action: none; }
 
 .wm-travel-hint {
   position: absolute;
