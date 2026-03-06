@@ -401,52 +401,6 @@ const Power = {
       <text x="0" y="18" text-anchor="middle" font-size="9" fill="#29b6f6" font-family="monospace">Lv${level}</text>
     </g>`;
   },
-    const isBuilt     = level > 0;
-    const outputNow   = isBuilt
-      ? (g.key === 'bike'
-          ? (this._genOutput.bike * level * Math.max(0.2, Utils.clamp((State.data.cadence.clicksPerMinute) / ((State.data.world.activeRaid ? State.data.cadence.raidTargetCPM : State.data.cadence.targetCPM)||60), 0.2, 2))).toFixed(1)
-          : g.key === 'solar'
-            ? (this._genOutput.solar * level * this._solarMultiplier(State.data.world.hour)).toFixed(1)
-            : (g.output * level).toFixed(1))
-      : '—';
-
-    const maxOutput  = isBuilt ? (g.output * level).toFixed(1) : '—';
-    const fuelStatus = g.fuel === 'none' ? '' :
-      `<span class="gen-fuel ${g.fuelled === false ? 'out' : 'ok'}">${g.fuelled === false ? '⚠ OUT OF FUEL' : '✓ Fuelled'}</span>`;
-
-    const upgradeInfo = level < 10
-      ? `<span class="gen-upgrade-cost">Next Lv: ${this._genUpgradeCost(g.key, level+1)}</span>`
-      : '<span class="gen-upgrade-cost" style="color:#ffd600">MAX LV10</span>';
-
-    // Pip bar (10 pips)
-    const pips = Array.from({length:10}, (_,i) =>
-      `<div class="pow-pip ${i < level ? 'on' : ''}"></div>`
-    ).join('');
-
-    return `
-      <div class="gen-card ${isBuilt ? 'built' : 'unbuilt'}">
-        <div class="gen-icon">${g.icon}</div>
-        <div class="gen-body">
-          <div class="gen-name">${g.name} <span class="gen-lv">Lv ${level}/10</span></div>
-          <div class="gen-desc">${g.desc}</div>
-          <div class="gen-pips">${pips}</div>
-          <div class="gen-stats">
-            <span>⚡ Now: ${outputNow}W</span>
-            <span>Max: ${maxOutput}W</span>
-            ${fuelStatus}
-          </div>
-          <div class="gen-footer">
-            <span class="gen-fuel-note">${g.fuelNote}</span>
-            ${upgradeInfo}
-          </div>
-        </div>
-        ${level < 10 ? `<button class="btn-gen-upgrade" onclick="Power.upgradeGenerator('${g.key}')"
-          ${this._canAffordGenUpgrade(g.key, level+1) ? '' : 'disabled'}>
-          ${isBuilt ? '▲ UPGRADE' : '▲ BUILD'}
-        </button>` : ''}
-      </div>
-    `;
-  },
 
   _batteryCard(level, max, stored) {
     const pct    = max > 0 ? Math.round((stored/max)*100) : 0;
