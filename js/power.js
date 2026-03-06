@@ -43,7 +43,9 @@ const Power = {
 
     // Bike dynamo — scales with how hard you're pedalling
     if (gen.bike.level > 0) {
-      const ratio = Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM() || 60), 0, 2);
+      const cpm = State.data.cadence.clicksPerMinute;
+    const tgt = (State.data.world.activeRaid ? State.data.cadence.raidTargetCPM : State.data.cadence.targetCPM) || 60;
+    const ratio = Utils.clamp(cpm / tgt, 0, 2);
       total += this._genOutput.bike * gen.bike.level * Math.max(0.2, ratio);
     }
 
@@ -260,7 +262,7 @@ const Power = {
     const isBuilt     = level > 0;
     const outputNow   = isBuilt
       ? (g.key === 'bike'
-          ? (this._genOutput.bike * level * Math.max(0.2, Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM()||60), 0.2, 2))).toFixed(1)
+          ? (this._genOutput.bike * level * Math.max(0.2, Utils.clamp((State.data.cadence.clicksPerMinute) / ((State.data.world.activeRaid ? State.data.cadence.raidTargetCPM : State.data.cadence.targetCPM)||60), 0.2, 2))).toFixed(1)
           : g.key === 'solar'
             ? (this._genOutput.solar * level * this._solarMultiplier(State.data.world.hour)).toFixed(1)
             : (g.output * level).toFixed(1))
@@ -541,4 +543,9 @@ Events.on('tick:dawn:power', () => {
   if (pw?.consumers?.lights && b.passiveFood > 0 && Power.hasPowerForCrafting(0.5)) {
     State.addResource('food', 1);
   }
+});
+
+// Subscribe: base emits when player opens powerhouse building
+Events.on('power:render', () => {
+  Power.renderPanel?.();
 });

@@ -45,7 +45,7 @@ const Foraging = {
 
   // ── Start expedition ──────────────────────
   start(locationId, intensityCfg) {
-    const loc = MapScreen.locations[locationId];
+    const loc = State.locations[locationId];
     if (!loc) return;
 
     // Night foraging check
@@ -66,22 +66,23 @@ const Foraging = {
     this._elapsed         = 0;
     this._gathered        = {};
     this._active          = true;
+    if (State.data?.world) State.data.world.playerAway = true;
     this._encounterActive = false;
     this._currentEncounter = null;
     this._encounterLoseTimer = 0;
     this._log             = [];
     this._duration        = Math.round((loc.duration || 60) * (this._intensityCfg.durationMult || 1));
-    if (typeof DevMode !== 'undefined') this._duration = DevMode.forageDuration(this._duration);
+    if (State.forageDurationFn) this._duration = State.forageDurationFn(this._duration);
 
     this._buildScreen(loc);
-    Game.goTo('foraging');
+    Events.emit('navigate', { screen: 'foraging' });
     Cadence.start();
     Audio.play(Audio.trackForLocation(locationId));
     this._timer = setInterval(() => this._tick(), 1000);
 
     State.data.stats.totalExpeditions++;
     if (State.data.world.isNight) State.data.stats.nightExpeditions = (State.data.stats.nightExpeditions||0) + 1;
-    if (typeof Achievements !== 'undefined') Achievements.check();
+    Events.emit('achievements:check');
     this._log_(`🚴 Headed out to ${loc.name}`, 'info');
     this._log_(`📦 Gathering ${this._getPrimaryResource()} constantly. Pedal to multiply!`, 'good');
     console.log('[Foraging] Started:', locationId, 'duration:', this._duration, 's');
@@ -190,7 +191,7 @@ const Foraging = {
 
   _gatherTick() {
     // NOTE: gathering continues even during encounters - you're still at the location
-    const loc = MapScreen.locations[this._locationId];
+    const loc = State.locations[this._locationId];
     if (!loc) return;
 
     // Carry cap — stop gathering if bike is full
@@ -216,8 +217,8 @@ const Foraging = {
     }[this._locationId] || { res:'wood', base:1 };
 
     // Speed multiplier: idle=0.5×, on-target=1.0×, hammering=2.0×
-    const cpm    = Cadence.getCPM();
-    const target = Cadence.getTargetCPM() || 60;
+    const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
     const speedMult = Utils.clamp(0.5 + ratio, 0.5, 2.0);
 
@@ -365,7 +366,7 @@ const Foraging = {
   // Click damage is extra on top, only when CPM ≥ target
   // ═══════════════════════════════════════════
   _checkEncounter() {
-    const loc = MapScreen.locations[this._locationId];
+    const loc = State.locations[this._locationId];
     if (!loc?.animals?.length) return;
     const scale  = Math.min(3.0, 1 + (State.data.world.day - 1) * 0.05);
     const intMul = this._intensityCfg?.encounterMult || 1;
@@ -1202,8 +1203,8 @@ const Foraging = {
     const animal = this._currentEncounter;
     if (!animal) return;
 
-    const cpm    = Cadence.getCPM();
-    const target = Cadence.getTargetCPM() || 60;
+    const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
     const ratio  = cpm / target;
     const def    = State.data.base.defenceRating;
 
@@ -1358,7 +1359,7 @@ const Foraging = {
   // Extra click damage (only when going fast enough)
   _clickDamage() {
     if (!this._encounterActive) return;
-    const cpm = Cadence.getCPM(), target = Cadence.getTargetCPM() || 60;
+    const cpm = State.data.cadence?.clicksPerMinute ?? 0, target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
     if (cpm / target < 1.0) return;
     const def = State.data.base.defenceRating;
     const dmg = Utils.randFloat(0.2, 0.6) * (cpm / target) * (1 + def / 200);
@@ -1433,20 +1434,20 @@ const Foraging = {
       State.data.stats.animalsDefeated= (State.data.stats.animalsDefeated|| 0) + 1;
       if (animal.id === 'boss_mutant') State.data.stats.bossKilled  = true;
       if (animal.id === 'titan')       State.data.stats.titanKilled = true;
-      if (typeof Achievements !== 'undefined') Achievements.check();
+      Events.emit('achievements:check');
     } else {
       Audio.sfxDefeat();
       Object.keys(this._gathered).forEach(r => { this._gathered[r] = Math.floor(this._gathered[r] * 0.75); });
       this._log_('💀 Forced to retreat! Lost 25% of gathered loot.', 'danger');
       State.data.stats.animalsFled = (State.data.stats.animalsFled || 0) + 1;
     }
-    if (typeof Achievements !== 'undefined') Achievements.check();
+    Events.emit('achievements:check');
     this._renderResources();
   },
 
   // ── Location events ───────────────────────
   _checkEvent() {
-    const loc = MapScreen.locations[this._locationId];
+    const loc = State.locations[this._locationId];
     if (!loc?.events?.length) return;
     for (const ev of loc.events) {
       if (Math.random() < ev.chance * 0.4) {
@@ -1471,6 +1472,8 @@ const Foraging = {
   _complete() {
     clearInterval(this._timer);
     this._active = false;
+    if (State.data?.world) State.data.world.playerAway =
+      State.data?.world?.playerAway ?? false;
 
     if (this._encounterActive) this._endEncounter(false);
 
@@ -1510,7 +1513,7 @@ const Foraging = {
     // Don't navigate or change audio if a raid is now active — raid screen is in control
     if (!State.data.world.activeRaid) {
       Audio.play('base');
-      setTimeout(() => Game.goTo('base'), 500);
+      setTimeout(() => Events.emit('navigate', { screen: 'base' }), 500);
     }
   },
 
@@ -1556,7 +1559,7 @@ const Foraging = {
   _updateCharAnim() {
     const emoji = document.getElementById('char-emoji');
     if (!emoji) return;
-    const ratio = Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM()||60), 0, 1.5);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 1.5);
     emoji.style.animationDuration = `${Utils.lerp(0.6, 0.1, ratio)}s`;
     emoji.textContent = this._encounterActive ? (ratio>=1.2 ? '⚔️' : '😰') : '🚴';
   },
@@ -1565,13 +1568,23 @@ const Foraging = {
   _checkUnlocks() {
     const prev = State.data.world.unlockedLocations.length;
     const n = State.data.stats.totalExpeditions;
-    if (n>=2)  MapScreen.unlock('abandoned_farm');
-    if (n>=3)  MapScreen.unlock('gas_station');
-    if (n>=5)  MapScreen.unlock('city_ruins');
-    if (n>=8)  MapScreen.unlock('junkyard');
-    if (n>=12) MapScreen.unlock('hospital');
-    if (n>=18) MapScreen.unlock('cave');
-    if (n>=25) MapScreen.unlock('military_base');
+    if (n>=2)  Events.emit('map:unlock', { id: 'abandoned_farm' });
+    if (n>=3)  Events.emit('map:unlock', { id: 'gas_station' });
+    if (n>=5)  Events.emit('map:unlock', { id: 'city_ruins' });
+    if (n>=8)  Events.emit('map:unlock', { id: 'junkyard' });
+    if (n>=12)  Events.emit('map:unlock', { id: 'hospital' });
+    if (n>=18)  Events.emit('map:unlock', { id: 'cave' });
+    if (n>=25)  Events.emit('map:unlock', { id: 'military_base' });
     if (State.data.world.unlockedLocations.length > prev) Audio.sfxUnlock();
   }
 };
+
+// Wire monster SVG hook so raids.js can render encounter art without importing Foraging
+State.monsterSvgFn = (id, w, h) => Foraging._monsterSVG(id, w, h);
+
+// Subscribe: devMode fast-forage — caps current expedition duration
+Events.on('foraging:cap-duration', ({ secs }) => {
+  if (typeof Foraging !== 'undefined' && Foraging.isActive()) {
+    Foraging._duration = Math.min(Foraging._duration, Foraging._elapsed + secs);
+  }
+});

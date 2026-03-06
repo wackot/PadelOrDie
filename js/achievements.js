@@ -473,11 +473,11 @@ const Achievements = {
   open() {
     this._prevScreen = State.data?.world?.currentScreen || 'base';
     this.render();
-    Game.goTo('achievements');
+    Events.emit('navigate', { screen: 'achievements' });
   },
 
   close() {
-    Game.goTo(this._prevScreen);
+    Events.emit('navigate', { screen: this._prevScreen });
   },
 
   // ── Active category filter ────────────────────────────────────────────────
@@ -611,3 +611,13 @@ const Achievements = {
   },
 
 };
+
+// Subscribe: dayNight emits at dusk; foraging/raids can also emit as needed
+Events.on('achievements:check', () => {
+  if (typeof Achievements !== 'undefined') Achievements.check();
+});
+
+// Subscribe: game boot — init achievements without main.js importing Achievements
+Events.on('game:boot', () => {
+  if (typeof Achievements !== 'undefined') Achievements.init();
+});

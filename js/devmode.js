@@ -9,7 +9,7 @@ const DevMode = {
   // ── State: which toggles are ON ──────────────────────
   flags: {
     clickMode:     false,   // true = mouse clicks count as pedalling (no bike needed)
-    instantBuild:  false,   // true = build time capped at 10s
+    instantBuild:  false,   // true = build time reduced to 1s
     instantTravel: false,   // true = travel speed ×20 (arrives in ~5s)
     instantForage: false,   // true = foraging duration 15s instead of real time
     noDrain:       false,   // true = hunger/thirst/energy don't drain
@@ -55,7 +55,7 @@ const DevMode = {
       {
         label: '⏱ TIMERS',
         items: [
-          { key: 'instantBuild',  label: 'Fast Build',   desc: 'All builds complete in ≤10 seconds' },
+          { key: 'instantBuild',  label: 'Fast Build',   desc: 'All builds complete in 1 second' },
           { key: 'instantTravel', label: 'Fast Travel',  desc: 'World map travel takes ~5 seconds' },
           { key: 'instantForage', label: 'Fast Forage',  desc: 'Foraging runs last only 15 seconds' },
         ]
@@ -162,10 +162,10 @@ const DevMode = {
         case 'instantBuild':
           // Cap the current active build immediately
           if (State.data?.activeBuild) {
-            State.data.activeBuild.secsLeft = Math.min(State.data.activeBuild.secsLeft, 10);
-            Utils.toast('🏗 Fast Build ON — current build capped at 10s', 'good', 2500);
+            State.data.activeBuild.secsLeft = 1;
+            Utils.toast('🏗 Fast Build ON — current build set to 1s', 'good', 2500);
           } else {
-            Utils.toast('🏗 Fast Build ON — next build will be fast', 'good', 2500);
+            Utils.toast('🏗 Fast Build ON — next build will take 1s', 'good', 2500);
           }
           break;
         case 'instantForage':
@@ -191,14 +191,14 @@ const DevMode = {
 
       case 'skipDay':
         State.advanceTime(24);
-        DayNight._applyHour?.(State.data.world.hour, false);
+        Events.emit('daynight:apply-hour', { hour: State.data.world.hour });
         Events.emit('hud:update');
         Utils.toast(`📅 Skipped to Day ${State.data.world.day}`, 'good', 2000);
         break;
 
       case 'skip7Days':
         for (let i = 0; i < 7; i++) State.advanceTime(24);
-        DayNight._applyHour?.(State.data.world.hour, false);
+        Events.emit('daynight:apply-hour', { hour: State.data.world.hour });
         Events.emit('hud:update');
         Utils.toast(`📅 Skipped to Day ${State.data.world.day}`, 'good', 2000);
         break;
@@ -212,10 +212,8 @@ const DevMode = {
         break;
 
       case 'triggerRaid':
-        if (typeof Raids !== 'undefined') {
-          Raids.triggerRaid('dev');
-          Utils.toast('⚠ Raid forced!', 'bad', 2000);
-        }
+        Events.emit('raid:trigger', { type: 'dev' });
+        Utils.toast('⚠ Raid forced!', 'bad', 2000);
         break;
 
       case 'richNow': {
@@ -291,10 +289,10 @@ const DevMode = {
       State.data.player.energy = 100;
     }
 
-    // Instant build — keep secsLeft ≤ 10
+    // Instant build — clamp secsLeft to 1s every tick
     if (this.flags.instantBuild && State.data.activeBuild) {
-      if (State.data.activeBuild.secsLeft > 10) {
-        State.data.activeBuild.secsLeft = 10;
+      if (State.data.activeBuild.secsLeft > 1) {
+        State.data.activeBuild.secsLeft = 1;
       }
     }
   },
@@ -319,7 +317,7 @@ const DevMode = {
 
   // ── Intercept build seconds ──────────────────────────
   buildSecs(real) {
-    if (this.flags.instantBuild) return Math.min(real, 10);
+    if (this.flags.instantBuild) return 1;
     return real;
   },
 
@@ -335,3 +333,13 @@ const DevMode = {
     return this.flags.clickMode;
   },
 };
+
+// Wire hooks into State so State/Crafting never import DevMode directly.
+// Safe because devmode.js loads after state.js and crafting.js.
+State.survivalMultiplierFn = () => DevMode.survivalMultiplier();
+State.buildSecsFn          = (real) => DevMode.buildSecs(real);
+State.clickModeActiveFn    = ()     => DevMode.clickModeActive();
+State.devTickFn            = ()     => DevMode.tick();
+State.raidsBlockedFn       = ()     => DevMode.raidsBlocked();
+State.forageDurationFn     = (real) => DevMode.forageDuration(real);
+State.travelSpeedMultFn    = ()     => DevMode.travelSpeedMultiplier();

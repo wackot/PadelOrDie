@@ -140,7 +140,7 @@ const SaveSystem = {
           await this.importSave(file);
           // Refresh game if already running
           if (State.data.world.currentScreen !== 'menu') {
-            Game.refreshAll();
+            Events.emit('game:refresh-all');
           }
         } catch {}
         e.target.value = ''; // reset so same file can be re-imported

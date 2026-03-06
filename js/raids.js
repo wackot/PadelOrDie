@@ -32,9 +32,9 @@ const Raids = {
   // ── Probabilistic raid trigger ─────────────
   _maybeRaid() {
     // Never raid while player is away from base — they can't defend
-    if (Foraging.isActive()) return;
-    if (typeof WorldMap !== 'undefined' && WorldMap._travelling) return;
-    if (typeof DevMode !== 'undefined' && DevMode.raidsBlocked()) return;
+    if (State.data?.world?.playerAway) return;
+    // playerAway covers both foraging and travelling (set by Foraging/WorldMap)
+    if (State.raidsBlockedFn && State.raidsBlockedFn()) return;
     const daysSince  = State.data.world.daysSinceLastRaid;
     const isNight    = State.data.world.isNight;
     const baseChance = Utils.clamp(0.06 + daysSince * 0.04, 0.06, 0.55);
@@ -74,7 +74,7 @@ const Raids = {
   // ── Open raid screen ──────────────────────
   _openRaidScreen() {
     this._buildRaidScreen();
-    Game.goTo('raid');
+    Events.emit('navigate', { screen: 'raid' });
     Audio.play('raid');
     this._raidTimer = setInterval(() => this._raidTick(), 1000);
   },
@@ -180,7 +180,7 @@ const Raids = {
         '</g>' +
         // Monster (right side — same SVG as foraging)
         '<g id="ca-monster" filter="url(#ca-shadow)">' +
-          (typeof Foraging !== 'undefined' ? Foraging._monsterSVG(animal.id, 240, 88) : '<text x="240" y="88" text-anchor="middle" font-size="40">' + animal.emoji + '</text>') +
+          (State.monsterSvgFn ? State.monsterSvgFn(animal.id, 240, 88) : '<text x="240" y="88" text-anchor="middle" font-size="40">' + animal.emoji + '</text>') +
         '</g>' +
         '<g id="ca-effects"></g>' +
       '</svg>' +
@@ -442,7 +442,7 @@ const Raids = {
 
     document.getElementById('btn-raid-continue')?.addEventListener('click', () => {
       overlay.remove();
-      Game.goTo('base');
+      Events.emit('navigate', { screen: 'base' });
       Events.emit('hud:update');
     });
   },
@@ -471,3 +471,8 @@ const Raids = {
   }
 
 };
+
+// Subscribe: dayNight emits this for night raid chance rolls
+Events.on('raid:trigger', ({ type }) => {
+  Raids.triggerRaid(type);
+});

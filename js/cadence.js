@@ -43,7 +43,7 @@ const Cadence = {
   registerClick() {
     if (!this._active) return;
     // Dev click mode: inject synthetic clicks to simulate full-speed pedalling
-    if (typeof DevMode !== 'undefined' && DevMode.clickModeActive()) {
+    if (State.clickModeActiveFn && State.clickModeActiveFn()) {
       const target = this.getTargetCPM() || 60;
       const injectCount = Math.round(target / 10); // inject burst matching target CPM
       for (let i = 0; i < injectCount; i++) this._clickTimes.push(Date.now());

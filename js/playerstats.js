@@ -10,11 +10,11 @@ const PlayerStats = {
   open() {
     this._prevScreen = State.data?.world?.currentScreen || 'base';
     this.render();
-    Game.goTo('screen-player-stats');
+    Events.emit('navigate', { screen: 'player-stats' });
   },
 
   close() {
-    Game.goTo(this._prevScreen);
+    Events.emit('navigate', { screen: this._prevScreen });
   },
 
   // ── Check and award milestones ────────────
@@ -339,3 +339,8 @@ const PlayerStats = {
   }
 
 };
+
+// Subscribe: dayNight emits this at dusk each day
+Events.on('player:check-milestones', () => {
+  if (typeof PlayerStats !== 'undefined') PlayerStats.checkMilestones();
+});

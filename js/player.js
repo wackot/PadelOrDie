@@ -113,7 +113,7 @@ const Player = {
     State.data.player.thirst = Utils.clamp(State.data.player.thirst - hours * 2, 0, 100);
 
     // Skip time to morning
-    DayNight.skipToMorning();
+    Events.emit('daynight:skip-to-morning');
 
     Utils.toast(
       `😴 Slept ${hours}h. Energy restored. Day ${State.data.world.day}.`,
@@ -121,11 +121,11 @@ const Player = {
     );
 
     // Always navigate back to base map after sleeping
-    Game.goTo('base');
+    Events.emit('navigate', { screen: 'base' });
 
     // Night raid only fires if it was actually night when the player went to sleep
     if (wasNight && hours >= 4 && Math.random() < 0.3) {
-      setTimeout(() => Raids.triggerRaid('night'), 2000);
+      setTimeout(() => Events.emit('raid:trigger', { type: 'night' }), 2000);
     }
 
     this._updateBarColours();
@@ -199,3 +199,8 @@ const Player = {
   }
 
 };
+
+// Subscribe: dayNight emits this every hour after survival drain
+Events.on('player:check-critical', () => {
+  Player.checkCritical();
+});

@@ -376,8 +376,12 @@ const WorldMap = {
         // Cancel any in-progress travel
         if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
         this._travelling = false;
+
+        if (State.data?.world) State.data.world.playerAway =
+
+          (State.data?.world?.playerAway);
         this._roadEncounterActive = false;
-        Game.goTo('base');
+        Events.emit('navigate', { screen: 'base' });
       });
 
     // World map zoom buttons
@@ -949,6 +953,7 @@ const WorldMap = {
     if (active) active.classList.remove('hidden');
 
     this._travelling   = true;
+    if (State.data?.world) State.data.world.playerAway = true;
     this._pendingTravel = null;
 
     // Build travel path: linear interpolation from player to target, many steps
@@ -1028,9 +1033,13 @@ const WorldMap = {
     document.getElementById('btn-abort-travel')?.addEventListener('click', () => {
       if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
       this._travelling = false;
+
+      if (State.data?.world) State.data.world.playerAway =
+
+        (State.data?.world?.playerAway);
       this._roadEncounterActive = false;
       Utils.toast('↩ Turned back.', 'info');
-      Game.goTo('base');
+      Events.emit('navigate', { screen: 'base' });
     });
   },
 
@@ -1041,7 +1050,7 @@ const WorldMap = {
       this._roadEncounterClick();
     }
     // Extra progress per click — scales with CPM
-    const ratio = Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM()||60), 0, 2);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
     this._travelClickBonus = (this._travelClickBonus || 0) + ratio * 0.003;
   },
 
@@ -1065,13 +1074,13 @@ const WorldMap = {
     const tick = () => {
       if (!this._travelling) return;
 
-      const cpm   = Cadence.getCPM();
-      const target = Cadence.getTargetCPM() || 60;
+      const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
       const ratio  = Utils.clamp(cpm / target, 0, 2);
 
       // DEV: fast travel — completes in ~10 real seconds
       const baseSpeed = Utils.lerp(0.08, 0.12, Math.min(totalDist / 900, 1));
-      const _devSpeedMult = (typeof DevMode !== 'undefined') ? DevMode.travelSpeedMultiplier() : 1;
+      const _devSpeedMult = State.travelSpeedMultFn ? State.travelSpeedMultFn() : 1;
       const speed = this._roadEncounterActive ? 0 : baseSpeed * (0.3 + ratio * 0.85) * _devSpeedMult + this._travelClickBonus;
       this._travelClickBonus = 0;
 
@@ -1225,7 +1234,7 @@ const WorldMap = {
 
   _roadEncounterClick() {
     if (!this._roadEncounterActive) return;
-    const ratio = Utils.clamp(Cadence.getCPM() / (Cadence.getTargetCPM()||60), 0, 2);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
     // Clicking always does damage — base + pedal bonus
     const baseDmg = Utils.randFloat(3, 6);
     const speedBonus = ratio >= 1.2 ? ratio * 2 : ratio >= 0.8 ? 1.0 : 0.5;
@@ -1261,7 +1270,7 @@ const WorldMap = {
         const actual = Math.round(amt * 1.5);
         this._gathered = this._gathered || {};
         this._gathered[res] = (this._gathered[res] || 0) + actual;
-        dropStr += ` ${Foraging.emojiMap[res]||'📦'}+${actual}`;
+        dropStr += ` ${Utils.emojiMap[res]||'📦'}+${actual}`;
       });
       if (statusEl) statusEl.textContent = `✅ ${animal.emoji} defeated!${dropStr}`;
       Audio.sfxVictory?.();
@@ -1283,6 +1292,10 @@ const WorldMap = {
   _arriveAtDestination(locationId) {
     clearTimeout(this._travelTimer);
     this._travelling = false;
+
+    if (State.data?.world) State.data.world.playerAway =
+
+      (State.data?.world?.playerAway);
     Cadence.stop();
 
     // Save gathered road loot
@@ -1334,8 +1347,8 @@ const WorldMap = {
         <div class="wm-arrival-name">${def.name}</div>
         <div class="wm-arrival-desc">${def.desc}</div>
         <div class="wm-arrival-loot">
-          Common: ${def.loot.common.resources.map(r=>Foraging.emojiMap[r]||'📦').join(' ')}
-          <span style="color:#ffd600"> · Rare: ${def.loot.rare.resources.map(r=>Foraging.emojiMap[r]||'📦').join(' ')}</span>
+          Common: ${def.loot.common.resources.map(r=>Utils.emojiMap[r]||'📦').join(' ')}
+          <span style="color:#ffd600"> · Rare: ${def.loot.rare.resources.map(r=>Utils.emojiMap[r]||'📦').join(' ')}</span>
         </div>
         <div style="color:#7a7a9a;font-size:0.85rem;margin-top:4px">
           ✨ Unique: ${def.uniqueMaterial.emoji} ${def.uniqueMaterial.name}
@@ -1363,7 +1376,7 @@ const WorldMap = {
     const def = this.locationDefs.find(d => d.id === locationId);
     if (!def) { this._returnToBase(); return; }
 
-    // Convert WorldMap locationDef to MapScreen.locations format for Foraging.start()
+    // Convert WorldMap locationDef to State.locations format for Foraging.start()
     const locData = {
       id:             locationId,
       name:           def.name,
@@ -1379,8 +1392,8 @@ const WorldMap = {
       energyCost:     0    // already paid with travel
     };
 
-    // Temporarily register in MapScreen.locations for Foraging to use
-    MapScreen.locations[locationId] = locData;
+    // Temporarily register in State.locations for Foraging to use
+    State.locations[locationId] = locData;
 
     const intensityCfg = { lootMult: 1.5, durationMult: 1, encounterMult: 1.2 };
     Foraging.start(locationId, intensityCfg);
@@ -1394,7 +1407,7 @@ const WorldMap = {
     this._mapData.playerWY = 0;
     Events.emit('hud:update');
     Audio.play('base');
-    setTimeout(() => Game.goTo('base'), 300);
+    setTimeout(() => Events.emit('navigate', { screen: 'base' }), 300);
   },
 
   // ── Unlock progression ────────────────────
@@ -1432,7 +1445,8 @@ const WorldMap = {
   }
 };
 
-// Extend MapScreen (declared in map.js) with WorldMap routing
-// Use assignment instead of re-declaring const
-MapScreen.unlock  = (id) => WorldMap._checkUnlocks();
-MapScreen.render  = ()   => WorldMap.render();
+// Subscribe: base emits when player opens the world map
+Events.on('worldmap:render', () => { setTimeout(() => WorldMap.render(), 50); });
+
+// Subscribe: foraging/other modules emit map:unlock instead of calling MapScreen.unlock()
+Events.on('map:unlock', () => WorldMap._checkUnlocks());

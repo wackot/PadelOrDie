@@ -65,8 +65,8 @@ const DayNight = {
     if (hour === 6 && wasNight) {
       this._onDawn();
     } else if (hour === 20 && !wasNight) {
-      if (typeof PlayerStats !== 'undefined') PlayerStats.checkMilestones();
-      if (typeof Achievements !== 'undefined') Achievements.check();
+      Events.emit('player:check-milestones');
+      Events.emit('achievements:check');
       this._onDusk();
     }
 
@@ -75,10 +75,12 @@ const DayNight = {
     // ratio 0 (idle at base): full drain
     // ratio 1.0 (on target):  60% drain
     // ratio 1.5 (hammering):  35% drain
-    const cpm    = Cadence.getCPM();
-    const target = Cadence.getTargetCPM() || 60;
+    const cpm    = State.data.cadence.clicksPerMinute;
+    const target = (State.data.world.activeRaid
+      ? State.data.cadence.raidTargetCPM
+      : State.data.cadence.targetCPM) || 60;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
-    const isForaging = typeof Foraging !== 'undefined' && Foraging.isActive();
+    const isForaging = State.data?.world?.playerAway ?? false;
     // Fitness: track pedalling time (each tick = 1 game-hour = ~_tickMs ms real time)
     if (cpm > 10) {
       const minPerTick = (this._tickMs || 6000) / 60000;
@@ -87,7 +89,7 @@ const DayNight = {
     // Drain multiplier: pedalling reduces hunger/thirst by up to 65%
     const drainMult = isForaging ? Utils.clamp(1.0 - ratio * 0.43, 0.35, 1.0) : 1.0;
     State.tickSurvival(0.5 * drainMult);
-    Player.checkCritical();
+    Events.emit('player:check-critical');
 
     // Power system hourly tick — Power subscribes to this in power.js
     Events.emit('tick:hour');
@@ -95,11 +97,10 @@ const DayNight = {
     // Night raid check (higher probability at night)
     if (State.data.world.isNight && !State.data.world.activeRaid) {
       // Don't raid while player is away from base
-      const playerAway = (typeof Foraging !== 'undefined' && Foraging.isActive())
-                      || (typeof WorldMap !== 'undefined' && WorldMap._travelling);
+      const playerAway = State.data?.world?.playerAway ?? false;
       const nightChance = 0.08;
       if (!playerAway && Math.random() < nightChance) {
-        Raids.triggerRaid('night');
+        Events.emit('raid:trigger', { type: 'night' });
       }
     }
   },
@@ -275,3 +276,11 @@ const DayNight = {
   }
 
 };
+
+// Subscribe: Player emits this after sleep to fast-forward time
+Events.on('daynight:skip-to-morning', () => DayNight.skipToMorning());
+
+// Subscribe: devMode emits when skipping days to re-apply visual hour state
+Events.on('daynight:apply-hour', ({ hour }) => {
+  DayNight._applyHour?.(hour, false);
+});

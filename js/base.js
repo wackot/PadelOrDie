@@ -428,23 +428,22 @@ const Base = {
       case 'house':       BuildingHouse.onOpen();                                                      break;
       case 'fridge':      BuildingBarn.onOpen();                                                       break;
       case 'well':        BuildingWell.onOpen();                                                       break;
-      case 'powerhouse':  Game.goTo('power'); Power.renderPanel();                                     break;
-      case 'table':       Game.goTo('crafting'); Crafting.render();                                    break;
-      case 'map':         Game.goTo('map'); WorldMap.render();                                         break;
+      case 'powerhouse':  Events.emit('navigate', { screen: 'power' }); Events.emit('power:render');   break;
+      case 'table':       Events.emit('navigate', { screen: 'crafting' }); Events.emit('crafting:render'); break;
+      case 'map':         Events.emit('navigate', { screen: 'map' }); Events.emit('worldmap:render');  break;
       case 'radio_tower':
       case 'rain_collector':
       case 'solar_station':
         this.renderBuildingScreen(id);
-        Game.goTo('bld-' + id);
+        Events.emit('navigate', { screen: 'bld-' + id });
         break;
       case 'field':
-        if (typeof Farming !== 'undefined') { Farming.open(); }
-        else { this.renderBuildingScreen('field'); Game.goTo('bld-field'); }
+        Events.emit('farming:open');
         break;
       default:
         if (document.getElementById('screen-bld-' + id)) {
           this.renderBuildingScreen(id);
-          Game.goTo('bld-' + id);
+          Events.emit('navigate', { screen: 'bld-' + id });
         }
         break;
     }
@@ -485,7 +484,7 @@ const Base = {
     if (result) { ({ title, visual, statsRows, actionBtn = '' } = result); }
 
     const upgKey = id;
-    const upg    = Crafting.baseUpgrades?.[upgKey];
+    const upg    = BuildingUpgrades?.[upgKey];
     let upgradeSection = '';
 
     if (upg) {
@@ -499,7 +498,7 @@ const Base = {
       const isBuilding= ab && ab.key === upgKey;
       const otherBld  = ab && ab.key !== upgKey;
       const nextDef   = (!isMax && !isLocked) ? upg.levels[curLv] : null;
-      const canAfford = nextDef ? Crafting._canAffordUpgrade(nextDef.cost) : false;
+      const canAfford = nextDef ? State.canAfford(nextDef.cost) : false;
 
       const pips = Array.from({length: upg.maxLevel}, (_,i) =>
         `<span class="bsc-pip ${i<curLv?'filled':''}"></span>`).join('');
@@ -545,7 +544,7 @@ const Base = {
       <div class="bsc-stats">${statsRows}</div>
       ${actionBtn ? `<div class="bsc-actions">${actionBtn}</div>` : ''}
       ${upgradeSection}
-      <button class="btn-pixel btn-secondary bsc-back" onclick="Game.goTo('base')">← BACK TO BASE</button>
+      <button class="btn-pixel btn-secondary bsc-back" data-goto="base">← BACK TO BASE</button>
     `;
 
     this._startScreenRefresh(id, upgKey);
@@ -574,7 +573,7 @@ const Base = {
   },
 
   showUpgradeConfirm(screenId, upgKey) {
-    const upg   = Crafting.baseUpgrades?.[upgKey];
+    const upg   = BuildingUpgrades?.[upgKey];
     if (!upg) return;
     const curLv = State.data.base.buildings[upgKey]?.level || 0;
     const next  = upg.levels[curLv];
@@ -585,7 +584,7 @@ const Base = {
       .map(([r,v]) => {
         const have = State.data.inventory[r] || 0;
         const ok   = have >= v;
-        const em   = Crafting.emojiMap?.[r] || '📦';
+        const em   = Utils.emojiMap?.[r] || '📦';
         return `<div class="ucm-cost-row ${ok?'ok':'short'}">
           <span>${em} ${r}</span><span>${have} / ${v} ${ok?'✓':'✗'}</span></div>`;
       }).join('') || '<div class="ucm-cost-row ok"><span>Free!</span><span>✓</span></div>';
@@ -608,7 +607,7 @@ const Base = {
 
   confirmUpgrade(screenId, upgKey) {
     this.closeUpgradeConfirm();
-    Crafting._upgradeBuilding(upgKey);
+    Events.emit('crafting:upgrade-building', { upgKey });
     setTimeout(() => this.renderBuildingScreen(screenId), 60);
   },
 
@@ -632,3 +631,6 @@ const Base = {
 
 // Subscribe: any module can emit 'map:changed' instead of calling Base.updateNight() directly
 Events.on('map:changed', () => Base.updateNight());
+
+// Subscribe: main.js emits at startup instead of calling Base.init() directly
+Events.on('base:init', () => Base.init());

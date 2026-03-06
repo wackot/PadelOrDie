@@ -138,7 +138,7 @@ const Farming = {
       Utils.toast('🌾 Ready to harvest: ' + names, 'good', 5000);
     }
     if (needWater.length) Utils.toast('💧 Plots ' + needWater.join(', ') + ' ran dry — yield reduced!', 'warn', 4000);
-    if (typeof Achievements !== 'undefined') Achievements.check();
+    Events.emit('achievements:check');
   },
 
   // ── Plant ─────────────────────────────────────────────────
@@ -179,7 +179,7 @@ const Farming = {
     if (Math.random() < 0.3) { State.data.inventory[crop.seedItem]++; log += ' 🌱+1'; }
     Utils.toast('✅ ' + crop.emoji + ' ' + crop.name + ' harvested!' + log, 'good', 4000);
     plot.state = 'empty'; plot.crop = null; plot.daysLeft = 0; plot.waterDebt = 0;
-    if (typeof Achievements !== 'undefined') Achievements.check();
+    Events.emit('achievements:check');
     Events.emit('hud:update');
     this.render();
   },
@@ -218,10 +218,10 @@ const Farming = {
     this._ensureState();
     this._prevScreen = (State.data && State.data.world && State.data.world.currentScreen) || 'base';
     this._plantingIdx = null;
-    Game.goTo('farming');
+    Events.emit('navigate', { screen: 'farming' });
     this.render();
   },
-  close()         { this._plantingIdx = null; Game.goTo(this._prevScreen); },
+  close()         { this._plantingIdx = null; Events.emit('navigate', { screen: this._prevScreen }); },
   setTab(t)       { this._tab = t; this._plantingIdx = null; this.render(); },
   startPlanting(i){ this._plantingIdx = i; this._tab = 'plots'; this.render(); },
   cancelPlanting(){ this._plantingIdx = null; this.render(); },
@@ -501,4 +501,21 @@ function _farmResEmoji(r) {
 // Farming owns its own daily tick — dayNight just emits the signal.
 Events.on('tick:dawn', () => {
   if (typeof Farming !== 'undefined') Farming.dailyTick();
+});
+
+// Subscribe: base emits when player opens a farm/field building screen
+Events.on('farming:open', () => { if (typeof Farming !== 'undefined') Farming.open(); });
+
+// Subscribe: crafting emits when the field building is upgraded
+Events.on('farming:field-unlocked', ({ level }) => {
+  if (typeof Farming !== 'undefined') {
+    Farming._ensureState?.();
+    const plots = Farming._plotsForLevel?.(level) ?? level * 2;
+    Utils.toast(`🌾 Field Lv${level} unlocked — ${plots} plots now available!`, 'good', 4000);
+  }
+});
+
+// Subscribe: game boot — ensure farming state without main.js importing Farming
+Events.on('game:boot', () => {
+  if (typeof Farming !== 'undefined') Farming._ensureState?.();
 });
