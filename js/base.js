@@ -377,7 +377,7 @@ const Base = {
 
       ${BuildingGroundDecor.svg(cx, cy, fw, fh, hLvl)}
 
-      ${BuildingHouse.svg(houseX, houseY, hLvl)}
+      ${BuildingHouse.svg(houseX, houseY, hLvl, State.data?.world?.isNight, State.data?.power?.consumers?.lights && hasPwr)}
       ${BuildingBarn.svg(barnX, barnY)}
       ${BuildingWell.svg(wellX, wellY, wlLvl)}
       ${BuildingWorkbench.svg(wsX, wsY, wsLvl)}
@@ -458,18 +458,8 @@ const Base = {
   // ── Ground decorations — evolve per house level ─────────────────────
   // Trees, rocks, path lights, flower borders, fountain
   _hitZone(id, cx, cy, w, h, label) {
-    const labelY = cy + h/2 + 14;
     return `<g data-bid="${id}" style="cursor:pointer" aria-label="${label}">
       <rect x="${cx-w/2-10}" y="${cy-h/2-10}" width="${w+20}" height="${h+20}" fill="transparent"/>
-      <text x="${cx}" y="${labelY}"
-        text-anchor="middle"
-        font-size="9"
-        font-family="monospace"
-        fill="#ccc"
-        stroke="#000"
-        stroke-width="2.5"
-        paint-order="stroke"
-        pointer-events="none">${label}</text>
     </g>`;
   },
 

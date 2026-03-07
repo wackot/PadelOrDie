@@ -1510,6 +1510,7 @@ const Foraging = {
 
     this._checkUnlocks();
     Events.emit('hud:update');
+    Events.emit('worldmap:player:returned'); // signal worldmap to reset player position to base
     // Don't navigate or change audio if a raid is now active — raid screen is in control
     if (!State.data.world.activeRaid) {
       Audio.play('base');

@@ -299,7 +299,7 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.27 — Decoupled Architecture');
+    console.log('[Game] Initializing Pedal or Die v0.28 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {

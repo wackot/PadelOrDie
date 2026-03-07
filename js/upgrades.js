@@ -77,7 +77,7 @@ const BuildingUpgrades = {
         { desc:'Lv8 — Metal + barbed wire on top. +65 def. Climbing is suicide.',
           cost:{ metal:35, rope:10, chemicals:4 } },
         { desc:'Lv9 — Electrified fence. +80 def. Sparks fly. Needs power for full effect.',
-          cost:{ metal:40, electronics:15, chemicals:6 } },
+          cost:{ metal:40, electronics:15, chemicals:6 }, elecFenceBoost: true },
         { desc:'Lv10 — Concrete + electric wire + auto-turrets. +100 def. Maximum security.',
           cost:{ metal:50, electronics:25, chemicals:10, military_chip:3 } }
       ]

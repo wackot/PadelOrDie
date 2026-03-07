@@ -1585,3 +1585,13 @@ Events.on('worldmap:render', () => { setTimeout(() => WorldMap.render(), 50); })
 
 // Subscribe: foraging/other modules emit map:unlock instead of calling MapScreen.unlock()
 Events.on('map:unlock', () => WorldMap._checkUnlocks());
+
+// Subscribe: foraging ended — reset player position back to base (0,0) on the world map
+Events.on('worldmap:player:returned', () => {
+  WorldMap._playerWX = 0;
+  WorldMap._playerWY = 0;
+  if (WorldMap._mapData) {
+    WorldMap._mapData.playerWX = 0;
+    WorldMap._mapData.playerWY = 0;
+  }
+});
