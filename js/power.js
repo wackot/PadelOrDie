@@ -552,6 +552,8 @@ const Power = {
       Utils.toast(names[key] || 'Consumer on', 'good');
     }
     this.renderPanel();
+    // Redraw base map so lamps/windows update immediately
+    if (key === 'lights') Events.emit('map:changed');
   },
 
   // ── Generator upgrade ─────────────────────
@@ -655,6 +657,16 @@ Events.on('tick:dawn:power', () => {
 // Subscribe: base emits when player opens powerhouse building
 Events.on('power:render', () => {
   Power.renderPanel?.();
+  // Start live refresh while panel is open
+  clearInterval(Power._panelRefreshTimer);
+  Power._panelRefreshTimer = setInterval(() => {
+    const screen = document.getElementById('screen-power');
+    if (!screen || screen.classList.contains('hidden')) {
+      clearInterval(Power._panelRefreshTimer);
+      return;
+    }
+    Power.renderPanel?.();
+  }, 1000);
 });
 
 // Subscribe: individual generator building screens

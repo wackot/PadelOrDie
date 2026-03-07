@@ -214,17 +214,8 @@ const Crafting = {
     // requiresPower: true — only craftable when power is available
     // ══════════════════════════════════════════
 
-    // STEP 1: Build the Electric Bench first (at crafting table, no power needed)
-    elec_bench: {
-      id:'elec_bench', category:'base', name:'Electric Bench', emoji:'🔬',
-      desc:'Upgrade your crafting table with electric tools. Unlocks all electrical crafting. Requires power to operate.',
-      type:'base_upgrade', requiresPower: false,
-      ingredients:{ metal:12, electronics:6, rope:4, circuit_board:2 },
-      effect:{ elecBench:true },
-      unlockCondition:{ resource:'electronics', amount:6 }
-    },
-
-    // STEP 2: Craft battery parts AT the electric bench (requires power)
+    // NOTE: Electric Bench is now built via the base map building system (not crafted here)
+    // STEP 1: Craft battery parts AT the electric bench (requires power)
     battery_cell: {
       id:'battery_cell', category:'electric', name:'Battery Cell', emoji:'🔋',
       desc:'Core energy cell. Stack 2+ per battery level. Requires powered electric bench.',
@@ -1225,6 +1216,11 @@ const Crafting = {
       case 'bunker':
         b.defenceRating += [50, 80][newLevel - 1] || 0;
         b.raidDamageReduction = (b.raidDamageReduction || 0) + [0.40, 0.60][newLevel - 1] || 0;
+        break;
+      case 'elecbench':
+        // Unlock elecBench consumer and mark building as active
+        if (typeof Power !== 'undefined') Power.unlockConsumer('elecBench');
+        Utils.toast('🔬 Electric Bench online! Electrical crafting unlocked.', 'good', 4000);
         break;
     }
     Events.emit('map:changed'); // Rebuild SVG to show new buildings

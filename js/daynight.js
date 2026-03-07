@@ -257,6 +257,22 @@ const DayNight = {
         State.data.stats.highestDay, State.data.world.day
       );
     }
+
+    // Calculate hours skipped and apply power drain for each missed hour
+    const hoursSkipped = prevHour < 8
+      ? (24 - prevHour) + 8   // wrapped past midnight
+      : prevHour - 8;
+    if (hoursSkipped > 0 && typeof Power !== 'undefined' && State.data.power) {
+      const p     = State.data.power;
+      const drain = typeof Power._calcDrain === 'function' ? Power._calcDrain(p.consumers) : 0;
+      if (drain > 0) {
+        const maxStor = Power.getMaxStorage();
+        if (maxStor > 0) {
+          p.stored = Utils.clamp((p.stored || 0) - drain * hoursSkipped, 0, maxStor);
+        }
+      }
+    }
+
     State.data.world.hour    = 8;
     State.data.world.isNight = false;
     this._applyHour(8, true);

@@ -340,6 +340,18 @@ const BuildingUpgrades = {
       ]
     },
 
+    // ── ELECTRIC BENCH — builds from base map (not crafting menu) ───────
+    elecbench: {
+      name:'Electric Bench', icon:'🔬', maxLevel:1, unlockReq:8,
+      levels: [
+        { desc:'Lv0 — Not built yet. Requires Shelter Lv8 + Power House.',
+          cost:{ wood:0 } },
+        { desc:'Lv1 — Electric bench built. Unlocks all electrical crafting and battery construction. Requires power to operate.',
+          cost:{ metal:12, electronics:6, rope:4, circuit_board:2 },
+          elecBench: true }
+      ]
+    },
+
     // ── DYNAMO BIKE — standalone pedal-to-charge building ───────────────
     dynamo_bike: {
       name:'Dynamo Bike', icon:'⚡', maxLevel:5, unlockReq:6,

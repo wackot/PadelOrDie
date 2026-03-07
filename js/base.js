@@ -422,6 +422,9 @@ const Base = {
       ${phLvl > 0 ? (saLvl > 0 ? Power.svgSolarArray(saX, saY, saLvl) : BuildingBuildPrompt.svg(saX, saY, 'solar_array')) : ''}
       ${phLvl > 0 ? (bbLvl > 0 ? Power.svgBatteryBank(bbX, bbY, bbLvl): BuildingBuildPrompt.svg(bbX, bbY, 'battery_bank')): ''}
 
+      <!-- Lamp posts — progressive from shelter lv2, lit when lights consumer is ON+powered -->
+      ${hLvl >= 2 ? BuildingLights.svg(hLvl, cx, cy, fw, fh, State.data?.power?.consumers?.lights && hasPwr) : ''}
+
       <!-- Hit zones -->
       ${this._hitZone('house',          houseX, houseY, 90,  100, 'SHELTER')}
       ${this._hitZone('fridge',         barnX,  barnY,  70,  80,  'FOOD STORE')}
