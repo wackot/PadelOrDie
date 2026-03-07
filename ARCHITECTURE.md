@@ -268,3 +268,49 @@ drops: [
 ---
 
 *Version 0.31. Architecture reflects decoupled event-driven design across 40+ JS modules. When in doubt: does this module need to know about that module? If no — use an event.*
+
+---
+
+## v0.33 Changes
+
+### Issue 18 — All buildings use bld-screen upgrade system
+- `BuildingShelterScreen` added to `House.js` — `getScreenData()` shows sleep bonus, raid reduction, sleep button
+- `BuildingWellScreen` added to `Well.js` — `getScreenData()` shows water/draw, passive water, pump status, draw button
+- `BuildingFridgeScreen` added to `Barn.js` — `getScreenData()` shows food stored, hunger rate, eat button
+- All three route through `base.js` default handler → `screen-bld-{id}` + `renderBuildingScreen(id)`
+- Old `action:'shelter'`, `action:'well'`, `action:'fridge'` routing no longer needed (fall through to default)
+
+### Issue 19 — Electric water pump is an upgrade on the Well (not a toggle)
+- `waterPump` removed from manual consumer toggle panel in `power.js._consumersPanel()`
+- `waterPump` auto-enables via `Power.unlockConsumer('waterPump')` when well reaches Lv8 (`electricPump:true`)
+- Shown in consumer panel as "AUTO ⚡" badge — not togglable
+- Drain scales: Lv8=0.8W, Lv9=1.2W, Lv10=1.5W per hour
+
+### Issue 20 — Electric fence is an upgrade on the Wall (not a toggle)
+- `elecFence` removed from manual consumer toggle panel
+- Auto-enables via `Power.unlockConsumer('elecFence')` when fence reaches Lv9 (`elecFenceBoost:true`)
+- Shown in consumer panel as "AUTO ⚡" badge — not togglable
+- Drain: Lv9=1.0W, Lv10=1.5W per hour
+
+### Issues 21+22 — Base Lighting is a standalone building with daylight glow spheres
+- `baselights` entry added to `base.js` buildings registry
+- `blLvl` level variable added in `_buildSVG()`
+- `BuildingBaseLights.svg()` renders fixtures on base map; hit zone at `(cx + fw*0.20, cy + fh*0.08)`
+- Build prompt shown when not yet built
+- `drawGlowPools()` upgraded: radius scales with `lvMult = 0.7 + blLvl * 0.08`
+- High-level (Lv7+) lights use near-white `rgba(255,250,220,0.80)` inner to simulate daylight
+- Extra "hot centre" gradient added for Lv6+ fixtures
+
+### Issue 23 — Power status in HUD
+- `Power._updateHUDIndicator()` rewritten: shows `⚡{gen}W ▼{drain}W {net}W [bar]{pct}%`
+- Only visible once any generator is built (`anyGen` check)
+- Inline battery bar rendered with colour coding: green≥60%, yellow≥25%, red<25%
+- Net wattage coloured green (positive) / red (negative)
+- Subscribed to `hud:update` and `map:changed` events for refresh
+- Old static `color` rule removed; inline styles handle per-value colour
+
+### CSS additions (power.css)
+- `.consumer-row.auto` — auto-active consumer row styling
+- `.consumer-auto-badge` — "⚡ AUTO" / "🔒" badge
+- `#hud-power` — flex layout for multi-segment HUD display
+
