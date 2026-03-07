@@ -74,7 +74,8 @@ const State = {
         alarm_system: { level: 0, name: 'Alarm System',   emoji: '🔔' },
         medkit_station:{ level: 0, name: 'Medical Station',emoji: '🏥' },
         solar_station:{ level: 0, name: 'Solar Station',  emoji: '☀️' },
-        bunker:       { level: 0, name: 'Bunker',         emoji: '🏗️' }
+        bunker:       { level: 0, name: 'Bunker',         emoji: '🏗️' },
+        baselights:   { level: 0, name: 'Base Lighting',  emoji: '💡' }
       }
     },
 

@@ -49,8 +49,8 @@ const BuildingUpgrades = {
           cost:{ metal:16, chemicals:4, rope:5 }, waterPerUse:35, passiveWater:2 },
         { desc:'Lv7 — Pressurised well. Draws 50 water. +3 water/day.',
           cost:{ metal:22, electronics:4, chemicals:5 }, waterPerUse:50, passiveWater:3 },
-        { desc:'Lv8 — Purification tower. Draws 70 water. +5 water/day. Water heals +2 health.',
-          cost:{ metal:30, electronics:8, chemicals:8 }, waterPerUse:70, passiveWater:5 },
+        { desc:'Lv8 — Electric pump fitted. Auto-pumps 8 water/hr when powered. +5 water/day.',
+          cost:{ metal:30, electronics:8, copper_wire:4, chemicals:4 }, waterPerUse:70, passiveWater:5, electricPump:true },
         { desc:'Lv9 — Hydro plant. Draws 100 water. +8 water/day. Also generates 1Wh power.',
           cost:{ metal:40, electronics:15, chemicals:10, power_core:2 }, waterPerUse:100, passiveWater:8 },
         { desc:'Lv10 — Infinite aquifer tap. Draws 150 water. +15 water/day. Unlimited supply.',
@@ -371,6 +371,23 @@ const BuildingUpgrades = {
         { desc:'Military-spec dynamo. Up to 40W. Peak output rivals a small solar array.',
           cost:{ metal:45, electronics:22, chemicals:8, circuit_board:4, military_chip:2 },
           maxWatts: 40 }
+      ]
+    },
+
+    // ── BASE LIGHTING — standalone building, 10 levels ───────────────────
+    baselights: {
+      name:'Base Lighting', icon:'💡', maxLevel:10, unlockReq:4,
+      levels: [
+        { desc:'Lv1 — 2 gate torches. Flickering light at the entrance. Uses 0.3W.',   cost:{ wood:8, rope:4 },                       drainW:0.3 },
+        { desc:'Lv2 — 4 path lanterns. Lights the main path. Uses 0.5W.',              cost:{ wood:12, metal:4, rope:3 },             drainW:0.5 },
+        { desc:'Lv3 — 6 pole lamps. Side of the path lit. Uses 0.8W.',                cost:{ metal:8, electronics:2, rope:4 },       drainW:0.8 },
+        { desc:'Lv4 — 8 perimeter torches. Fence corners lit. Uses 1.2W.',            cost:{ metal:12, electronics:4, rope:4 },      drainW:1.2 },
+        { desc:'Lv5 — 10 electric wall lamps. Bright zones around buildings. Uses 1.8W.',cost:{ metal:18, electronics:6, copper_wire:3 }, drainW:1.8 },
+        { desc:'Lv6 — 12 floodlights. Wide coverage over work zones. Uses 2.5W.',      cost:{ metal:22, electronics:10, copper_wire:5 }, drainW:2.5 },
+        { desc:'Lv7 — 14 high-mast lights. Illuminates full compound. Uses 3.5W.',     cost:{ metal:30, electronics:14, copper_wire:6, chemicals:2 }, drainW:3.5 },
+        { desc:'Lv8 — 16 stadium lights. Near-daylight brightness. Uses 5W.',          cost:{ metal:40, electronics:20, copper_wire:8, circuit_board:2 }, drainW:5.0 },
+        { desc:'Lv9 — 18 arc lamps. Base is fully daylit at night. Uses 7W.',          cost:{ metal:50, electronics:28, copper_wire:10, circuit_board:4 }, drainW:7.0 },
+        { desc:'Lv10 — 20 solar arc towers. Zero-power daytime, full night coverage. Uses 10W or 0W in day.', cost:{ metal:65, electronics:38, copper_wire:14, circuit_board:6, military_chip:2 }, drainW:10.0 }
       ]
     }
 };

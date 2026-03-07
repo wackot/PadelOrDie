@@ -30,6 +30,7 @@ const Base = {
     radio_tower:    { id:'radio_tower',    title:'Radio Tower',    desc:'Intercept raids. Unlock special world missions.',      action:'upgrades'   },
     rain_collector: { id:'rain_collector', title:'Rain Collector',   desc:'Passively collects rainwater every day.',              action:'upgrades'   },
     solar_station:  { id:'solar_station',  title:'Solar Station',    desc:'Boosts solar power output and stores overnight.',      action:'upgrades'   },
+    baselights:     { id:'baselights',     title:'Base Lighting',    desc:'Standalone lighting building. Upgrades add more fixtures across the base.', action:'baselights' },
   },
 
   // ── Init ──────────────────────────────────
@@ -241,6 +242,7 @@ const Base = {
     const cpLvl  = State.data?.base?.buildings?.coal_plant?.level     || 0;
     const saLvl  = State.data?.base?.buildings?.solar_array?.level    || 0;
     const bbLvl  = State.data?.base?.buildings?.battery_bank?.level   || 0;
+    const blLvl  = State.data?.base?.buildings?.baselights?.level     || 0;
     const dr     = State.data?.base?.defenceRating || 0;
     const hasPwr= phLvl > 0 && (State.data?.power?.generators?.bike?.level > 0
                               || State.data?.power?.generators?.woodburner?.level > 0
@@ -425,6 +427,9 @@ const Base = {
       ${phLvl > 0 ? (saLvl > 0 ? Power.svgSolarArray(saX, saY, saLvl) : BuildingBuildPrompt.svg(saX, saY, 'solar_array')) : ''}
       ${phLvl > 0 ? (bbLvl > 0 ? Power.svgBatteryBank(bbX, bbY, bbLvl): BuildingBuildPrompt.svg(bbX, bbY, 'battery_bank')): ''}
 
+      <!-- Base lighting fixtures (BaseLights standalone building) -->
+      ${blLvl > 0 ? BuildingBaseLights.svg(blLvl, cx, cy, fw, fh, State.data?.power?.consumers?.lights && hasPwr) : BuildingBuildPrompt.svg(cx + fw * 0.20, cy + fh * 0.08, 'baselights')}
+
       <!-- Lamp posts — progressive from shelter lv2, lit when lights consumer is ON+powered -->
       ${hLvl >= 2 ? BuildingLights.svg(hLvl, cx, cy, fw, fh, State.data?.power?.consumers?.lights && hasPwr) : ''}
 
@@ -455,6 +460,7 @@ const Base = {
       ${phLvl > 0 ? this._hitZone('coal_plant',   cpX, cpY, 70, 70, '⛏️ COAL PLANT Lv' + cpLvl)  : ''}
       ${phLvl > 0 ? this._hitZone('solar_array',  saX, saY, 80, 70, '☀️ SOLAR ARRAY Lv' + saLvl) : ''}
       ${phLvl > 0 ? this._hitZone('battery_bank', bbX, bbY, 70, 70, '🔋 BATTERY Lv' + bbLvl)     : ''}
+      ${this._hitZone('baselights', cx + fw * 0.20, cy + fh * 0.08, 60, 60, '💡 LIGHTS Lv' + blLvl)}
     `;
 
     // Building clicks handled by pointerup tap detection above
@@ -475,9 +481,6 @@ const Base = {
 
   goToBuilding(id) {
     switch (id) {
-      case 'house':       BuildingHouse.onOpen();                                                      break;
-      case 'fridge':      BuildingBarn.onOpen();                                                       break;
-      case 'well':        BuildingWell.onOpen();                                                       break;
       case 'powerhouse':    Events.emit('navigate', { screen: 'power' });        Events.emit('power:render');          break;
       case 'dynamo_bike':   Events.emit('navigate', { screen: 'dynamo-bike' });  Events.emit('dynamo_bike:render');    break;
       case 'woodburner':    Events.emit('navigate', { screen: 'gen-woodburner'}); Events.emit('power:gen:render', { key:'woodburner' }); break;
@@ -486,12 +489,6 @@ const Base = {
       case 'battery_bank':  Events.emit('navigate', { screen: 'gen-battery_bank'}); Events.emit('power:bat:render');                     break;
       case 'table':       Events.emit('navigate', { screen: 'crafting' }); Events.emit('crafting:render'); break;
       case 'map':         Events.emit('navigate', { screen: 'map' }); Events.emit('worldmap:render');  break;
-      case 'radio_tower':
-      case 'rain_collector':
-      case 'solar_station':
-        this.renderBuildingScreen(id);
-        Events.emit('navigate', { screen: 'bld-' + id });
-        break;
       case 'field':
         Events.emit('farming:open');
         break;
@@ -513,6 +510,10 @@ const Base = {
 
     // Building-specific screen data — delegated to each building module
     const screenMap = {
+      house:          () => BuildingShelterScreen.getScreenData(s),
+      well:           () => BuildingWellScreen.getScreenData(s),
+      fridge:         () => BuildingFridgeScreen.getScreenData(s),
+      baselights:     () => BuildingBaseLights.getScreenData(s),
       storage:        () => BuildingStorage.onOpen(),
       bike:           () => BuildingBike.onOpen(),
       fence:          () => BuildingFence.onOpen(),

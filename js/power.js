@@ -120,12 +120,8 @@ const Power = {
     const current = p.stored || 0;
     const hour    = State.data.world.hour;
 
-    // Passive consumers
-    let drain = 0;
-    if (p.consumers.lights)    drain += 0.5;
-    if (p.consumers.elecFence) drain += 1.0;
-    if (p.consumers.waterPump) drain += 0.8;
-    if (p.consumers.elecBench) drain += 0.3;
+    // Passive consumers — use _calcDrain for consistency
+    let drain = this._calcDrain(p.consumers);
 
     const net = gen - drain;
 
@@ -166,17 +162,28 @@ const Power = {
     const el = document.getElementById('hud-power');
     if (!el) return;
     const p   = State.data?.power;
-    if (!p || this.getGenerationRate() === 0) {
-      el.textContent = '';
-      return;
-    }
-    const gen   = this.getGenerationRate();
+    if (!p) { el.textContent = ''; el.style.display = 'none'; return; }
+
+    // Only show when at least one generator is built
+    const anyGen = Object.values(p.generators || {}).some(g => (g.level || 0) > 0);
+    if (!anyGen) { el.textContent = ''; el.style.display = 'none'; return; }
+
+    const gen   = Math.round(this.getGenerationRate() * 10) / 10;
+    const drain = Math.round(this._calcDrain(p.consumers || {}) * 10) / 10;
     const stor  = Math.round(p.stored || 0);
     const max   = this.getMaxStorage();
     const pct   = max > 0 ? Math.round((stor / max) * 100) : 0;
-    const icon  = gen > 0 ? '⚡' : '🔋';
-    el.textContent = max > 0 ? `${icon}${gen}W 🔋${pct}%` : `${icon}${gen}W`;
-    el.style.color = gen > 2 ? '#ffd600' : '#ff6d00';
+    const net   = Math.round((gen - drain) * 10) / 10;
+
+    const netStr  = net >= 0 ? `+${net}W` : `${net}W`;
+    const netCol  = net > 0 ? '#80ff80' : net < 0 ? '#ff6060' : '#ffd600';
+    const batCol  = pct >= 60 ? '#80ff80' : pct >= 25 ? '#ffd600' : '#ff4040';
+    const batBar  = max > 0
+      ? `<span id="hud-bat-bar" style="display:inline-block;width:32px;height:7px;background:#1a1a1a;border:1px solid #444;vertical-align:middle;margin:0 2px;border-radius:2px;overflow:hidden"><span style="display:block;height:100%;width:${pct}%;background:${batCol};border-radius:2px"></span></span>`
+      : '';
+
+    el.style.display = '';
+    el.innerHTML = `<span style="color:#ffd600">⚡${gen}W</span> <span style="color:#ff8888">▼${drain}W</span> <span style="color:${netCol}">${netStr}</span> ${batBar}<span style="color:${batCol}">${pct}%</span>`;
   },
 
   // ══════════════════════════════════════════
@@ -508,20 +515,18 @@ const Power = {
 
   _consumersPanel(consumers, gen) {
     const items = [
-      { key:'lights',    icon:'💡', name:'Base Lighting',     cost:0.5,  req:'hut Lv2+',        unlock: 'lights' },
-      { key:'elecFence', icon:'⚡', name:'Electric Fence',    cost:1.0,  req:'fence upgrade',   unlock: 'elecFence' },
-      { key:'waterPump', icon:'💧', name:'Electric Pump',     cost:0.8,  req:'well Lv3',        unlock: 'waterPump' },
-      { key:'elecBench', icon:'🔬', name:'Electric Bench',    cost:0.3,  req:'built',           unlock: 'elecBench' },
+      { key:'lights',    icon:'💡', name:'Base Lighting',     cost:'varies', req:'Build Base Lights', unlock: 'lights' },
+      { key:'elecBench', icon:'🔬', name:'Electric Bench',    cost:'0.3W/hr',  req:'Build Elec Bench', unlock: 'elecBench' },
     ].map(c => {
       const isUnlocked = State.data.power.unlockedConsumers?.[c.unlock] || false;
       const isOn       = consumers[c.key] || false;
-      const canAfford  = gen >= c.cost || this.getStored() > 0;
+      const canAfford  = gen >= 0.3 || this.getStored() > 0;
       return `
         <div class="consumer-row ${isUnlocked ? '' : 'locked'}">
           <span class="consumer-icon">${c.icon}</span>
           <div class="consumer-info">
             <span class="consumer-name">${c.name}</span>
-            <span class="consumer-cost">▼ ${c.cost}W/hr</span>
+            <span class="consumer-cost">▼ ${c.cost}</span>
             ${!isUnlocked ? `<span class="consumer-req">Requires: ${c.req}</span>` : ''}
           </div>
           ${isUnlocked ? `<button class="btn-consumer-toggle ${isOn?'on':''}"
@@ -532,14 +537,51 @@ const Power = {
         </div>
       `;
     }).join('');
-    return `<div class="consumers-list">${items}</div>`;
+
+    // Auto-active consumers (no toggle — always on when unlocked)
+    const autoItems = [
+      { key:'elecFence', icon:'⚡', name:'Electric Fence', cost:'1.0W/hr', req:'Fence Lv9', note:'Auto-active when fence is electrified' },
+      { key:'waterPump', icon:'💧', name:'Electric Pump',  cost:'0.8W/hr', req:'Well Lv8',  note:'Auto-active when electric pump is installed' },
+    ].map(c => {
+      const isUnlocked = consumers[c.key] || State.data.power.unlockedConsumers?.[c.key] || false;
+      return `
+        <div class="consumer-row auto ${isUnlocked ? 'active' : 'locked'}">
+          <span class="consumer-icon">${c.icon}</span>
+          <div class="consumer-info">
+            <span class="consumer-name">${c.name}</span>
+            <span class="consumer-cost">▼ ${c.cost}</span>
+            <span class="consumer-req">${isUnlocked ? c.note : 'Requires: ' + c.req}</span>
+          </div>
+          <span class="consumer-auto-badge">${isUnlocked ? '⚡ AUTO' : '🔒'}</span>
+        </div>
+      `;
+    }).join('');
+
+    return `<div class="consumers-list">${items}${autoItems}</div>`;
+  },
+
+  // ── Set lights drain from baselights level ──
+  setLightsDrain(watts) {
+    State.data.power._lightsDrainW = watts;
   },
 
   _calcDrain(consumers) {
     let d = 0;
-    if (consumers.lights)    d += 0.5;
-    if (consumers.elecFence) d += 1.0;
-    if (consumers.waterPump) d += 0.8;
+    if (consumers.lights) {
+      // Drain scales with baselights level
+      const lightsDrain = State.data.power?._lightsDrainW;
+      d += (lightsDrain !== undefined) ? lightsDrain : 0.5;
+    }
+    if (consumers.elecFence) {
+      // Scales with fence level: Lv9=1.0W, Lv10=1.5W
+      const fLv = State.data.base?.buildings?.fence?.level || 9;
+      d += fLv >= 10 ? 1.5 : 1.0;
+    }
+    if (consumers.waterPump) {
+      // Scales with well level: Lv8=0.8W, Lv9=1.2W, Lv10=1.5W
+      const wLv = State.data.base?.buildings?.well?.level || 8;
+      d += wLv >= 10 ? 1.5 : wLv >= 9 ? 1.2 : 0.8;
+    }
     if (consumers.elecBench) d += 0.3;
     return d;
   },
@@ -626,7 +668,13 @@ const Power = {
     const p = State.data.power;
     if (!p.unlockedConsumers) p.unlockedConsumers = {};
     p.unlockedConsumers[key] = true;
-    Utils.toast(`🔌 ${key} unlocked as power consumer!`, 'good', 3000);
+    // elecFence and waterPump are auto-active — turn them on immediately
+    if (key === 'elecFence' || key === 'waterPump') {
+      p.consumers[key] = true;
+      Utils.toast(`🔌 ${key === 'elecFence' ? '⚡ Electric fence active!' : '💧 Electric pump running!'}`, 'good', 3000);
+    } else {
+      Utils.toast(`🔌 ${key} unlocked as power consumer!`, 'good', 3000);
+    }
   }
 };
 
@@ -677,3 +725,8 @@ Events.on('power:gen:render', ({ key }) => {
 Events.on('power:bat:render', () => {
   Power.renderBatteryScreen?.();
 });
+
+// Update HUD power bar whenever game state is refreshed
+Events.on('hud:update', () => { Power._updateHUDIndicator?.(); });
+Events.on('map:changed', () => { Power._updateHUDIndicator?.(); });
+

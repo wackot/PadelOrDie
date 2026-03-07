@@ -274,14 +274,7 @@ const Crafting = {
       effect:{ elecFenceBoost:true },
       unlockCondition:{ resource:'copper_wire', amount:2 }
     },
-    electric_pump: {
-      id:'electric_pump', category:'electric', name:'Electric Water Pump', emoji:'💧',
-      desc:'Auto-pumps 5 water/hour when powered. No more manual drawing.',
-      type:'base_upgrade', requiresPower: true,
-      ingredients:{ metal:8, electronics:4, rope:3, copper_wire:3 },
-      effect:{ electricPump:true },
-      unlockCondition:{ resource:'copper_wire', amount:3 }
-    },
+    // NOTE: electric_pump removed — now built by upgrading Well to Lv8
     elec_bike_motor: {
       id:'elec_bike_motor', category:'electric', name:'Electric Bike Motor', emoji:'🏍',
       desc:'Motorised bike. Reduces expedition energy cost by 50%. Uses battery to charge.',
@@ -1097,8 +1090,22 @@ const Crafting = {
           b.wellPassiveWater = wDef.passiveWater;
           b.passiveWater = (b.wellPassiveWater || 0) + (b.rainPassiveWater || 0);
         }
-        if (newLevel >= 8) Utils.toast('💧 Purified water now restores +2 health per drink!','good',4000);
+        // Lv8 unlocks the electric pump consumer
+        if (wDef.electricPump && typeof Power !== 'undefined') {
+          Power.unlockConsumer('waterPump');
+          Utils.toast('💧 Electric pump fitted! Auto-pumps water when powered.', 'good', 4000);
+        }
         if (newLevel === 9) Utils.toast('⚡ Hydro plant generates 1Wh bonus power!','good',4000);
+        break;
+      }
+      case 'baselights': {
+        const blDef = this.baseUpgrades.baselights.levels[newLevel - 1] || {};
+        // Register baselights drain in power system
+        if (typeof Power !== 'undefined') {
+          Power.setLightsDrain(blDef.drainW || 0);
+          Power.unlockConsumer('lights');
+        }
+        Utils.toast(`💡 Base Lighting Lv${newLevel} installed! ${blDef.drainW}W drain when on.`, 'good', 4000);
         break;
       }
       case 'shelter':
