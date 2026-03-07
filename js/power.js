@@ -267,7 +267,9 @@ const Power = {
 
   // ── Individual generator building screen ──
   renderGeneratorScreen(key) {
-    const screenId = key === 'coal' ? 'gen-coal_plant' : `gen-${key}`;
+    const screenId = key === 'coal' ? 'gen-coal_plant'
+                   : key === 'solar' ? 'gen-solar_array'
+                   : `gen-${key}`;
     const screen = document.getElementById(`screen-${screenId}`);
     if (!screen) return;
 

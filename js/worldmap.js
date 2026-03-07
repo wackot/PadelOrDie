@@ -23,8 +23,8 @@
 const WorldMap = {
 
   // ── World dimensions ──────────────────────
-  WORLD_W: 2000,
-  WORLD_H: 2000,
+  WORLD_W: 16000,
+  WORLD_H: 16000,
   TILE:    20,      // pixels per world-unit on canvas
 
   // ── Location zone definitions ─────────────
@@ -33,7 +33,7 @@ const WorldMap = {
   locationDefs: [
     { id:'forest',        name:'FOREST',        emoji:'🌲', dangerLevel:1, dangerCol:'#4caf50',
       desc:'Dense mutated woodland.',
-      wx: -280, wy: -180, radius: 90,
+      wx: -790, wy: -510, radius: 160,
       bgColor:'#0d1a08', bgEmoji:'🌲🌲🌳🌲🌳🌲🌲',
       tileColor:'#1a3010', fogReveal:'#3d7a22',
       animals:['wolf','boar','insect','bear'], encounterChance:0.20,
@@ -50,7 +50,7 @@ const WorldMap = {
 
     { id:'abandoned_farm', name:'ABANDONED FARM', emoji:'🚜', dangerLevel:1, dangerCol:'#4caf50',
       desc:'Overgrown farmland with wild crops.',
-      wx: 220,  wy: -250, radius: 80,
+      wx: 620,  wy: -710, radius: 145,
       bgColor:'#1a1500', bgEmoji:'🌾🚜🌾🌾🐄🌾',
       tileColor:'#2a2010', fogReveal:'#52481e',
       animals:['wolf','boar','insect'], encounterChance:0.18,
@@ -67,7 +67,7 @@ const WorldMap = {
 
     { id:'gas_station', name:'GAS STATION', emoji:'⛽', dangerLevel:2, dangerCol:'#ffd600',
       desc:'Abandoned fuel stop. Potentially explosive.',
-      wx: 400,  wy: 80,  radius: 70,
+      wx: 1130,  wy: 225,  radius: 125,
       bgColor:'#1a1000', bgEmoji:'⛽🏪⛽🛢️⛽🏚️',
       tileColor:'#2a1a00', fogReveal:'#4a3c18',
       animals:['rat','bird'], encounterChance:0.22,
@@ -84,7 +84,7 @@ const WorldMap = {
 
     { id:'city_ruins', name:'CITY RUINS', emoji:'🏙️', dangerLevel:2, dangerCol:'#ffd600',
       desc:'Collapsed buildings, scavengers everywhere.',
-      wx: -180, wy: 380, radius: 110,
+      wx: -510, wy: 1075, radius: 195,
       bgColor:'#0d0d12', bgEmoji:'🏚️🧱🏗️🏚️🧱🏙️',
       tileColor:'#141418', fogReveal:'#363650',
       animals:['rat','bird','zombie_dog'], encounterChance:0.28,
@@ -103,7 +103,7 @@ const WorldMap = {
 
     { id:'junkyard', name:'JUNKYARD', emoji:'♻️', dangerLevel:2, dangerCol:'#ffd600',
       desc:'Mountains of scrap. Metal heaven.',
-      wx: 560,  wy: -350, radius: 80,
+      wx: 1585,  wy: -990, radius: 145,
       bgColor:'#100d0d', bgEmoji:'🔩🗑️♻️🚗💀🔩',
       tileColor:'#1a1010', fogReveal:'#442828',
       animals:['rat','bird','insect'], encounterChance:0.25,
@@ -120,7 +120,7 @@ const WorldMap = {
 
     { id:'hospital', name:'HOSPITAL', emoji:'🏥', dangerLevel:3, dangerCol:'#ff6d00',
       desc:'Medical goldmine — if you survive the infected.',
-      wx: -520, wy: 280, radius: 75,
+      wx: -1470, wy: 790, radius: 135,
       bgColor:'#100d0d', bgEmoji:'🏥🚑🏥🩺🏥🚑',
       tileColor:'#1a0d0d', fogReveal:'#401a1a',
       animals:['zombie_dog','rat','insect'], encounterChance:0.35,
@@ -137,7 +137,7 @@ const WorldMap = {
 
     { id:'cave', name:'DEEP CAVE', emoji:'🪨', dangerLevel:3, dangerCol:'#ff6d00',
       desc:'Dark cave system rich in minerals.',
-      wx: -700, wy: -420, radius: 85,
+      wx: -1980, wy: -1190, radius: 150,
       bgColor:'#050508', bgEmoji:'🪨🕯️🪨💎🪨🕯️',
       tileColor:'#0a0a0f', fogReveal:'#222238',
       animals:['insect','rat','bear'], encounterChance:0.30,
@@ -154,7 +154,7 @@ const WorldMap = {
 
     { id:'military_base', name:'MILITARY BASE', emoji:'🪖', dangerLevel:4, dangerCol:'#e53935',
       desc:'The last government stronghold. Now overrun.',
-      wx: 680,  wy: 500, radius: 90,
+      wx: 1925,  wy: 1415, radius: 160,
       bgColor:'#0a0a05', bgEmoji:'🪖🔫🏗️🚧🪖🔫',
       tileColor:'#0f0f08', fogReveal:'#323218',
       animals:['zombie_dog','bird','boss_mutant'], encounterChance:0.45,
@@ -174,7 +174,7 @@ const WorldMap = {
     // ── SPECIAL MISSIONS — unlocked by Radio Tower ──────────────────────────
     { id:'signal_drop', name:'SIGNAL DROP', emoji:'📦', dangerLevel:2, dangerCol:'#42a5f5',
       desc:'A supply crate was broadcast. Find it before raiders do.',
-      wx: 150,  wy: 120, radius: 60, isMission:true, missionKey:'signal_drop',
+      wx: 425,  wy: 340, radius: 110, isMission:true, missionKey:'signal_drop',
       bgColor:'#0a0d14', bgEmoji:'📦🪂📦🌫️📦🪂',
       tileColor:'#111820', fogReveal:'#2a3e5c',
       animals:['bird','rat'], encounterChance:0.20,
@@ -191,7 +191,7 @@ const WorldMap = {
 
     { id:'rescue_beacon', name:'RESCUE BEACON', emoji:'🆘', dangerLevel:3, dangerCol:'#ff6d00',
       desc:'A survivor beacon. Rescue them and share their supplies.',
-      wx: -350, wy: 180, radius: 65, isMission:true, missionKey:'rescue_beacon',
+      wx: -990, wy: 510, radius: 115, isMission:true, missionKey:'rescue_beacon',
       bgColor:'#140808', bgEmoji:'🆘🩸🚑🔦🆘🩸',
       tileColor:'#1e0e0e', fogReveal:'#4c2020',
       animals:['zombie_dog','rat'], encounterChance:0.35,
@@ -208,7 +208,7 @@ const WorldMap = {
 
     { id:'black_market', name:'BLACK MARKET', emoji:'🏴', dangerLevel:3, dangerCol:'#ab47bc',
       desc:'A hidden trading post. Dangerous — but the rarest goods.',
-      wx: 300,  wy: -480, radius: 70, isMission:true, missionKey:'black_market',
+      wx: 850,  wy: -1360, radius: 125, isMission:true, missionKey:'black_market',
       bgColor:'#0d0814', bgEmoji:'🏴🕯️💀🏴🗡️💀',
       tileColor:'#130d1c', fogReveal:'#32204e',
       animals:['bird','zombie_dog'], encounterChance:0.30,
@@ -225,7 +225,7 @@ const WorldMap = {
 
     { id:'command_bunker', name:'COMMAND BUNKER', emoji:'🎖️', dangerLevel:4, dangerCol:'#e53935',
       desc:'Last known command post. Hardened intel and mil-spec supplies.',
-      wx: -620, wy: 620, radius: 80, isMission:true, missionKey:'command_bunker',
+      wx: -1755, wy: 1755, radius: 145, isMission:true, missionKey:'command_bunker',
       bgColor:'#050508', bgEmoji:'🎖️🔐💣🎖️🔐💣',
       tileColor:'#080810', fogReveal:'#1e1e3c',
       animals:['zombie_dog','boss_mutant'], encounterChance:0.50,
@@ -242,7 +242,7 @@ const WorldMap = {
 
     { id:'endgame_transmission', name:'THE TRANSMISSION', emoji:'🌐', dangerLevel:4, dangerCol:'#ffd600',
       desc:'A signal from beyond the collapse. What is still out there?',
-      wx: 0,    wy: -850, radius: 95, isMission:true, missionKey:'endgame_transmission',
+      wx: 0,    wy: -2405, radius: 170, isMission:true, missionKey:'endgame_transmission',
       bgColor:'#02020a', bgEmoji:'🌐📡💫🌐📡✨',
       tileColor:'#050510', fogReveal:'#181840',
       animals:['boss_mutant','bird','zombie_dog'], encounterChance:0.55,
@@ -264,7 +264,7 @@ const WorldMap = {
   _mapData:      null,   // generated world data (stored in save)
   _viewX:        0,      // camera top-left in world-units
   _viewY:        0,
-  _scale:        0.35,   // world-units → screen pixels
+  _scale:        0.12,   // world-units → screen pixels (zoomed out for bigger world)
   _travelling:   false,
   _travelTimer:  null,
   _travelPath:   [],
@@ -304,8 +304,8 @@ const WorldMap = {
     // Generate road network — winding paths from base to each zone
     const roads = zones.map(z => this._generateRoad(0, 0, z.wx, z.wy, rng));
 
-    // Fog grid: 100×100 cells covering the world, 0=fogged, 1=revealed
-    const fogW = 100, fogH = 100;
+    // Fog grid: 200×200 cells covering the world, 0=fogged, 1=revealed
+    const fogW = 200, fogH = 200;
     const fog  = new Array(fogW * fogH).fill(0);
     // Reveal small area around base start
     const baseFogX = Math.floor(fogW/2);
@@ -386,20 +386,41 @@ const WorldMap = {
 
     // World map zoom buttons
     document.getElementById('wm-zoom-in') ?.addEventListener('click', () => {
-      this._scale = Utils.clamp(this._scale * 1.3, 0.15, 0.80);
+      this._scale = Utils.clamp(this._scale * 1.3, 0.05, 0.40);
       this._centreOnPlayer(); this._drawMap();
     });
     document.getElementById('wm-zoom-out')?.addEventListener('click', () => {
-      this._scale = Utils.clamp(this._scale * 0.77, 0.15, 0.80);
+      this._scale = Utils.clamp(this._scale * 0.77, 0.05, 0.40);
       this._centreOnPlayer(); this._drawMap();
     });
     document.getElementById('wm-zoom-fit')?.addEventListener('click', () => {
-      this._scale = 0.35; this._centreOnPlayer(); this._drawMap();
+      this._scale = 0.12; this._centreOnPlayer(); this._drawMap();
     });
 
     this._setupCanvas();
     this._drawMap();
     this._bindCanvasInput();
+
+    // Re-setup canvas once the DOM has actually painted and the wrap has real dimensions.
+    // This fixes the "tiny black box" issue where clientWidth/Height was 0 on first render.
+    requestAnimationFrame(() => {
+      const wrap = document.getElementById('wm-canvas-wrap');
+      if (wrap && wrap.clientHeight > 10) {
+        this._setupCanvas();
+        this._drawMap();
+      }
+    });
+
+    // Also handle window resize
+    if (this._resizeObserver) this._resizeObserver.disconnect();
+    const wrapEl = document.getElementById('wm-canvas-wrap');
+    if (wrapEl && window.ResizeObserver) {
+      this._resizeObserver = new ResizeObserver(() => {
+        this._setupCanvas();
+        this._drawMap();
+      });
+      this._resizeObserver.observe(wrapEl);
+    }
   },
 
   // ── Canvas setup ──────────────────────────
@@ -411,8 +432,8 @@ const WorldMap = {
     this._ctx    = canvas.getContext('2d');
 
     const dpr  = window.devicePixelRatio || 1;
-    const cssW = wrap.clientWidth  || window.innerWidth;
-    const cssH = wrap.clientHeight || window.innerHeight - 120;
+    const cssW = wrap.clientWidth  > 10 ? wrap.clientWidth  : window.innerWidth;
+    const cssH = wrap.clientHeight > 10 ? wrap.clientHeight : window.innerHeight - 120;
 
     canvas.width  = cssW * dpr;
     canvas.height = cssH * dpr;

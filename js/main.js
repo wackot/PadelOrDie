@@ -299,19 +299,21 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.12 — Decoupled Architecture');
+    console.log('[Game] Initializing Pedal or Die v0.27 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {
       if (!Audio._ctx) Audio.init();
     }, { once: true });
 
+    // Init state immediately so State.data is ready for any game:boot listeners
+    State.init();
+
     // Show loading screen
     Utils.showScreen('loading');
     this._fakeLoad(() => {
 
-      // Init all modules
-      State.init();
+      // Init remaining modules
       SaveSystem.initUI();
       Events.emit('base:init');
 
