@@ -46,7 +46,7 @@ const Power = {
       const cpm = State.data.cadence.clicksPerMinute;
     const tgt = (State.data.world.activeRaid ? State.data.cadence.raidTargetCPM : State.data.cadence.targetCPM) || 60;
     const ratio = Utils.clamp(cpm / tgt, 0, 2);
-      total += this._genOutput.bike * gen.bike.level * Math.max(0.2, ratio);
+      if (ratio > 0) total += this._genOutput.bike * gen.bike.level * ratio;
     }
 
     // Wood burner

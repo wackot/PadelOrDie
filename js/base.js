@@ -55,7 +55,7 @@ const Base = {
     const inner  = document.getElementById('base-world-inner');
     if (!world || !inner) return;
 
-    const WORLD_W = 1000, WORLD_H = 1000;
+    const WORLD_W = 1500, WORLD_H = 1500;
 
     // Fit world to viewport on first load
     const vw = world.clientWidth  || window.innerWidth;
@@ -203,18 +203,18 @@ const Base = {
     if (!svg) return;
 
     // Fixed world size — matches canvas, scrollable container
-    const W = 1000;
-    const H = 1000;
+    const W = 1500;
+    const H = 1500;
     // Fence boundary: generous margins on all sides
-    const pad  = 40;
-    const fw   = W - pad * 2;   // 920
-    const fh   = H - pad * 2;   // 920
+    const pad  = 60;
+    const fw   = W - pad * 2;   // 1380
+    const fh   = H - pad * 2;   // 1380
     const fl   = pad;
     const ft   = pad;
     const fr   = fl + fw;
     const fb   = ft + fh;
-    const cx   = fl + fw / 2;   // 500
-    const cy   = ft + fh / 2;   // 500
+    const cx   = fl + fw / 2;   // 750
+    const cy   = ft + fh / 2;   // 750
 
     const fLvl   = State.data?.base?.buildings?.fence?.level       || 1;
     const hLvl   = State.data?.base?.buildings?.house?.level       || 1;
@@ -246,9 +246,9 @@ const Base = {
                               || State.data?.power?.generators?.coal?.level > 0
                               || State.data?.power?.generators?.solar?.level > 0);
 
-    svg.setAttribute('viewBox', `0 0 1000 1000`);
-    svg.setAttribute('width', '1000');
-    svg.setAttribute('height', '1000');
+    svg.setAttribute('viewBox', `0 0 1500 1500`);
+    svg.setAttribute('width', '1500');
+    svg.setAttribute('height', '1500');
 
     // ── Per-level layout offsets ─────────────────────────────────────────
     // House level progressively spaces and repositions buildings
