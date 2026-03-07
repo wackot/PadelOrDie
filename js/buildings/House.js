@@ -34,10 +34,13 @@ const BuildingHouse = {
   },
 
   // ── SVG renderer ──────────────────────────
-  svg(cx, cy, level) {
+  svg(cx, cy, level, isNight, lightsOn) {
     const lv = Math.max(1, Math.min(10, level || 1));
     const sf = 'filter="url(#shadow)"';
     const gE = 'filter="url(#glow-electric)"';
+    const winGlow = (isNight && lightsOn) ? 'filter="url(#glow-yellow)"' : '';
+    const winFill = (isNight && lightsOn) ? '#ffd060' : '#4a7a9a';
+    const winFillDim = (isNight && lightsOn) ? '#e0b030' : '#3a6a8a';
 
     const labelCol = lv === 10 ? '#ef5350'
                    : lv >= 8  ? '#9090b0'
@@ -179,12 +182,12 @@ const BuildingHouse = {
         <polygon points="${cx},${cy-h/2-40} ${cx+w/2+8},${cy-h/2} ${cx+3},${cy-h/2-38}" fill="rgba(0,0,0,0.2)"/>
         <rect x="${cx+22}" y="${cy-h/2-30}" width="12" height="32" fill="#8a7040" rx="1"/>
         <rect x="${cx+20}" y="${cy-h/2-32}" width="16" height="5"  fill="#4a4030" rx="1"/>
-        <rect x="${cx-w/2+10}" y="${cy-h/2+10}" width="22" height="18" fill="#3a6a8a" rx="2" opacity="0.85"/>
+        <rect x="${cx-w/2+10}" y="${cy-h/2+10}" width="22" height="18" fill="${winFillDim}" rx="2" opacity="0.85" ${winGlow}/>
         <rect x="${cx-w/2+10}" y="${cy-h/2+10}" width="22" height="18" fill="none" stroke="#8a9090" stroke-width="2" rx="2"/>
         <line x1="${cx-w/2+21}" y1="${cy-h/2+10}" x2="${cx-w/2+21}" y2="${cy-h/2+28}" stroke="#6a8090" stroke-width="1.5"/>
         <line x1="${cx-w/2+10}" y1="${cy-h/2+19}" x2="${cx-w/2+32}" y2="${cy-h/2+19}" stroke="#6a8090" stroke-width="1.5"/>
         <line x1="${cx-w/2+12}" y1="${cy-h/2+12}" x2="${cx-w/2+18}" y2="${cy-h/2+15}" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
-        <rect x="${cx+w/2-32}" y="${cy-h/2+10}" width="22" height="18" fill="#3a6a8a" rx="2" opacity="0.85"/>
+        <rect x="${cx+w/2-32}" y="${cy-h/2+10}" width="22" height="18" fill="${winFillDim}" rx="2" opacity="0.85" ${winGlow}/>
         <rect x="${cx+w/2-32}" y="${cy-h/2+10}" width="22" height="18" fill="none" stroke="#8a9090" stroke-width="2" rx="2"/>
         <line x1="${cx+w/2-21}" y1="${cy-h/2+10}" x2="${cx+w/2-21}" y2="${cy-h/2+28}" stroke="#6a8090" stroke-width="1.5"/>
         <line x1="${cx+w/2-32}" y1="${cy-h/2+19}" x2="${cx+w/2-10}" y2="${cy-h/2+19}" stroke="#6a8090" stroke-width="1.5"/>
@@ -195,7 +198,7 @@ const BuildingHouse = {
         <rect x="${cx-w/2+2}" y="${cy+h/2-28}" width="12" height="4"  fill="#c8a870" rx="1"/>
         <rect x="${cx+w/2-14}" y="${cy+h/2-28}" width="12" height="4" fill="#c8a870" rx="1"/>
         <rect x="${cx-13}" y="${cy+h/2-32}" width="26" height="32" fill="#5a3010" rx="2"/>
-        <rect x="${cx-8}"  y="${cy+h/2-30}" width="16" height="10" fill="#3a6a8a" rx="1" opacity="0.85"/>
+        <rect x="${cx-8}"  y="${cy+h/2-30}" width="16" height="10" fill="${winFillDim}" rx="1" opacity="0.85" ${winGlow}/>
         <rect x="${cx-8}"  y="${cy+h/2-30}" width="16" height="10" fill="none" stroke="#6a8090" stroke-width="1.5" rx="1"/>
         <line x1="${cx-6}" y1="${cy+h/2-28}" x2="${cx-2}" y2="${cy+h/2-25}" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
         <rect x="${cx-11}" y="${cy+h/2-18}" width="10" height="14" fill="#4a2808" rx="1"/>
@@ -226,12 +229,12 @@ const BuildingHouse = {
         <polygon points="${cx},${cy-h/2-42} ${cx+w/2+8},${cy-h/2} ${cx+3},${cy-h/2-40}" fill="rgba(0,0,0,0.25)"/>
         <rect x="${cx+22}" y="${cy-h/2-34}" width="14" height="36" fill="#7a4a30" rx="1"/>
         <rect x="${cx+20}" y="${cy-h/2-36}" width="18" height="5"  fill="#4a4030" rx="1"/>
-        <rect x="${cx-w/2+12}" y="${cy-h/2+12}" width="22" height="18" fill="#3a6a8a" rx="2" opacity="0.88"/>
+        <rect x="${cx-w/2+12}" y="${cy-h/2+12}" width="22" height="18" fill="${winFillDim}" rx="2" opacity="0.88" ${winGlow}/>
         <rect x="${cx-w/2+12}" y="${cy-h/2+12}" width="22" height="18" fill="none" stroke="#6a8090" stroke-width="2" rx="2"/>
         <line x1="${cx-w/2+23}" y1="${cy-h/2+12}" x2="${cx-w/2+23}" y2="${cy-h/2+30}" stroke="#5a7080" stroke-width="1.5"/>
         <line x1="${cx-w/2+12}" y1="${cy-h/2+21}" x2="${cx-w/2+34}" y2="${cy-h/2+21}" stroke="#5a7080" stroke-width="1.5"/>
         <line x1="${cx-w/2+14}" y1="${cy-h/2+14}" x2="${cx-w/2+20}" y2="${cy-h/2+17}" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
-        <rect x="${cx+w/2-34}" y="${cy-h/2+12}" width="22" height="18" fill="#3a6a8a" rx="2" opacity="0.88"/>
+        <rect x="${cx+w/2-34}" y="${cy-h/2+12}" width="22" height="18" fill="${winFillDim}" rx="2" opacity="0.88" ${winGlow}/>
         <rect x="${cx+w/2-34}" y="${cy-h/2+12}" width="22" height="18" fill="none" stroke="#6a8090" stroke-width="2" rx="2"/>
         <line x1="${cx+w/2-23}" y1="${cy-h/2+12}" x2="${cx+w/2-23}" y2="${cy-h/2+30}" stroke="#5a7080" stroke-width="1.5"/>
         <line x1="${cx+w/2-34}" y1="${cy-h/2+21}" x2="${cx+w/2-12}" y2="${cy-h/2+21}" stroke="#5a7080" stroke-width="1.5"/>
@@ -265,11 +268,11 @@ const BuildingHouse = {
         <rect x="${cx+22}" y="${cy-h/2-24}" width="11" height="26" fill="#9a7848" rx="1"/>
         <rect x="${cx+20}" y="${cy-h/2-26}" width="15" height="5"  fill="#4a4030" rx="1"/>
         <rect x="${cx-w/2+12}" y="${cy-h/2+10}" width="22" height="22" fill="#5a8aaa" rx="2" opacity="0.88"/>
-        <path d="M${cx-w/2+12},${cy-h/2+21} Q${cx-w/2+23},${cy-h/2+8} ${cx-w/2+34},${cy-h/2+21}" fill="#4a7a9a" opacity="0.7"/>
+        <path d="M${cx-w/2+12},${cy-h/2+21} Q${cx-w/2+23},${cy-h/2+8} ${cx-w/2+34},${cy-h/2+21}" fill="${winFill}" opacity="0.7" ${winGlow}/>
         <rect x="${cx-w/2+12}" y="${cy-h/2+10}" width="22" height="22" fill="none" stroke="#c8a870" stroke-width="2" rx="2"/>
         <line x1="${cx-w/2+14}" y1="${cy-h/2+12}" x2="${cx-w/2+20}" y2="${cy-h/2+16}" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
         <rect x="${cx+w/2-34}" y="${cy-h/2+10}" width="22" height="22" fill="#5a8aaa" rx="2" opacity="0.88"/>
-        <path d="M${cx+w/2-34},${cy-h/2+21} Q${cx+w/2-23},${cy-h/2+8} ${cx+w/2-12},${cy-h/2+21}" fill="#4a7a9a" opacity="0.7"/>
+        <path d="M${cx+w/2-34},${cy-h/2+21} Q${cx+w/2-23},${cy-h/2+8} ${cx+w/2-12},${cy-h/2+21}" fill="${winFill}" opacity="0.7" ${winGlow}/>
         <rect x="${cx+w/2-34}" y="${cy-h/2+10}" width="22" height="22" fill="none" stroke="#c8a870" stroke-width="2" rx="2"/>
         <line x1="${cx+w/2-32}" y1="${cy-h/2+12}" x2="${cx+w/2-26}" y2="${cy-h/2+16}" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
         <rect x="${cx-w/2-10}" y="${cy+h/2-8}"  width="${w+20}" height="10" fill="#b89060" rx="2"/>
@@ -280,7 +283,7 @@ const BuildingHouse = {
         <rect x="${cx+w/2-14}" y="${cy+h/2-32}" width="12" height="4" fill="#c8b890" rx="1"/>
         <rect x="${cx-13}" y="${cy+h/2-34}" width="26" height="34" fill="#5a3010" rx="3"/>
         <path d="M${cx-13},${cy+h/2-23} Q${cx},${cy+h/2-40} ${cx+13},${cy+h/2-23}" fill="#4a2808"/>
-        <rect x="${cx-9}" y="${cy+h/2-32}" width="18" height="10" fill="#3a6a8a" rx="1" opacity="0.85"/>
+        <rect x="${cx-9}" y="${cy+h/2-32}" width="18" height="10" fill="${winFillDim}" rx="1" opacity="0.85" ${winGlow}/>
         <circle cx="${cx+9}" cy="${cy+h/2-18}" r="3" fill="#d4b850"/>
         <rect x="${cx-w/2}" y="${cy+h/2+2}" width="${w+20}" height="10" fill="#3a2810" rx="2" opacity="0.8"/>
         ${flowerSVG}
