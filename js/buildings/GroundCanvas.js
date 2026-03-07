@@ -10,11 +10,11 @@ const BuildingGroundCanvas = {
   draw() {
     const canvas = document.getElementById('base-canvas');
     if (!canvas || typeof canvas.getContext !== 'function') return;
-    canvas.width  = 1000;
-    canvas.height = 1000;
+    canvas.width  = 1500;
+    canvas.height = 1500;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const W = 1000, H = 1000;
+    const W = 1500, H = 1500;
 
     const hLvl = Math.max(1, Math.min(10, State.data?.base?.buildings?.house?.level || 1));
 
