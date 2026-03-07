@@ -23,6 +23,7 @@ const DynamoBike = {
   _sessionWh:    0,
   _idleSecs:     0,
   _IDLE_CUTOFF:  3,
+  _keyHandler:   null,
 
   // ── SVG art for the base map ──────────────
   svg(x, y, level) {
@@ -110,11 +111,33 @@ const DynamoBike = {
           <div class="dynamo-wh-display" id="dynamo-wh-display">
             ${active ? `+${this._sessionWh.toFixed(2)} Wh this session` : ''}
           </div>
-          ${level > 0
-            ? `<button class="btn-pixel ${active ? 'btn-danger' : 'btn-primary'} dynamo-session-btn"
-                onclick="DynamoBike.${active ? 'stopSession' : 'startSession'}()">
-                ${active ? '⏹ STOP' : '▶ START PEDALLING'}
+          ${active
+            ? `<button class="dynamo-pedal-btn" onclick="Cadence.registerClick(); Audio.sfxPedal?.();"
+                style="display:block;width:100%;padding:28px 0;font-size:2em;cursor:pointer;
+                       background:#1a1a2e;border:3px solid #ffd600;border-radius:8px;
+                       color:#ffd600;margin:12px 0;letter-spacing:2px;user-select:none;
+                       transition:background 0.08s;"
+                onmousedown="this.style.background='#2a2a1e'"
+                onmouseup="this.style.background='#1a1a2e'"
+                onmouseleave="this.style.background='#1a1a2e'">
+                🚴 PEDAL
               </button>`
+            : ''
+          }
+          ${level > 0
+            ? (active
+                ? `<div id="dynamo-pedal-zone"
+                      onmousedown="DynamoBike._onPedalInput(event)"
+                      style="cursor:pointer;user-select:none;background:#1a1a2e;border:2px solid #ffd600;
+                             border-radius:12px;padding:28px 16px;text-align:center;margin:8px 0;
+                             font-size:1.8em;letter-spacing:2px;color:#ffd600;">
+                     🚴 PEDAL!
+                     <div style="font-size:0.5em;color:#888;margin-top:4px">click here · or tap Space / Enter</div>
+                   </div>
+                   <button class="btn-pixel btn-danger dynamo-session-btn"
+                     onclick="DynamoBike.stopSession()">⏹ STOP</button>`
+                : `<button class="btn-pixel btn-primary dynamo-session-btn"
+                    onclick="DynamoBike.startSession()">▶ START PEDALLING</button>`)
             : `<p style="color:#888;text-align:center;margin-top:12px">Build the dynamo first to start pedalling.</p>`
           }
         </div>
@@ -147,8 +170,17 @@ const DynamoBike = {
     this._sessionWh = 0;
     this._idleSecs  = 0;
     this._tickInterval = setInterval(() => this._tick(), 1000);
+    Cadence.start();
+    // Keyboard: Space / Enter fires a pedal click
+    this._keyHandler = (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        this._onPedalInput();
+      }
+    };
+    document.addEventListener('keydown', this._keyHandler);
     this.renderScreen();
-    Utils.toast('🚴 Pedalling session started!', 'info', 2000);
+    Utils.toast('🚴 Session started! Click the pedal zone or tap Space to generate power.', 'info', 3000);
   },
 
   // ── Stop pedalling session ────────────────
@@ -156,12 +188,30 @@ const DynamoBike = {
     if (!this._tickInterval) return;
     clearInterval(this._tickInterval);
     this._tickInterval = null;
+    if (this._keyHandler) {
+      document.removeEventListener('keydown', this._keyHandler);
+      this._keyHandler = null;
+    }
+    Cadence.stop();
     const total = parseFloat(this._sessionWh.toFixed(2));
     Events.emit('power:dynamo:stop', { totalWh: total });
     if (total > 0) Utils.toast(`⚡ Session ended — generated ${total} Wh.`, 'good', 3000);
     this._sessionWh = 0;
     this._idleSecs  = 0;
     this.renderScreen();
+  },
+
+  // ── Register one pedal input (mouse or keyboard) ──
+  _onPedalInput(e) {
+    if (!this._tickInterval) return;   // session must be active
+    Cadence.registerClick();
+    Audio.sfxPedal?.();
+    // Brief visual flash on the pedal zone
+    const zone = document.getElementById('dynamo-pedal-zone');
+    if (zone) {
+      zone.style.background = '#2a2a1e';
+      setTimeout(() => { zone.style.background = '#1a1a2e'; }, 80);
+    }
   },
 
   // ── Per-second tick ───────────────────────
