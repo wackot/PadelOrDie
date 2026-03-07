@@ -380,7 +380,38 @@
   font-size: 1rem;
 }
 
-/* Consumer ON/OFF toggle */
+.consumer-row.auto {
+  border-top: 1px solid #2a2a3a;
+  opacity: 0.85;
+}
+.consumer-row.auto.active {
+  opacity: 1;
+  background: rgba(255,214,0,0.04);
+}
+.consumer-auto-badge {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.26rem, 1vw, 0.34rem);
+  padding: 4px 7px;
+  background: #1a1a1a;
+  color: #ffd600;
+  border: 1px solid #3a3a1a;
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#hud-power {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'VT323', monospace;
+  font-size: clamp(0.78rem, 2.8vw, 0.95rem);
+  white-space: nowrap;
+  padding: 0 4px;
+  letter-spacing: 0.02em;
+}
+
+
 .btn-consumer-toggle {
   font-family: 'Press Start 2P', monospace;
   font-size: clamp(0.28rem, 1.1vw, 0.36rem);
@@ -427,16 +458,6 @@
 .power-status-bar .bat-charge-wrap {
   height: 8px;
   margin: 0;
-}
-
-/* ── HUD power indicator ──────────────── */
-#hud-power {
-  font-family: 'VT323', monospace;
-  font-size: clamp(0.75rem, 3vw, 0.9rem);
-  color: #ffd600;
-  white-space: nowrap;
-  padding: 0 4px;
-  letter-spacing: 0.02em;
 }
 
 /* ── Screen-power needs-power visual on recipes */
