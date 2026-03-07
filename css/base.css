@@ -26,25 +26,35 @@
 #base-world-inner {
   position: absolute;
   top: 0; left: 0;
-  width: 1000px;
-  height: 1000px;
+  width: 1500px;
+  height: 1500px;
   transform-origin: 0 0;
   will-change: transform;
+  overflow: visible;
+}
+
+#scenery-canvas {
+  position: absolute;
+  top: -350px; left: -350px;
+  width: 2200px;
+  height: 2200px;
+  display: block;
+  pointer-events: none;
 }
 
 #base-canvas {
   position: absolute;
   top: 0; left: 0;
-  width: 1000px;
-  height: 1000px;
+  width: 1500px;
+  height: 1500px;
   display: block;
 }
 
 #base-svg {
   position: absolute;
   top: 0; left: 0;
-  width: 1000px;
-  height: 1000px;
+  width: 1500px;
+  height: 1500px;
   overflow: visible;
 }
 
