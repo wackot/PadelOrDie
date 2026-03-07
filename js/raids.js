@@ -409,6 +409,18 @@ const Raids = {
     if (playerWon) {
       State.data.stats.raidsRepelled++;
       Audio.sfxVictory();
+      // Apply loot drops from the defeated animal
+      if (this._currentAnimal) {
+        const loot = Animals.rollDrops(this._currentAnimal.id);
+        const gained = [];
+        Object.entries(loot).forEach(([res, amt]) => {
+          State.addResource(res, amt);
+          gained.push(`${amt} ${res}`);
+        });
+        if (gained.length > 0) {
+          setTimeout(() => Utils.toast(`🎁 Loot: ${gained.join(', ')}`, 'good', 4000), 800);
+        }
+      }
     } else {
       State.data.stats.raidsFailed++;
       Audio.sfxDefeat();
@@ -426,6 +438,15 @@ const Raids = {
     const screen = document.getElementById('screen-raid');
     if (!screen) return;
 
+    let lootLine = '';
+    if (victory && this._currentAnimal) {
+      const loot = Animals.rollDrops(this._currentAnimal.id);
+      const parts = Object.entries(loot).map(([r,a]) => `${a}× ${r}`);
+      lootLine = parts.length > 0
+        ? `<div class="raid-result-loot">🎁 Loot: ${parts.join('  ')}</div>`
+        : `<div class="raid-result-loot">No loot this time.</div>`;
+    }
+
     const overlay = document.createElement('div');
     overlay.className = `raid-result ${victory ? 'victory' : 'defeat'}`;
     overlay.innerHTML = `
@@ -434,6 +455,7 @@ const Raids = {
       <div class="raid-result-detail">${victory
         ? 'Your defences held. Resources safe.'
         : 'They broke through. 20% of resources lost.'}</div>
+      ${lootLine}
       <button class="btn-pixel btn-primary" id="btn-raid-continue" style="max-width:260px">
         ${victory ? '✅ BACK TO BASE' : '😔 ASSESS DAMAGE'}
       </button>

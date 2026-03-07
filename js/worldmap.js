@@ -377,9 +377,7 @@ const WorldMap = {
         if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
         this._travelling = false;
 
-        if (State.data?.world) State.data.world.playerAway =
-
-          (State.data?.world?.playerAway);
+        if (State.data?.world) State.data.world.playerAway = false;
         this._roadEncounterActive = false;
         Events.emit('navigate', { screen: 'base' });
       });

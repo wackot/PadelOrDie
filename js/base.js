@@ -44,6 +44,7 @@ const Base = {
 
   // ── Main render: canvas + SVG overlay ─────
   _renderBase() {
+    SceneryCanvas.draw();
     BuildingGroundCanvas.draw();
     this._buildSVG();
     this._initPanZoom();
@@ -251,105 +252,107 @@ const Base = {
     svg.setAttribute('height', '1500');
 
     // ── Per-level layout offsets ─────────────────────────────────────────
-    // House level progressively spaces and repositions buildings
-    // giving the base a "growing settlement" feel
+    // Buildings are spread across the full fence interior (±0.44 range)
+    // giving the base a genuine settlement feel with clear zones
+
+    // SHELTER — upper centre, the hub of the base
     const houseX = cx;
-    const houseY = cy - fh * (hLvl >= 6 ? 0.26 : 0.22);
+    const houseY = cy - fh * 0.28;
 
-    // Barn/food-store — starts right-centre, moves upper-right at high lv
-    const barnX  = cx + fw * (hLvl >= 7 ? 0.30 : 0.32);
-    const barnY  = cy + fh * (hLvl >= 7 ? -0.02 : 0.04);
+    // BARN/food-store — far right centre
+    const barnX  = cx + fw * 0.40;
+    const barnY  = cy - fh * 0.04;
 
-    // Well — starts left-centre, stays roughly same
-    const wellX  = cx - fw * 0.32;
-    const wellY  = cy + fh * 0.04;
+    // WELL — far left centre
+    const wellX  = cx - fw * 0.40;
+    const wellY  = cy + fh * 0.06;
 
-    // Workshop/crafting — moves to dedicated corner at high lv
-    const wsX    = cx + fw * (hLvl >= 5 ? 0.16 : 0.12);
-    const wsY    = cy + fh * (hLvl >= 5 ? 0.34 : 0.30);
+    // WORKSHOP/crafting — lower right
+    const wsX    = cx + fw * 0.28;
+    const wsY    = cy + fh * 0.36;
 
-    // Map board — upper-left
-    const mapX   = cx - fw * (hLvl >= 4 ? 0.26 : 0.30);
-    const mapY   = cy - fh * (hLvl >= 4 ? 0.26 : 0.30);
+    // MAP BOARD — upper far left
+    const mapX   = cx - fw * 0.36;
+    const mapY   = cy - fh * 0.36;
 
-    // Storage — lower left, expands outward with level
-    const stX    = cx - fw * (hLvl >= 5 ? 0.24 : 0.20);
-    const stY    = cy + fh * 0.32;
+    // STORAGE — lower far left
+    const stX    = cx - fw * 0.38;
+    const stY    = cy + fh * 0.36;
 
-    // Bike — lower right corner
+    // BIKE — lower far right corner
     const bkX    = cx + fw * 0.44;
-    const bkY    = cy + fh * 0.36;
+    const bkY    = cy + fh * 0.42;
 
-    // Greenhouse — lower-centre, shifts right at high lv
-    const ghX    = cx - fw * (hLvl >= 6 ? 0.04 : 0.08);
-    const ghY    = cy + fh * 0.32;
+    // GREENHOUSE — lower centre-left
+    const ghX    = cx - fw * 0.12;
+    const ghY    = cy + fh * 0.38;
 
-    // Field — upper right
-    const fiX    = cx + fw * 0.34;
-    const fiY    = cy - fh * (hLvl >= 6 ? 0.24 : 0.20);
+    // FIELD — far upper right
+    const fiX    = cx + fw * 0.40;
+    const fiY    = cy - fh * 0.30;
 
-    // Power house — left side
-    const phX    = cx - fw * 0.32;
-    const phY    = cy - fh * (hLvl >= 5 ? 0.22 : 0.18);
+    // POWERHOUSE — upper left (power zone)
+    const phX    = cx - fw * 0.26;
+    const phY    = cy - fh * 0.16;
 
-    // Electric bench — upper right inner
-    const ebX    = cx + fw * 0.32;
-    const ebY    = cy - fh * 0.28;
+    // ELECTRIC BENCH — right of powerhouse
+    const ebX    = cx + fw * 0.18;
+    const ebY    = cy - fh * 0.14;
 
-    // Radio tower — far upper left
-    const rtX    = cx - fw * (hLvl >= 5 ? 0.36 : 0.40);
-    const rtY    = cy - fh * 0.38;
+    // RADIO TOWER — far upper left corner
+    const rtX    = cx - fw * 0.44;
+    const rtY    = cy - fh * 0.40;
 
-    // Rain collector — left mid
+    // RAIN COLLECTOR — far left upper
     const rcX    = cx - fw * 0.44;
-    const rcY    = cy - fh * 0.12;
+    const rcY    = cy - fh * 0.16;
 
-    // Solar station — upper right
-    const ssX    = cx + fw * (hLvl >= 5 ? 0.16 : 0.20);
-    const ssY    = cy - fh * (hLvl >= 5 ? 0.40 : 0.38);
+    // SOLAR STATION — far upper right
+    const ssX    = cx + fw * 0.26;
+    const ssY    = cy - fh * 0.44;
 
-    // Watchtower — upper left inner (distinct from radio tower far-left)
-    const wtX    = cx - fw * 0.14;
-    const wtY    = cy - fh * 0.40;
+    // WATCHTOWER — upper centre-right
+    const wtX    = cx + fw * 0.10;
+    const wtY    = cy - fh * 0.44;
 
-    // Compost bin — right of greenhouse, lower centre
-    const cbX    = cx + fw * 0.06;
+    // COMPOST BIN — lower centre
+    const cbX    = cx + fw * 0.04;
     const cbY    = cy + fh * 0.44;
 
-    // Smokehouse — right of barn, lower right
+    // SMOKEHOUSE — right side, mid
     const shX    = cx + fw * 0.44;
-    const shY    = cy + fh * 0.14;
+    const shY    = cy + fh * 0.18;
 
-    // Alarm system — near fence top, upper centre-right
-    const alX    = cx + fw * 0.28;
+    // ALARM SYSTEM — upper right, near fence
+    const alX    = cx + fw * 0.40;
     const alY    = cy - fh * 0.44;
 
-    // Medkit station — lower left, near storage
-    const mkX    = cx - fw * 0.42;
+    // MEDKIT STATION — lower left, near storage
+    const mkX    = cx - fw * 0.44;
     const mkY    = cy + fh * 0.28;
 
-    // Bunker — lower centre (underground hatch)
+    // BUNKER — lower centre, clear gate area
     const bnX    = cx;
     const bnY    = cy + fh * 0.44;
 
-    // Dynamo bike — beside the powerhouse, lower-left
-    const dbX    = cx - fw * 0.44;
-    const dbY    = cy + fh * 0.10;
+    // DYNAMO BIKE — left side, near powerhouse
+    const dbX    = cx - fw * 0.40;
+    const dbY    = cy + fh * 0.18;
 
-    // Wood burner — below powerhouse
-    const wbX    = cx - fw * 0.32;
-    const wbY    = cy - fh * 0.04;
+    // WOOD BURNER — below powerhouse
+    const wbX    = cx - fw * 0.26;
+    const wbY    = cy + fh * 0.04;
 
-    // Coal plant — left of powerhouse
+    // COAL PLANT — far left, below rain collector
     const cpX    = cx - fw * 0.44;
-    const cpY    = cy - fh * 0.08;
+    const cpY    = cy - fh * 0.04;
 
-    // Solar array — above powerhouse (distinct from solar_station upgrade building)
-    const saX    = cx - fw * 0.18;
-    const saY    = cy - fh * 0.32;
+    // SOLAR ARRAY — above powerhouse
+    const saX    = cx - fw * 0.12;
+    const saY    = cy - fh * 0.30;
 
-    // Battery bank — right of powerhouse
-    const bbX    = cx - fw * 0.16;
+    // BATTERY BANK — between powerhouse and centre
+    const bbX    = cx - fw * 0.06;
     const bbY    = cy - fh * 0.16;
 
     svg.innerHTML = `
@@ -673,6 +676,7 @@ const Base = {
   updateNight() {
     const overlay = document.getElementById('night-overlay');
     if (overlay) overlay.classList.toggle('hidden', !State.data.world.isNight);
+    SceneryCanvas.draw();
     BuildingGroundCanvas.draw();
     this._buildSVG();
   },
