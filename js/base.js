@@ -458,8 +458,8 @@ const Base = {
   // ── Ground decorations — evolve per house level ─────────────────────
   // Trees, rocks, path lights, flower borders, fountain
   _hitZone(id, cx, cy, w, h, label) {
-    return `<g data-bid="${id}" style="cursor:pointer" aria-label="${label}">
-      <rect x="${cx-w/2-10}" y="${cy-h/2-10}" width="${w+20}" height="${h+20}" fill="transparent"/>
+    return `<g data-bid="${id}" data-label="${label}" style="cursor:pointer" role="none">
+      <rect x="${cx-w/2-10}" y="${cy-h/2-10}" width="${w+20}" height="${h+20}" fill="transparent" role="none"/>
     </g>`;
   },
 
