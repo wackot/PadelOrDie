@@ -89,7 +89,7 @@ const BuildingGroundCanvas = {
     }
 
     // ── Paths ─────────────────────────────────────────────────
-    const cx = 500, cy = 500;
+    const cx = 750, cy = 750;
     const pathCols = [
       ['#2a1e0e','#251a0c'], ['#2e2210','#292010'], ['#32260f','#2e2210'],
       ['#36280e','#32260e'], ['#3c2c12','#382a10'], ['#484030','#403a28'],
@@ -201,18 +201,16 @@ const BuildingGroundCanvas = {
       }
     }
 
-    // ── Lamp glow pools on ground (lv9+) ─────────────────────
-    if (hLvl >= 9) {
-      [
-        { x: cx - 30, y: cy - 180 }, { x: cx + 30, y: cy - 180 },
-        { x: cx - 180, y: cy + 18 }, { x: cx + 180, y: cy + 18 },
-      ].forEach(lp => {
-        const grd = ctx.createRadialGradient(lp.x, lp.y, 0, lp.x, lp.y, 30);
-        grd.addColorStop(0, 'rgba(255,220,100,0.22)');
-        grd.addColorStop(1, 'rgba(255,220,100,0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath(); ctx.arc(lp.x, lp.y, 30, 0, Math.PI*2); ctx.fill();
-      });
+    // ── Lamp glow pools on ground — powered lights brighten the base ──
+    const lightsLit = typeof BuildingLights !== 'undefined'
+      && hLvl >= 2
+      && State.data?.power?.consumers?.lights
+      && (State.data?.power?.stored > 0
+          || (typeof Power !== 'undefined' && Power.getGenerationRate() > 0));
+    if (lightsLit) {
+      const fw = W - 120;  // matches base.js pad=60 → fw = W - 2*60
+      const fh = H - 120;
+      BuildingLights.drawGlowPools(ctx, hLvl, cx, cy, fw, fh);
     }
 
     // ── Gate mosaic tile (lv10) ───────────────────────────────
