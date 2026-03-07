@@ -73,3 +73,30 @@ const BuildingWell = {
     </g>`;
   },
 };
+
+// ── Building screen data (for the bld-screen upgrade system) ──────────────
+const BuildingWellScreen = {
+  getScreenData(s) {
+    const lv       = s.base.buildings.well?.level || 1;
+    const inv      = s.inventory;
+    const upg      = BuildingUpgrades.well;
+    const def      = upg?.levels?.[lv - 1] || {};
+    const waterPer = def.waterPerUse || 5;
+    const passive  = def.passiveWater || 0;
+    const elecPump = def.electricPump || false;
+    const hasPump  = s.power?.consumers?.waterPump;
+    const pumpNote = lv >= 8 ? (hasPump ? ' ⚡ pump active' : ' (needs power)') : '';
+
+    const visual = `<svg width="120" height="100" viewBox="0 0 120 100">
+      ${BuildingWell.svg(60, 65, lv)}
+    </svg>`;
+    const statsRows = `
+      <div class="bsc-row"><span>Level</span><span>${lv}/10</span></div>
+      <div class="bsc-row ok"><span>Water per draw</span><span>${waterPer}</span></div>
+      ${passive > 0 ? `<div class="bsc-row ok"><span>Passive water/day</span><span>+${passive}${pumpNote}</span></div>` : ''}
+      ${elecPump ? `<div class="bsc-row ${hasPump?'ok':''}"><span>Electric pump</span><span>${hasPump?'⚡ Running':'⚫ No power'}</span></div>` : ''}
+      <div class="bsc-row"><span>Water stored</span><span>${inv.water || 0}</span></div>`;
+    const actionBtn = `<button class="bsc-action-btn" onclick="Player.drawWater?.() || Utils.toast('Drew water!','good')">💧 DRAW WATER</button>`;
+    return { title: '🪣 WELL', visual, statsRows, actionBtn };
+  }
+};

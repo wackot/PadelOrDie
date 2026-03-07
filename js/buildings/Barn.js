@@ -45,3 +45,27 @@ const BuildingBarn = {
   },
 
 };
+
+// ── Building screen data (for the bld-screen upgrade system) ──────────────
+const BuildingFridgeScreen = {
+  getScreenData(s) {
+    const inv  = s.inventory;
+    const food = inv.food || 0;
+    const foodCap = s.base.buildings.storage?.level >= 1
+      ? (State.data?.base?.maxFood || 100) : 100;
+    const visual = `<svg width="120" height="90" viewBox="0 0 120 90">
+      <rect x="30" y="18" width="60" height="58" fill="#2a1810" rx="3"/>
+      <rect x="30" y="18" width="60" height="14" fill="#3a2010" rx="3"/>
+      <rect x="38" y="38" width="18" height="16" fill="#1a1008" rx="1"/>
+      <rect x="64" y="38" width="18" height="16" fill="#1a1008" rx="1"/>
+      <text x="47" y="34" font-size="13" text-anchor="middle">🍖</text>
+      <text x="73" y="34" font-size="13" text-anchor="middle">🥫</text>
+      <text x="60" y="75" text-anchor="middle" font-size="9" fill="#888">${food}/${foodCap} food</text>
+    </svg>`;
+    const statsRows = `
+      <div class="bsc-row ok"><span>Food stored</span><span>${food}</span></div>
+      <div class="bsc-row"><span>Hunger rate</span><span>${Math.round((s.base?.hungerRate||0.5)*10)/10}/hr</span></div>`;
+    const actionBtn = `<button class="bsc-action-btn" onclick="Player.eat?.()">🍖 EAT</button>`;
+    return { title: '🥫 FOOD STORE', visual, statsRows, actionBtn };
+  }
+};

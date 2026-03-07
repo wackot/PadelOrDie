@@ -351,3 +351,27 @@ const BuildingHouse = {
   },
 
 };
+
+// ── Building screen data (for the bld-screen upgrade system) ──────────────
+const BuildingShelterScreen = {
+  getScreenData(s) {
+    const lv   = s.base.buildings.house?.level || 1;
+    const hLvl = lv;
+    const names = [
+      '🏚️ Hay Pile','🛏️ Mattress','🌿 Lean-to','🏠 Open Hut',
+      '🏚️ Wood Shack','🏡 Wood House','🪟 Glass House',
+      '🧱 Brick House','🏘️ Fancy House','🏰 Metal Fortress'
+    ];
+    const visual = `<svg width="120" height="90" viewBox="0 0 120 90">
+      ${BuildingHouse.svg(60, 55, hLvl, false, false)}
+    </svg>`;
+    const energy    = s.base.sleepBonus || 0;
+    const raidReduc = s.base.raidDamageMult !== undefined ? Math.round((1-s.base.raidDamageMult)*100) : 0;
+    const statsRows = `
+      <div class="bsc-row"><span>Level</span><span>${lv}/10 — ${names[lv-1]||''}</span></div>
+      <div class="bsc-row ok"><span>Sleep energy bonus</span><span>+${energy}%</span></div>
+      <div class="bsc-row ok"><span>Raid damage reduction</span><span>${raidReduc > 0 ? '-'+raidReduc+'%' : '—'}</span></div>`;
+    const actionBtn = `<button class="bsc-action-btn" data-goto="shelter">😴 SLEEP</button>`;
+    return { title: '🏠 SHELTER', visual, statsRows, actionBtn };
+  }
+};
