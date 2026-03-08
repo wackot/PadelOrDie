@@ -153,6 +153,10 @@ const Settings = {
                 🔌 DISCONNECT
               </button>
               <button class="sett-btn sett-btn-ghost"
+                onclick="BikeConfig.open()">
+                ⚙ CONFIGURE
+              </button>
+              <button class="sett-btn sett-btn-ghost"
                 onclick="if(confirm('Forget saved bike?')){Bluetooth.forget();Settings._refresh();}">
                 🗑 FORGET
               </button>

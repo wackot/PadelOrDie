@@ -1,58 +1,59 @@
 // ═══════════════════════════════════════════════════════════════════
-// PEDAL OR DIE — bluetooth.js  (v2 — verified against hardware)
+// PEDAL OR DIE — bluetooth.js  (v3)
 //
-// Supports three protocols, tried in order on every connect:
-//   1. iConsole+ / Abilica  (fff0 service, fff1 notify char)
-//   2. FTMS Indoor Bike     (fitness_machine service, 0x2AD2 char)
-//   3. CSC Cadence          (cycling_speed_and_cadence, 0x2A5B char)
-//   + Heart Rate            (heart_rate service, passive add-on)
+// Protocols (tried in order): iConsole+ → FTMS → CSC  +  Heart Rate
 //
-// KEY RULE: optionalServices must contain SERVICE UUIDs only.
-//   Characteristic UUIDs live in CHAR.* and are used only in
-//   getCharacteristic() calls — never in optionalServices.
+// KEY RULES:
+//  - optionalServices: SERVICE UUIDs only. Char UUIDs live in CHAR.*
+//  - Never writes State directly — all output via Events bus
+//  - Cadence bridge is ALWAYS-ON when BLE is connected, not just
+//    inside the dynamo session (fixes "no RPM in game" bug)
 //
-// OUTPUT — never writes State directly, always via Events bus:
-//   Events.emit('bike:pedal',       { rpm, source })
-//   Events.emit('bike:speed',       { kmh, source })
-//   Events.emit('bike:hr',          { bpm })
-//   Events.emit('bike:connected',   { name, displayName, protocol })
-//   Events.emit('bike:disconnected',{ name, reason })
-//   Events.emit('bike:reconnecting',{ attempt, max })
-//   Events.emit('bike:renamed',     { displayName })
-//   Events.emit('bike:error',       { message })
+// MAPPING CONFIG (saved in localStorage 'pod_ble_device'):
+//  mapping.rpmSource — which channel drives Cadence:
+//    'auto'            = use whatever the protocol naturally provides
+//    'iconsole_rpm'    = iConsole byte[8]
+//    'iconsole_speed'  = iConsole byte[6]/10 km/h → derived RPM
+//    'ftms_cadence'    = FTMS 0x2AD2 cadence field
+//    'ftms_speed'      = FTMS speed field → derived RPM
+//    'csc'             = CSC crank revolution delta
 //
-// SAVED CONNECTION — device id + user display name persisted in
-//   localStorage 'pod_ble_device'. On init, tries silent reconnect
-//   via navigator.bluetooth.getDevices() without showing the picker.
-//
-// AUTO-RECONNECT — on unexpected disconnect retries up to MAX_RETRIES
-//   times with RETRY_INTERVAL_MS gaps. User disconnect skips retry.
+// EVENTS EMITTED:
+//   bike:pedal        { rpm, source }      — drives Cadence
+//   bike:speed        { kmh, source }
+//   bike:hr           { bpm }
+//   bike:data         { channels }         — raw decoded values, every packet
+//   bike:connected    { name, displayName, protocol }
+//   bike:disconnected { name, reason }
+//   bike:reconnecting { attempt, max }
+//   bike:renamed      { displayName }
+//   bike:error        { message }
 // ════════════════════════════════════════════════════════════════════
 
 const Bluetooth = {
 
   // ── SERVICE UUIDs — the ONLY kind valid in optionalServices ───────
   SVC: {
-    ICONSOLE:  '0000fff0-0000-1000-8000-00805f9b34fb',  // iConsole+ / Abilica
-    ICONSOLE2: '0000ffe0-0000-1000-8000-00805f9b34fb',  // iConsole variant-B
-    FTMS:      'fitness_machine',                        // 0x1826
-    CSC:       'cycling_speed_and_cadence',              // 0x1816
-    HR:        'heart_rate',                             // 0x180D
-    BATT:      'battery_service',                        // 0x180F
-    DEVINFO:   'device_information',                     // 0x180A
-    UART:      '6e400001-b5a3-f393-e0a9-e50e24dcca9e',  // Nordic UART
+    ICONSOLE:  '0000fff0-0000-1000-8000-00805f9b34fb',
+    ICONSOLE2: '0000ffe0-0000-1000-8000-00805f9b34fb',
+    FTMS:      'fitness_machine',
+    CSC:       'cycling_speed_and_cadence',
+    HR:        'heart_rate',
+    BATT:      'battery_service',
+    DEVINFO:   'device_information',
+    UART:      '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
   },
 
   // ── CHARACTERISTIC UUIDs — NOT for optionalServices ──────────────
   CHAR: {
-    ICO_NOTIFY:   '0000fff1-0000-1000-8000-00805f9b34fb',
-    ICO_WRITE:    '0000fff2-0000-1000-8000-00805f9b34fb',
-    ICO2_NOTIFY:  '0000ffe1-0000-1000-8000-00805f9b34fb',
-    FTMS_DATA:    '00002ad2-0000-1000-8000-00805f9b34fb',
-    FTMS_CTRL:    '00002ad9-0000-1000-8000-00805f9b34fb',
-    CSC_MEAS:     '00002a5b-0000-1000-8000-00805f9b34fb',
-    HR_MEAS:      '00002a37-0000-1000-8000-00805f9b34fb',
-    UART_TX:      '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
+    ICO_NOTIFY:  '0000fff1-0000-1000-8000-00805f9b34fb',
+    ICO_WRITE:   '0000fff2-0000-1000-8000-00805f9b34fb',
+    ICO2_NOTIFY: '0000ffe1-0000-1000-8000-00805f9b34fb',
+    FTMS_DATA:   '00002ad2-0000-1000-8000-00805f9b34fb',
+    FTMS_CTRL:   '00002ad9-0000-1000-8000-00805f9b34fb',
+    CSC_MEAS:    '00002a5b-0000-1000-8000-00805f9b34fb',
+    HR_MEAS:     '00002a37-0000-1000-8000-00805f9b34fb',
+    UART_TX:     '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
   },
 
   MAX_RETRIES:       5,
@@ -73,15 +74,30 @@ const Bluetooth = {
     power: 0,
   },
 
-  _saved:          null,   // persisted: { id, name, displayName, protocol }
+  // ── Last decoded channels — used by BikeConfig panel ─────────────
+  // Updated every packet regardless of mapping. Shape:
+  //   { iconsole_rpm, iconsole_speed, iconsole_hr,
+  //     ftms_cadence, ftms_speed, ftms_power, ftms_hr,
+  //     csc_rpm, hr_bpm }
+  channels: {},
+
+  // ── Persisted: { id, name, displayName, protocol, mapping } ──────
+  _saved:          null,
+
+  // Default mapping — 'auto' = use whatever the protocol gives
+  _defaultMapping: { rpmSource: 'auto' },
+
   _csc:            { lastRevs: null, lastTime: null },
   _retryCount:     0,
   _retryTimer:     null,
   _userDisconnect: false,
   _onGattDisconnected: null,
 
+  // Always-on Cadence keepalive — runs even outside dynamo screen
+  _cadenceTimer: null,
+
   // ═════════════════════════════════════════════════════════════════
-  // INIT — called from main.js after DOM ready
+  // INIT
   // ═════════════════════════════════════════════════════════════════
   init() {
     try {
@@ -89,13 +105,27 @@ const Bluetooth = {
       if (raw) this._saved = JSON.parse(raw);
     } catch (_) {}
     if (this._saved) {
-      console.log('[BLE] Saved device:', this._saved.displayName || this._saved.name);
+      console.log('[BLE] Saved device:', this._saved.displayName || this._saved.name,
+        '| mapping:', JSON.stringify(this._saved.mapping || this._defaultMapping));
       this._trySilentReconnect();
     }
   },
 
+  // ── Get current mapping (falls back to saved, then default) ──────
+  getMapping() {
+    return this._saved?.mapping || this._defaultMapping;
+  },
+
+  // ── Save mapping ──────────────────────────────────────────────────
+  saveMapping(mapping) {
+    if (!this._saved) return;
+    this._saved.mapping = Object.assign({}, this._defaultMapping, mapping);
+    this._persist();
+    console.log('[BLE] Mapping saved:', this._saved.mapping);
+  },
+
   // ═════════════════════════════════════════════════════════════════
-  // PUBLIC — show picker and connect
+  // PUBLIC — connect
   // ═════════════════════════════════════════════════════════════════
   async connect(logFn) {
     const log = logFn || (() => {});
@@ -107,7 +137,6 @@ const Bluetooth = {
     }
     if (!this.state.enabled) { log('Disabled by Dev Mode.', 'warn'); return false; }
     if (this.state.connected) { log('Already connected.', 'warn'); return false; }
-
     this._cancelRetry();
     this._userDisconnect = false;
     log('Opening Bluetooth scanner…', 'info');
@@ -130,23 +159,20 @@ const Bluetooth = {
       else { log('Scan error: ' + err.message, 'error'); Events.emit('bike:error', { message: err.message }); }
       return false;
     }
-
     return this._doConnect(device, log);
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // PUBLIC — user-initiated disconnect (no retry)
+  // PUBLIC — disconnect (user-initiated, no retry)
   // ═════════════════════════════════════════════════════════════════
   disconnect() {
     this._userDisconnect = true;
     this._cancelRetry();
+    this._stopCadenceKeepAlive();
     if (this.state.device?.gatt?.connected) this.state.device.gatt.disconnect();
     else this._onDisconnected('user');
   },
 
-  // ═════════════════════════════════════════════════════════════════
-  // PUBLIC — rename the connected device
-  // ═════════════════════════════════════════════════════════════════
   rename(newName) {
     const name = (newName || '').trim();
     if (!name) return;
@@ -156,9 +182,6 @@ const Bluetooth = {
     Utils.toast('🚴 Bike renamed: "' + name + '"', 'good', 2000);
   },
 
-  // ═════════════════════════════════════════════════════════════════
-  // PUBLIC — forget saved device record
-  // ═════════════════════════════════════════════════════════════════
   forget() {
     this.disconnect();
     this._saved = null;
@@ -166,9 +189,6 @@ const Bluetooth = {
     Utils.toast('🔌 Saved bike forgotten.', 'info', 2000);
   },
 
-  // ═════════════════════════════════════════════════════════════════
-  // PUBLIC — Dev Mode enable/disable
-  // ═════════════════════════════════════════════════════════════════
   setEnabled(v) {
     this.state.enabled = v;
     if (!v && this.state.connected) this.disconnect();
@@ -177,6 +197,34 @@ const Bluetooth = {
 
   isAvailable() {
     return typeof navigator !== 'undefined' && !!navigator.bluetooth;
+  },
+
+  // ═════════════════════════════════════════════════════════════════
+  // ALWAYS-ON CADENCE KEEPALIVE
+  // When BLE is connected we keep Cadence running at all times so
+  // bike:pedal events drive the game even outside the dynamo screen.
+  // ═════════════════════════════════════════════════════════════════
+  _startCadenceKeepAlive() {
+    this._stopCadenceKeepAlive();
+    // Ensure Cadence is started (idempotent — checking _active)
+    if (typeof Cadence !== 'undefined' && !Cadence._active) {
+      Cadence.start();
+    }
+    // Every 2s, if Cadence stopped externally (e.g. dynamo stopSession),
+    // restart it so BLE data keeps flowing into the window
+    this._cadenceTimer = setInterval(() => {
+      if (!this.state.connected) { this._stopCadenceKeepAlive(); return; }
+      if (typeof Cadence !== 'undefined' && !Cadence._active) {
+        Cadence.start();
+      }
+    }, 2000);
+    console.log('[BLE] Cadence keepalive started');
+  },
+
+  _stopCadenceKeepAlive() {
+    if (this._cadenceTimer) { clearInterval(this._cadenceTimer); this._cadenceTimer = null; }
+    // Don't stop Cadence here — dynamo session manages that
+    console.log('[BLE] Cadence keepalive stopped');
   },
 
   // ═════════════════════════════════════════════════════════════════
@@ -191,7 +239,6 @@ const Bluetooth = {
 
     log('Found: "' + this.state.deviceName + '". Connecting GATT…', 'info');
 
-    // Bind disconnect listener (remove previous to avoid duplicates)
     if (this._onGattDisconnected) {
       device.removeEventListener('gattserverdisconnected', this._onGattDisconnected);
     }
@@ -222,14 +269,19 @@ const Bluetooth = {
     this.state.protocol  = proto;
     this.state.connected = true;
     this._retryCount     = 0;
+    this.channels        = {};
 
     this._subscribeHR(server, log).catch(() => {});
+    this._startCadenceKeepAlive();
 
     this._saved = {
       id:          device.id,
       name:        device.name || '',
       displayName: this.state.displayName,
       protocol:    proto,
+      mapping:     this._saved?.id === device.id
+                     ? (this._saved.mapping || this._defaultMapping)
+                     : this._defaultMapping,
     };
     this._persist();
 
@@ -238,6 +290,8 @@ const Bluetooth = {
       name:        this.state.deviceName,
       displayName: this.state.displayName,
       protocol:    proto,
+      // flag: does this device already have a saved mapping?
+      hasMapping:  !!(this._saved.mapping && this._saved.mapping.rpmSource !== 'auto'),
     });
     Utils.toast('🚴 ' + this.state.displayName + ' connected (' + proto.toUpperCase() + ')', 'good', 4000);
     return true;
@@ -271,8 +325,9 @@ const Bluetooth = {
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // iCONSOLE+ — 16-byte packet, header 0xF0, type 0xD1, XOR checksum
-  //   [6] speed ÷10 = km/h  [8] RPM  [14] HR  [15] checksum
+  // iCONSOLE+ PARSER
+  // 16-byte packet: [0]=0xF0 [1]=0xD1 [6]=speed/10 [8]=RPM [14]=HR
+  // [15] = XOR checksum of bytes 1..14
   // ═════════════════════════════════════════════════════════════════
   async _subscribeIConsole(svc, log) {
     let notifyChar = null;
@@ -295,18 +350,48 @@ const Bluetooth = {
     let xor = 0;
     for (let i = 1; i < 15; i++) xor ^= dv.getUint8(i);
     if (xor !== dv.getUint8(15) || dv.getUint8(1) !== 0xD1) return;
-    const rpm = dv.getUint8(8);
-    const kmh = dv.getUint8(6) / 10;
-    const hr  = dv.getUint8(14);
-    this.state.rpm = rpm; this.state.kmh = kmh;
+
+    const rpm   = dv.getUint8(8);
+    const kmh   = dv.getUint8(6) / 10;
+    const hr    = dv.getUint8(14);
+    const level = dv.getUint8(9);
+    const dist  = dv.getUint16(10, true);
+    const cal   = dv.getUint16(12, true);
+
+    // Update raw channel buffer (always, regardless of mapping)
+    this.channels.iconsole_rpm   = rpm;
+    this.channels.iconsole_speed = kmh;
+    this.channels.iconsole_hr    = hr;
+    this.channels.iconsole_level = level;
+    this.channels.iconsole_dist  = dist;
+    this.channels.iconsole_cal   = cal;
+
+    this.state.kmh = kmh;
     if (hr > 0) this.state.bpm = hr;
-    if (rpm > 0) Events.emit('bike:pedal', { rpm, source: 'iconsole' });
-    if (kmh > 0) Events.emit('bike:speed', { kmh, source: 'iconsole' });
+
+    Events.emit('bike:data', { channels: Object.assign({}, this.channels) });
     if (hr > 30 && hr < 250) Events.emit('bike:hr', { bpm: hr });
+    if (kmh > 0) Events.emit('bike:speed', { kmh, source: 'iconsole' });
+
+    // Apply mapping to decide what drives RPM
+    const src = this.getMapping().rpmSource;
+    let effectiveRpm = 0;
+    if (src === 'iconsole_speed') {
+      // Derive RPM from speed: assume ~0.7m wheel circumference, typical cadence ratio
+      // RPM = (speed_kmh * 1000/60) / (wheel_circ_m * gear_ratio)
+      // Simple heuristic: 60 RPM ≈ 20 km/h for most stationary bikes
+      effectiveRpm = Math.round(kmh * 3);
+    } else {
+      // 'auto' or 'iconsole_rpm' — use byte[8] directly
+      effectiveRpm = rpm;
+    }
+
+    this.state.rpm = effectiveRpm;
+    if (effectiveRpm > 0) Events.emit('bike:pedal', { rpm: effectiveRpm, source: 'iconsole' });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // FTMS — Indoor Bike Data 0x2AD2, flag-driven variable-length
+  // FTMS PARSER — variable-length, flag-driven
   // ═════════════════════════════════════════════════════════════════
   async _subscribeFTMS(svc, log) {
     const char = await svc.getCharacteristic(this.CHAR.FTMS_DATA);
@@ -321,7 +406,9 @@ const Bluetooth = {
   _parseFTMS(dv) {
     if (!this.state.enabled || dv.byteLength < 2) return;
     const flags = dv.getUint16(0, true);
-    let off = 2, rpm = 0, kmh = 0, power = 0, hr = 0;
+    let off = 2;
+    let kmh = 0, rpm = 0, power = 0, hr = 0;
+
     if (!(flags & 0x0001) && dv.byteLength >= off+2) { kmh   = dv.getUint16(off, true) / 100; off += 2; }
     if (flags & 0x0002) off += 2;
     if ((flags & 0x0004) && dv.byteLength >= off+2)  { rpm   = dv.getUint16(off, true) / 2;   off += 2; }
@@ -332,14 +419,34 @@ const Bluetooth = {
     if (flags & 0x0080) off += 2;
     if (flags & 0x0100) off += 5;
     if ((flags & 0x0200) && dv.byteLength >= off+1)  { hr    = dv.getUint8(off);               off += 1; }
-    if (rpm > 0)   { this.state.rpm = rpm;   Events.emit('bike:pedal', { rpm, source: 'ftms' }); }
-    if (kmh > 0)   { this.state.kmh = kmh;   Events.emit('bike:speed', { kmh, source: 'ftms' }); }
-    if (power)     { this.state.power = power; }
-    if (hr > 30 && hr < 250) { this.state.bpm = hr; Events.emit('bike:hr', { bpm: hr }); }
+
+    this.channels.ftms_cadence = rpm;
+    this.channels.ftms_speed   = kmh;
+    this.channels.ftms_power   = power;
+    this.channels.ftms_hr      = hr;
+
+    this.state.power = power;
+    if (kmh > 0) this.state.kmh = kmh;
+    if (hr > 30 && hr < 250) this.state.bpm = hr;
+
+    Events.emit('bike:data', { channels: Object.assign({}, this.channels) });
+    if (kmh > 0) Events.emit('bike:speed', { kmh, source: 'ftms' });
+    if (hr > 30 && hr < 250) Events.emit('bike:hr', { bpm: hr });
+
+    const src = this.getMapping().rpmSource;
+    let effectiveRpm = 0;
+    if (src === 'ftms_speed') {
+      effectiveRpm = Math.round(kmh * 3);
+    } else {
+      effectiveRpm = rpm; // 'auto' or 'ftms_cadence'
+    }
+
+    this.state.rpm = effectiveRpm;
+    if (effectiveRpm > 0) Events.emit('bike:pedal', { rpm: effectiveRpm, source: 'ftms' });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // CSC — delta crank revs / delta event time → RPM
+  // CSC PARSER
   // ═════════════════════════════════════════════════════════════════
   async _subscribeCSC(svc, log) {
     const char = await svc.getCharacteristic(this.CHAR.CSC_MEAS);
@@ -363,12 +470,16 @@ const Bluetooth = {
     if (!dT || !dR) return;
     const rpm = Math.round((dR / (dT / 1024)) * 60);
     if (rpm < 5 || rpm > 300) return;
+
+    this.channels.csc_rpm = rpm;
     this.state.rpm = rpm;
+
+    Events.emit('bike:data', { channels: Object.assign({}, this.channels) });
     Events.emit('bike:pedal', { rpm, source: 'csc' });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // HEART RATE — supplementary, non-fatal if absent
+  // HEART RATE
   // ═════════════════════════════════════════════════════════════════
   async _subscribeHR(server, log) {
     const svc  = await server.getPrimaryService(this.SVC.HR);
@@ -377,12 +488,16 @@ const Bluetooth = {
     char.addEventListener('characteristicvaluechanged', e => {
       const dv  = e.target.value;
       const bpm = (dv.getUint8(0) & 0x01) ? dv.getUint16(1, true) : dv.getUint8(1);
-      if (bpm > 30 && bpm < 250) { this.state.bpm = bpm; Events.emit('bike:hr', { bpm }); }
+      if (bpm > 30 && bpm < 250) {
+        this.state.bpm = bpm;
+        this.channels.hr_bpm = bpm;
+        Events.emit('bike:hr', { bpm });
+      }
     });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // DISCONNECT + AUTO-RECONNECT (5 attempts × 5s)
+  // DISCONNECT + AUTO-RECONNECT
   // ═════════════════════════════════════════════════════════════════
   _onDisconnected(reason) {
     const wasConnected   = this.state.connected;
@@ -395,6 +510,7 @@ const Bluetooth = {
     if (!wasConnected) return;
 
     if (this._userDisconnect) {
+      this._stopCadenceKeepAlive();
       this._reset();
       Utils.toast('🔌 ' + name + ' disconnected.', 'info', 3000);
       return;
@@ -409,6 +525,7 @@ const Bluetooth = {
     if (this._retryCount >= this.MAX_RETRIES) {
       Utils.toast('📡 Could not reconnect after ' + this.MAX_RETRIES + ' attempts.', 'bad', 5000);
       Events.emit('bike:error', { message: 'Reconnect failed after max retries.' });
+      this._stopCadenceKeepAlive();
       this._reset();
       return;
     }
@@ -430,12 +547,14 @@ const Bluetooth = {
           this.state.connected = true;
           this._retryCount     = 0;
           this._subscribeHR(server, null).catch(() => {});
+          this._startCadenceKeepAlive();
           const name = this.state.displayName || this.state.deviceName;
           Utils.toast('🚴 ' + name + ' reconnected!', 'good', 4000);
           Events.emit('bike:connected', {
             name:        this.state.deviceName,
             displayName: this.state.displayName,
             protocol:    proto,
+            hasMapping:  !!(this._saved?.mapping?.rpmSource && this._saved.mapping.rpmSource !== 'auto'),
           });
         } else {
           this._scheduleRetry(device);
@@ -452,7 +571,6 @@ const Bluetooth = {
     this._retryCount = 0;
   },
 
-  // ─── Silent reconnect on page load (no picker) ───────────────────
   async _trySilentReconnect() {
     if (!navigator.bluetooth.getDevices) return;
     try {
@@ -477,17 +595,20 @@ const Bluetooth = {
     this.state.rpm = 0; this.state.kmh = 0; this.state.bpm = 0; this.state.power = 0;
     this._csc.lastRevs = null; this._csc.lastTime = null;
     this._userDisconnect = false;
+    this.channels = {};
   },
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// CADENCE BRIDGE — RPM → Cadence rolling window
-// The only place where BLE RPM is translated to cadence engine input.
-// cadence.js itself is unchanged.
+// CADENCE BRIDGE — bike:pedal → Cadence rolling window
+// Always-on: Cadence._active is kept true by _startCadenceKeepAlive,
+// so this fires even when the user is not in the dynamo screen.
 // ═══════════════════════════════════════════════════════════════════
 Events.on('bike:pedal', ({ rpm }) => {
-  if (typeof Cadence === 'undefined' || !Cadence._active) return;
+  if (typeof Cadence === 'undefined') return;
   if (!Bluetooth.state.enabled) return;
+  // Ensure Cadence is running (keepalive should have started it)
+  if (!Cadence._active) Cadence.start();
   const revsPerSec = Math.max(1, Math.round(rpm / 60));
   const now = Date.now();
   for (let i = 0; i < revsPerSec; i++) {

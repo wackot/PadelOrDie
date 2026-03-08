@@ -299,7 +299,7 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.39 — Decoupled Architecture');
+    console.log('[Game] Initializing Pedal or Die v0.40 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {
@@ -334,6 +334,14 @@ const Game = {
         // Refresh settings panel on any connection state change
         ['bike:connected', 'bike:disconnected', 'bike:reconnecting', 'bike:renamed'].forEach(ev => {
           Events.on(ev, () => { if (Settings._visible) Settings._refresh(); });
+        });
+
+        // Open instrument config panel after new connection (skip if mapping already saved)
+        Events.on('bike:connected', ({ hasMapping }) => {
+          if (!hasMapping && typeof BikeConfig !== 'undefined') {
+            // Brief delay so toast settles first
+            setTimeout(() => BikeConfig.open(), 800);
+          }
         });
       }
 
