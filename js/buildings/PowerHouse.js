@@ -125,3 +125,26 @@ const BuildingElecBench = {
     </g>`;
   },
 };
+
+// ── Power House building screen ──────────────────────────────────────────
+const BuildingPowerhouseScreen = {
+  getScreenData(s) {
+    const lv  = s.base.buildings.powerhouse?.level || 0;
+    const pw  = s.power;
+    const gen = typeof Power !== 'undefined' ? Power.getGenerationRate() : 0;
+    const max = typeof Power !== 'undefined' ? Power.getMaxStorage() : 0;
+    const stor = Math.round(pw?.stored || 0);
+    const pct  = max > 0 ? Math.round((stor / max) * 100) : 0;
+
+    const visual = `<div style="font-size:2.8em;text-align:center;padding:12px">⚡</div>`;
+    const statsRows = lv === 0
+      ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+      : `<div class="bsc-row"><span>Level</span><span>${lv}</span></div>
+         <div class="bsc-row ok"><span>Generation</span><span>${gen}W/hr</span></div>
+         <div class="bsc-row"><span>Battery</span><span>${stor}/${max} Wh (${pct}%)</span></div>`;
+    const actionBtn = lv > 0
+      ? `<button class="bsc-action-btn" onclick="Events.emit('navigate',{screen:'power'});Events.emit('power:render')">⚡ POWER PANEL</button>`
+      : '';
+    return { title: '⚡ POWER HOUSE', visual, statsRows, actionBtn };
+  }
+};

@@ -304,3 +304,28 @@ const DynamoBike = {
 Events.on('dynamo_bike:render', () => {
   DynamoBike.renderScreen?.();
 });
+
+// ── Dynamo Bike building screen ──────────────────────────────────────────
+const BuildingDynamoBikeScreen = {
+  getScreenData(s) {
+    const lv   = s.base.buildings.dynamo_bike?.level || 0;
+    const gen  = s.power?.generators?.bike;
+    const maxW = [0, 8, 16, 24, 32, 40][lv] || 0;
+    const cpm  = s.cadence?.clicksPerMinute || 0;
+    const tgt  = s.cadence?.targetCPM || 60;
+    const ratio = Math.min(cpm / tgt, 2);
+    const actual = lv > 0 ? Math.round(maxW * ratio * 10) / 10 : 0;
+
+    const visual = `<div style="font-size:2.8em;text-align:center;padding:12px">🚴⚡</div>`;
+    const statsRows = lv === 0
+      ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+      : `<div class="bsc-row"><span>Level</span><span>${lv} / 5</span></div>
+         <div class="bsc-row ok"><span>Max output</span><span>${maxW}W</span></div>
+         <div class="bsc-row"><span>Current CPM</span><span>${cpm}</span></div>
+         <div class="bsc-row ok"><span>Generating now</span><span>${actual}W</span></div>`;
+    const actionBtn = lv > 0
+      ? `<button class="bsc-action-btn" onclick="Events.emit('navigate',{screen:'dynamo-bike'});Events.emit('dynamo_bike:render')">🚴 PEDAL DYNAMO</button>`
+      : '';
+    return { title: '⚡ DYNAMO BIKE', visual, statsRows, actionBtn };
+  }
+};
