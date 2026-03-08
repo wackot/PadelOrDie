@@ -299,7 +299,7 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.36 — Decoupled Architecture');
+    console.log('[Game] Initializing Pedal or Die v0.37 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {
@@ -324,6 +324,9 @@ const Game = {
       this._bindWell();
       this._bindAudio();
       this._bindPause();
+
+      // Init settings (loads saved prefs, applies brightness + volumes)
+      Settings.init();
 
       // Show main menu + start menu music after first interaction
       Utils.showScreen('menu');

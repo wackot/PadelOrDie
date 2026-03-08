@@ -8,16 +8,17 @@ const DevMode = {
 
   // ── State: which toggles are ON ──────────────────────
   flags: {
-    clickMode:     false,   // true = mouse clicks count as pedalling (no bike needed)
-    instantBuild:  false,   // true = build time reduced to 1s
-    instantTravel: false,   // true = travel speed ×20 (arrives in ~5s)
-    instantForage: false,   // true = foraging duration 15s instead of real time
-    noDrain:       false,   // true = hunger/thirst/energy don't drain
-    noRaids:       false,   // true = raids never trigger
-    richInventory: false,   // true = start with 999 of every resource
-    daySkip:       false,   // pulse: advance 1 day when clicked
-    godMode:       false,   // true = all vitals capped at 100 each tick
-    unlockAll:     false,   // true = unlock all map locations immediately
+    clickMode:      false,   // true = mouse clicks count as pedalling (no bike needed)
+    cadenceSensor:  true,    // true = BLE cadence sensor input active (false = sensor disabled)
+    instantBuild:   false,   // true = build time reduced to 1s
+    instantTravel:  false,   // true = travel speed ×20 (arrives in ~5s)
+    instantForage:  false,   // true = foraging duration 15s instead of real time
+    noDrain:        false,   // true = hunger/thirst/energy don't drain
+    noRaids:        false,   // true = raids never trigger
+    richInventory:  false,   // true = start with 999 of every resource
+    daySkip:        false,   // pulse: advance 1 day when clicked
+    godMode:        false,   // true = all vitals capped at 100 each tick
+    unlockAll:      false,   // true = unlock all map locations immediately
   },
 
   _panel: null,
@@ -49,7 +50,8 @@ const DevMode = {
       {
         label: '⌨️ INPUT',
         items: [
-          { key: 'clickMode', label: 'Click Mode', desc: 'Mouse clicks = pedal strokes (no bike cadence needed)' },
+          { key: 'clickMode',     label: 'Click Mode',      desc: 'Mouse clicks = pedal strokes (no bike cadence needed)' },
+          { key: 'cadenceSensor', label: 'Cadence Sensor',  desc: 'Enable/disable BLE cadence sensor input (toggle in Settings)' },
         ]
       },
       {
@@ -179,9 +181,19 @@ const DevMode = {
         case 'instantTravel':
           Utils.toast('🚀 Fast Travel ON — world map travel ~5s', 'good', 2500);
           break;
+        case 'cadenceSensor':
+          if (typeof Settings !== 'undefined') Settings.setBleEnabled(true);
+          Utils.toast('📡 Cadence Sensor input ENABLED', 'good', 2500);
+          break;
       }
     } else {
-      Utils.toast(`🛠 ${key} OFF`, 'info', 1500);
+      // Specific OFF effects
+      if (key === 'cadenceSensor' && typeof Settings !== 'undefined') {
+        Settings.setBleEnabled(false);
+        Utils.toast('📡 Cadence Sensor input DISABLED', 'info', 2000);
+      } else {
+        Utils.toast(`🛠 ${key} OFF`, 'info', 1500);
+      }
     }
   },
 

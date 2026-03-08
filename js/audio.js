@@ -11,11 +11,13 @@ const Audio = {
   _masterGain:   null,
   _musicGain:    null,
   _sfxGain:      null,
+  _monsterGain:  null,   // separate gain for raid/monster sounds
   _currentTrack: null,
   _trackNodes:   [],    // all nodes for current track (stop them all)
   _muted:        false,
   _musicVol:     0.35,
   _sfxVol:       0.55,
+  _monsterVol:   0.70,   // raid/monster SFX volume (independent)
   _fadeTimer:    null,
 
   // ── Init Web Audio context ─────────────────
@@ -34,6 +36,10 @@ const Audio = {
       this._sfxGain = this._ctx.createGain();
       this._sfxGain.gain.value = this._sfxVol;
       this._sfxGain.connect(this._masterGain);
+
+      this._monsterGain = this._ctx.createGain();
+      this._monsterGain.gain.value = this._monsterVol;
+      this._monsterGain.connect(this._masterGain);
 
       // Load mute prefs
       const saved = localStorage.getItem('pod_muted');
@@ -548,6 +554,14 @@ const Audio = {
     fn(this._ctx, this._sfxGain);
   },
 
+  // Raid/monster sfx routed through separate _monsterGain (independent volume)
+  _monsterSfx(fn) {
+    if (!this._ctx || this._muted) return;
+    this._resume();
+    const out = this._monsterGain || this._sfxGain;
+    fn(this._ctx, out);
+  },
+
   // Pedal click — quick mechanical click
   sfxPedal() {
     this._sfx((ctx, out) => {
@@ -644,7 +658,7 @@ const Audio = {
 
   // Raid alarm — pulsing siren
   sfxRaidAlert() {
-    this._sfx((ctx, out) => {
+    this._monsterSfx((ctx, out) => {
       [440, 523.25, 440, 523.25].forEach((freq, i) => {
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -661,7 +675,7 @@ const Audio = {
 
   // Victory / raid repelled
   sfxVictory() {
-    this._sfx((ctx, out) => {
+    this._monsterSfx((ctx, out) => {
       [392, 523.25, 659.25, 783.99].forEach((freq, i) => {
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -678,7 +692,7 @@ const Audio = {
 
   // Defeat / resource loss
   sfxDefeat() {
-    this._sfx((ctx, out) => {
+    this._monsterSfx((ctx, out) => {
       [392, 349.23, 311.13, 261.63].forEach((freq, i) => {
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -791,6 +805,16 @@ const Audio = {
   setSfxVol(v) {
     this._sfxVol = Utils.clamp(v, 0, 1);
     if (this._sfxGain) this._sfxGain.gain.value = this._sfxVol;
+  },
+
+  setMonsterVol(v) {
+    this._monsterVol = Utils.clamp(v, 0, 1);
+    if (this._monsterGain) this._monsterGain.gain.value = this._monsterVol;
+  },
+
+  setMasterVol(v) {
+    const vol = Utils.clamp(v, 0, 1);
+    if (this._masterGain && !this._muted) this._masterGain.gain.value = vol;
   },
 
   _updateMuteBtn() {
