@@ -314,3 +314,31 @@ drops: [
 - `.consumer-auto-badge` — "⚡ AUTO" / "🔒" badge
 - `#hud-power` — flex layout for multi-segment HUD display
 
+
+---
+
+## v0.34 Changes
+
+### Issue 14 — Pause now actually pauses the game
+- `Base.togglePause()` implemented in `base.js`
+- Sets `DayNight._paused = true/false` — the tick guard at line 56 of `daynight.js` was already present but the function was never defined
+- `Cadence._decayCPM()` guards against running while `Base._paused` — CPM no longer drains during pause
+- `Cadence.registerClick()` guards against pedal input being registered during pause
+- Pause overlay HTML added to `index.html` (`#pause-overlay`, class `pause-overlay hidden`)
+- CSS for pause overlay was already present in `base.css` — just needed the HTML and the function
+- `btn-pause` icon toggles ⏸/▶ to reflect state
+
+### Issue 15 — Back to base button from world map
+- Root cause: `btn-abort-travel` handler had broken self-assignment `playerAway = (playerAway)` — now fixed to `= false`
+- `btn-back-from-map` changed from `btn-secondary` to `btn-primary` and label expanded to `← BACK TO BASE` for visibility
+- `btn-abort-travel` relabelled to `← BACK TO BASE` and changed to `btn-primary` so it's clearly visible during travel
+- Note: during active travel `wm-travel-active` (z-index:30, inset:0) covers the header — `← BACK TO BASE` inside the travel panel is the correct back path during travel
+
+### Issue 17 — Base graphics grow with shelter upgrade
+- Root cause: `GroundCanvas.js` had `yardW = 920, yardH = 920` hardcoded regardless of `hLvl`
+- Also had swapped `ix/iy` variable names in inner yard fill loop (now `xMin/yMin`)
+- Fix: `yardGrow = (hLvl-1)/9 * (1380-620)` — yard expands from 620×620 at Lv1 to 1380×1380 at Lv10 (full fence interior)
+- `yardX = (W - yardW) / 2` — yard is always centred in the 1500×1500 canvas
+- Brick walls (Lv8+), inner yard fill, and all `yardX/yardY/yardW/yardH` references now use the scaled values automatically
+- Every `map:changed` event (fired after building upgrades) already triggers `Base.updateNight() → BuildingGroundCanvas.draw()` — no new event wiring needed
+

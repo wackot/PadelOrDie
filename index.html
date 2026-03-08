@@ -372,5 +372,14 @@
   <script src="js/devmode.js"></script>
   <script src="js/main.js"></script>
 
+  <!-- ── Pause overlay ─────────────────────────────────── -->
+  <div id="pause-overlay" class="pause-overlay hidden">
+    <div class="pause-title">⏸ PAUSED</div>
+    <div class="pause-buttons">
+      <button class="btn-pixel btn-primary" onclick="Base.togglePause()">▶ RESUME</button>
+      <button class="btn-pixel btn-secondary" onclick="SaveSystem.saveGame();Utils.toast('Game saved!','good',2000)">💾 SAVE GAME</button>
+    </div>
+  </div>
+
 </body>
 </html>
