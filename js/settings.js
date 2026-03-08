@@ -18,16 +18,6 @@ const Settings = {
     brightness:  1.0,    // CSS filter brightness multiplier
   },
 
-  // ── Bluetooth sensor state ─────────────────────────
-  _ble: {
-    device:         null,
-    characteristic: null,
-    connected:      false,
-    enabled:        true,    // can be disabled by dev mode
-    _lastRevs:      null,
-    _lastTime:      null,
-  },
-
   // ─────────────────────────────────────────────────────
   // Init — load persisted prefs and apply them
   // ─────────────────────────────────────────────────────
@@ -87,8 +77,18 @@ const Settings = {
   // Build panel HTML
   // ─────────────────────────────────────────────────────
   _buildHTML() {
-    const s = this._prefs;
-    const ble = this._ble;
+    const s   = this._prefs;
+    // Delegate BLE state to Bluetooth module (settings.js only owns the UI)
+    const ble = typeof Bluetooth !== 'undefined' ? Bluetooth.state : null;
+    const bleConnected  = ble?.connected  || false;
+    const bleEnabled    = ble?.enabled    ?? true;
+    const bleDeviceName = ble?.deviceName || '';
+    const bleProtocol   = ble?.protocol   || '';
+    const bleRpm        = ble?.rpm        || 0;
+    const bleStatusIcon = bleConnected ? '🟢' : '⚫';
+    const bleStatusText = bleConnected
+      ? `${bleDeviceName} · ${bleProtocol.toUpperCase()} · ${bleRpm} RPM`
+      : 'No bike connected';
 
     const slider = (id, label, icon, value, min=0, max=1, step=0.05) => `
       <div class="sett-row">
@@ -101,10 +101,6 @@ const Settings = {
           <span class="sett-value" id="sett-val-${id}">${Math.round(value * 100)}%</span>
         </div>
       </div>`;
-
-    const bleStatusIcon = ble.connected ? '🟢' : ble.device ? '🟡' : '⚫';
-    const bleStatusText = ble.connected ? 'Connected' : ble.device ? 'Paired (not active)' : 'Not connected';
-    const bleSensorEnabled = ble.enabled;
 
     return `
       <div class="sett-header">
@@ -127,23 +123,27 @@ const Settings = {
         </div>
 
         <div class="sett-section">
-          <div class="sett-section-label">🚴 CADENCE SENSOR</div>
+          <div class="sett-section-label">🚴 BIKE SENSOR</div>
           <div class="sett-ble-status">
             <span class="sett-ble-icon">${bleStatusIcon}</span>
             <span class="sett-ble-text">${bleStatusText}</span>
-            ${ble.enabled ? '' : '<span class="sett-ble-disabled">⚠ Disabled by Dev Mode</span>'}
+            ${!bleEnabled ? '<span class="sett-ble-disabled">⚠ Disabled by Dev Mode</span>' : ''}
           </div>
-          ${ble.connected
-            ? `<button class="sett-btn sett-btn-danger" onclick="Settings.bleDisconnect()">🔌 DISCONNECT</button>`
-            : `<button class="sett-btn sett-btn-primary" onclick="Settings.bleSearch()"
-                ${!ble.enabled ? 'disabled title="Disabled by Dev Mode"' : ''}>
-                🔍 SEARCH FOR SENSOR
+          ${bleConnected
+            ? `<button class="sett-btn sett-btn-danger"
+                onclick="Bluetooth.disconnect();setTimeout(()=>Settings._refresh(),400)">
+                🔌 DISCONNECT
+              </button>`
+            : `<button class="sett-btn sett-btn-primary"
+                onclick="Bluetooth.connect(Settings._bleLog.bind(Settings)).then(ok=>ok&&Settings._refresh())"
+                ${!bleEnabled ? 'disabled title="Disabled by Dev Mode"' : ''}>
+                🔍 SEARCH FOR BIKE
               </button>`
           }
           <div class="sett-ble-log" id="sett-ble-log"></div>
           <div class="sett-ble-hint">
-            Pair a Bluetooth CSC (Cycling Speed &amp; Cadence) sensor.<br>
-            Supported: Garmin, Wahoo, Polar, most ANT+/BLE sensors.
+            Supports Abilica / iConsole+, FTMS fitness machines,<br>
+            and standard CSC sensors (Garmin, Wahoo, Polar).
           </div>
         </div>
 
@@ -179,144 +179,12 @@ const Settings = {
   },
 
   // ─────────────────────────────────────────────────────
-  // BLE Cadence Sensor — Web Bluetooth API
-  // CSC Service: 0x1816  |  CSC Measurement char: 0x2A5B
-  // ─────────────────────────────────────────────────────
   _bleLog(msg, cls = '') {
     const el = document.getElementById('sett-ble-log');
     if (!el) return;
     el.innerHTML = `<span class="${cls}">${msg}</span>`;
   },
 
-  async bleSearch() {
-    if (!navigator.bluetooth) {
-      this._bleLog('❌ Web Bluetooth not available in this browser. Use Chrome/Edge on desktop.', 'ble-error');
-      return;
-    }
-    if (!this._ble.enabled) {
-      this._bleLog('⚠ Sensor input disabled by Dev Mode.', 'ble-warn');
-      return;
-    }
-
-    this._bleLog('🔍 Scanning… allow Bluetooth in your browser popup.', 'ble-info');
-
-    try {
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['cycling_speed_and_cadence'] },
-          { services: [0x1816] },
-        ],
-        optionalServices: ['cycling_speed_and_cadence', 0x1816],
-      });
-
-      this._bleLog(`📡 Found: ${device.name || 'Unnamed device'}. Connecting…`, 'ble-info');
-      this._ble.device = device;
-
-      device.addEventListener('gattserverdisconnected', () => {
-        this._ble.connected = false;
-        this._ble.characteristic = null;
-        Utils.toast('📡 Cadence sensor disconnected.', 'info', 3000);
-        this._refresh();
-      });
-
-      const server  = await device.gatt.connect();
-      const service = await server.getPrimaryService('cycling_speed_and_cadence');
-      const char    = await service.getCharacteristic('csc_measurement');
-
-      this._ble.characteristic = char;
-      this._ble.connected      = true;
-      this._ble._lastRevs      = null;
-      this._ble._lastTime      = null;
-
-      await char.startNotifications();
-      char.addEventListener('characteristicvaluechanged', e => this._onBLEData(e));
-
-      this._bleLog(`✅ Connected to ${device.name || 'sensor'}! Pedal to start generating.`, 'ble-ok');
-      Utils.toast(`🚴 BLE sensor connected: ${device.name || 'cadence sensor'}`, 'good', 4000);
-      this._refresh();
-
-    } catch (err) {
-      if (err.name === 'NotFoundError') {
-        this._bleLog('🔎 No sensor selected (search cancelled).', 'ble-warn');
-      } else {
-        this._bleLog(`❌ ${err.message || err}`, 'ble-error');
-        console.warn('[BLE] Error:', err);
-      }
-    }
-  },
-
-  bleDisconnect() {
-    if (this._ble.device?.gatt?.connected) {
-      this._ble.device.gatt.disconnect();
-    }
-    this._ble.connected      = false;
-    this._ble.device         = null;
-    this._ble.characteristic = null;
-    this._bleLog('Disconnected.', 'ble-info');
-    Utils.toast('📡 Cadence sensor disconnected.', 'info', 2000);
-    this._refresh();
-  },
-
-  // ── Parse CSC Measurement packet ─────────────────────
-  // Byte 0: flags (bit 0 = wheel present, bit 1 = crank present)
-  // If crank present (bit 1): bytes 1-2 = crank revs (uint16), bytes 3-4 = last crank event time (uint16, 1/1024s)
-  _onBLEData(event) {
-    if (!this._ble.enabled) return;
-    const val   = event.target.value;
-    const flags = val.getUint8(0);
-    const hasCrank = (flags & 0x02) !== 0;
-    if (!hasCrank) return;
-
-    // Crank data starts at offset 1 if no wheel data, or offset 5 if wheel data present
-    const hasWheel = (flags & 0x01) !== 0;
-    const off      = hasWheel ? 5 : 1;
-    if (val.byteLength < off + 4) return;
-
-    const revs    = val.getUint16(off,     true);  // cumulative crank revolutions
-    const rawTime = val.getUint16(off + 2, true);  // last crank event time (1/1024 sec units)
-
-    const prev = this._ble;
-    if (prev._lastRevs === null) {
-      prev._lastRevs = revs;
-      prev._lastTime = rawTime;
-      return;
-    }
-
-    // Handle 16-bit rollover
-    const dRevs = (revs - prev._lastRevs + 65536) % 65536;
-    const dTime = (rawTime - prev._lastTime + 65536) % 65536;
-
-    prev._lastRevs = revs;
-    prev._lastTime = rawTime;
-
-    if (dTime === 0 || dRevs === 0) return;
-
-    // Convert to CPM: dRevs / (dTime / 1024) * 60
-    const cpm = Math.round((dRevs / (dTime / 1024)) * 60);
-    if (cpm < 10 || cpm > 300) return; // sanity check
-
-    // Inject synthetic click timestamps into Cadence to match the measured CPM
-    // We push `dRevs` clicks spread over dTime/1024 seconds
-    const nowMs       = Date.now();
-    const dSecs       = dTime / 1024;
-    const timestamps  = Array.from({ length: dRevs }, (_, i) =>
-      nowMs - Math.round((dSecs * 1000 * (dRevs - i) / dRevs))
-    );
-    if (typeof Cadence !== 'undefined' && Cadence._active) {
-      timestamps.forEach(ts => Cadence._clickTimes.push(ts));
-      Cadence._recalcCPM();
-    }
-  },
-
-  // ── Called by DevMode to enable/disable sensor input ──
-  setBleEnabled(v) {
-    this._ble.enabled = v;
-    if (!v && this._ble.connected) {
-      this._bleLog('⚠ Sensor input paused by Dev Mode.', 'ble-warn');
-    }
-    // Refresh panel if open
-    if (this._visible) this._refresh();
-  },
 };
 
 // Settings.init() is called from main.js after DOM is ready

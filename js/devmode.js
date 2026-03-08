@@ -182,15 +182,15 @@ const DevMode = {
           Utils.toast('🚀 Fast Travel ON — world map travel ~5s', 'good', 2500);
           break;
         case 'cadenceSensor':
-          if (typeof Settings !== 'undefined') Settings.setBleEnabled(true);
-          Utils.toast('📡 Cadence Sensor input ENABLED', 'good', 2500);
+          if (typeof Bluetooth !== 'undefined') Bluetooth.setEnabled(true);
+          Utils.toast('📡 Bike sensor input ENABLED', 'good', 2500);
           break;
       }
     } else {
       // Specific OFF effects
-      if (key === 'cadenceSensor' && typeof Settings !== 'undefined') {
-        Settings.setBleEnabled(false);
-        Utils.toast('📡 Cadence Sensor input DISABLED', 'info', 2000);
+      if (key === 'cadenceSensor') {
+        if (typeof Bluetooth !== 'undefined') Bluetooth.setEnabled(false);
+        Utils.toast('📡 Bike sensor input DISABLED', 'info', 2000);
       } else {
         Utils.toast(`🛠 ${key} OFF`, 'info', 1500);
       }
