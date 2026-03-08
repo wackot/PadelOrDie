@@ -457,3 +457,48 @@ drops: [
 - Wheel zoom factors changed from `0.88 / 1.14` (12-16% per tick) to `0.95 / 1.05` (5% per tick)
 - Zoom range unchanged: 0.25× to 3.0×
 
+
+---
+
+## v0.37 Changes
+
+### Issue 44 — Settings panel (⚙️ button next to pause)
+- New `js/settings.js` module — fully decoupled, loaded before `devmode.js`
+- `css/settings.css` — slides in from **LEFT** (devmode slides from right), blue accent colour
+- `Settings._prefs`: persisted to `localStorage` as `pod_settings` — masterVol, musicVol, sfxVol, monsterVol, brightness
+- `Settings.init()` called from `main.js` after UI binding — loads prefs and applies immediately
+- `Settings._apply()` sets `document.documentElement.style.filter = brightness(x)` and calls Audio setters
+- Sliders: `oninput` calls `Settings._onSlider(id, value)` — applies live with no debounce
+- `Settings.toggle()` injects panel on first open; `_refresh()` re-renders content in-place
+
+### Issue 45 — Bluetooth cadence sensor search
+- `Settings.bleSearch()` — uses `navigator.bluetooth.requestDevice()` with CSC service filter (`cycling_speed_and_cadence` / `0x1816`)
+- `Settings._onBLEData(event)` — parses CSC Measurement characteristic (`0x2A5B`), reads crank revolution delta + crank event time delta (1/1024s units), computes CPM, injects synthetic timestamps into `Cadence._clickTimes` so the existing cadence engine processes it natively
+- Handles 16-bit rollover on both crank revs and event time counters
+- `gattserverdisconnected` listener auto-updates status; `Settings.bleDisconnect()` for manual disconnect
+- Status icon: 🟢 Connected / 🟡 Paired / ⚫ Not connected; log line shows scan/connect/error feedback
+- `Settings._ble.enabled` flag — gates BLE data injection; toggled by Dev Mode
+
+### Issue 46 — Dev mode cadence sensor ON/OFF toggle
+- Added `cadenceSensor: true` flag to `DevMode.flags` (default ON)
+- Added to ⌨️ INPUT section of dev panel: "Cadence Sensor" toggle
+- `toggle_flag('cadenceSensor')` ON → `Settings.setBleEnabled(true)` + toast
+- `toggle_flag('cadenceSensor')` OFF → `Settings.setBleEnabled(false)` + toast + shows "⚠ Disabled by Dev Mode" in settings panel
+- `Settings.setBleEnabled(v)` refreshes settings panel UI when visible
+
+### Audio additions (supporting issue 44)
+- `Audio._monsterGain` — new GainNode wired directly to `_masterGain` (parallel to `_sfxGain`)
+- `Audio._monsterVol = 0.70` — default, independently controllable
+- `Audio._monsterSfx(fn)` — like `_sfx()` but routes through `_monsterGain`
+- `Audio.sfxRaidAlert/sfxVictory/sfxDefeat` now use `_monsterSfx` instead of `_sfx`
+- `Audio.setMonsterVol(v)` — called by settings slider
+- `Audio.setMasterVol(v)` — new method to adjust `_masterGain` (skips when muted)
+
+### New file: js/settings.js
+- Fully decoupled global `const Settings = { … }` object
+- No events subscribed — all interactions via inline onclick handlers and direct method calls
+- `Settings.setBleEnabled(v)` is the only cross-module API surface (called by DevMode)
+
+### KNOWN ARCHITECTURE NOTE
+- `Settings.init()` MUST be called after `Audio.init()` is available but Audio doesn't need to be running yet — `setMasterVol/setMusicVol/setSfxVol/setMonsterVol` guard against null `_ctx` via optional chaining
+
