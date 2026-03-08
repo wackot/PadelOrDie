@@ -342,3 +342,57 @@ drops: [
 - Brick walls (Lv8+), inner yard fill, and all `yardX/yardY/yardW/yardH` references now use the scaled values automatically
 - Every `map:changed` event (fired after building upgrades) already triggers `Base.updateNight() → BuildingGroundCanvas.draw()` — no new event wiring needed
 
+
+---
+
+## v0.35 Changes
+
+### Issues 24 & 25 — Shelter / Well upgrade buttons missing
+- Root cause: `upgKey` was set to the building's `id` (e.g. `'house'`), but `BuildingUpgrades` uses `'shelter'`
+- Fix: `const upgKey = id === 'house' ? 'shelter' : id;` in `renderBuildingScreen()`
+- `stKey` already correctly remapped `'shelter'` → `'house'` for state lookup
+- `showUpgradeConfirm()` also fixed to use `stKey = upgKey === 'shelter' ? 'house' : upgKey`
+
+### Issue 26 — Dynamo Bike needs upgrade window
+- `goToBuilding('dynamo_bike')` previously navigated to `screen-dynamo-bike` (pedal screen), bypassing the bld-screen
+- Now routes to `renderBuildingScreen('dynamo_bike')` → `navigate bld-dynamo_bike`
+- Added `BuildingDynamoBikeScreen.getScreenData(s)` in `dynamo_bike.js` — shows level, max output, current CPM, live generation, + "PEDAL DYNAMO" action button
+- Added `<div id="screen-bld-dynamo_bike">` to `index.html`
+
+### Issue 27 — Power House needs upgrade window
+- Same routing fix as dynamo_bike — now goes through bld-screen
+- Added `BuildingPowerhouseScreen.getScreenData(s)` in `PowerHouse.js` — shows level, generation rate, battery %, + "POWER PANEL" action button  
+- Added `<div id="screen-bld-powerhouse">` to `index.html`
+
+### Issue 28 — Farm building needs upgrade window
+- `goToBuilding('field')` previously emitted `farming:open`, bypassing bld-screen
+- Now routes to `renderBuildingScreen('field')` → `navigate bld-field`
+- `BuildingField.getScreenData(s)` already had a "MANAGE FARM" action button
+- `BuildingUpgrades.field` already exists — upgrade section now renders correctly
+
+### Issue 29 — Bunker relocated
+- Moved from `cx, cy + fh*0.44` (lower centre gate area) to `cx - fw*0.20, cy + fh*0.44` (lower-left)
+
+### Issue 30 — Compost Bin relocated  
+- Moved from `cx + fw*0.04, cy + fh*0.44` (lower centre) to `cx + fw*0.44, cy - fh*0.18` (upper far-right near field)
+
+### Issue 31 — Construction site on base map
+- When `State.data.activeBuild` is set, `_buildSVG()` renders a `🏗 BUILDING` overlay panel at the building's map position
+- Overlay shows progress bar and percentage; clicking calls `Base.goToConstruction()`
+- `goToConstruction()` navigates to `screen-construction` — starts Cadence, shows pedal bar + live countdown
+- `_constructionRefreshTimer` updates bar + speed label every 500ms; auto-returns to base when complete
+- Position lookup map `_posMap` covers all 30+ buildings
+- Construction screen added to `index.html` with cadence bar wired to existing `#cadence-bar` / `#cadence-cpm` elements
+
+### Issue 32 — Electric fence loses defence when unpowered
+- Added `State.getEffectiveDefence()` helper in `state.js`
+- Returns `defenceRating - 60` when `consumers.elecFence` is active but `stored <= 0` AND `generationRate <= 0`
+- Both `raids.js` defence reads updated to use `State.getEffectiveDefence()`
+- Fence hit zone label in `_buildSVG` shows `⚠️ FENCE (NO POWER: X DEF)` when unpowered
+
+### Issue 33 — Greenhouse, radio tower, storage expansion, solar panel removed from crafting menu
+- Removed four recipe objects from `crafting.js`: `solar_panel`, `storage_upgrade`, `greenhouse`, `radio_tower`
+- These are standalone buildings — managed exclusively through the base map building upgrade system
+- "🏚 Base" craft category now contains only `reinforced_door` (a genuine craftable item)
+- No change to `BuildingUpgrades` — all four still upgrade correctly from the base map
+

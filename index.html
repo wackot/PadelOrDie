@@ -298,6 +298,31 @@
   <div id="screen-bld-house"           class="screen bld-screen"><div class="bld-container" id="bld-house-content"></div></div>
   <div id="screen-bld-well"            class="screen bld-screen"><div class="bld-container" id="bld-well-content"></div></div>
   <div id="screen-bld-fridge"          class="screen bld-screen"><div class="bld-container" id="bld-fridge-content"></div></div>
+  <div id="screen-bld-dynamo_bike"     class="screen bld-screen"><div class="bld-container" id="bld-dynamo_bike-content"></div></div>
+  <div id="screen-bld-powerhouse"      class="screen bld-screen"><div class="bld-container" id="bld-powerhouse-content"></div></div>
+
+  <!-- Construction site pedalling screen -->
+  <div id="screen-construction" class="screen">
+    <div class="construction-container">
+      <h2 class="screen-title" id="construction-title">🏗 UNDER CONSTRUCTION</h2>
+      <div class="construction-visual" id="construction-visual"></div>
+      <div class="construction-progress-wrap">
+        <div class="construction-bar" id="construction-bar" style="width:0%"></div>
+      </div>
+      <div class="construction-stats" id="construction-stats"></div>
+      <div class="cadence-section" style="padding:0 12px;margin-top:8px">
+        <p class="cadence-label">PEDAL SPEED — <span id="construction-speed-label">slow</span></p>
+        <div class="cadence-bar-wrap">
+          <div class="cadence-bar" id="cadence-bar"></div>
+          <div class="cadence-target" id="cadence-target-line"></div>
+        </div>
+        <p class="cadence-cpm" id="cadence-cpm">0 CPM</p>
+      </div>
+      <p class="construction-hint">🚴 Pedal faster to reduce construction time!</p>
+      <button class="btn-pixel btn-secondary" data-goto="base" style="margin-top:8px">← BACK TO BASE</button>
+    </div>
+  </div>
+
 
   <!-- Upgrade confirm overlay (shared) -->
   <div id="upgrade-confirm-backdrop" class="upgrade-confirm-backdrop hidden" onclick="Base.closeUpgradeConfirm()"></div>
