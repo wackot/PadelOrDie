@@ -295,3 +295,54 @@
   color: rgba(255,255,255,0.2);
   letter-spacing: 0.5px;
 }
+
+/* ── BLE rename row ──────────────────────────────────── */
+.sett-ble-rename {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 4px;
+  align-items: center;
+}
+.sett-ble-name-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(41,182,246,0.25);
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  padding: 5px 8px;
+  outline: none;
+  border-radius: 2px;
+}
+.sett-ble-name-input:focus {
+  border-color: rgba(41,182,246,0.6);
+  background: rgba(255,255,255,0.09);
+}
+
+/* ── BLE button row ──────────────────────────────────── */
+.sett-ble-buttons {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+.sett-btn-small {
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+.sett-btn-ghost {
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.4);
+  font-family: 'Courier New', monospace;
+  font-size: 0.68rem;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.12s;
+}
+.sett-btn-ghost:hover {
+  border-color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.7);
+}
