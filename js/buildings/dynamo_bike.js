@@ -137,29 +137,15 @@ const DynamoBike = {
                    <button class="btn-pixel btn-danger dynamo-session-btn"
                      onclick="DynamoBike.stopSession()">⏹ STOP</button>`
                 : `<button class="btn-pixel btn-primary dynamo-session-btn"
-                    onclick="DynamoBike.startSession()">▶ START PEDALLING</button>`)
+                    onclick="DynamoBike.startSession()">⚡ CHARGE</button>`)
             : `<p style="color:#888;text-align:center;margin-top:12px">Build the dynamo first to start pedalling.</p>`
           }
         </div>
 
-        <div class="power-section-title">${level === 0 ? 'BUILD' : 'UPGRADE'}</div>
-        <div class="gen-pips" style="margin:8px 0">${pips}</div>
-        ${canUpgrade
-          ? `<div class="gen-upg-row next">
-              <span class="gen-upg-lv">Lv ${nextLvl}</span>
-              <span class="gen-upg-out">+${nextLvl * 2}W max</span>
-              <span class="gen-upg-cost">${costHtml}</span>
-              <button class="btn-gen-upgrade"
-                onclick="DynamoBike.build()"
-                ${canAfford ? '' : 'disabled'}>
-                ${level === 0 ? '▲ BUILD' : '▲ UPGRADE'}
-              </button>
-            </div>`
-          : '<div class="gen-maxed">✨ MAX LEVEL</div>'
-        }
+        <div class="power-section-title">CHARGING SESSION</div>
 
-        <button class="btn-pixel btn-secondary" data-goto="base"
-          style="margin-top:16px;max-width:180px">← BACK TO BASE</button>
+        <button class="btn-pixel btn-secondary" data-goto="bld-dynamo_bike"
+          style="margin-top:16px;max-width:180px">← BACK TO DYNAMO</button>
       </div>
     `;
   },
@@ -324,7 +310,7 @@ const BuildingDynamoBikeScreen = {
          <div class="bsc-row"><span>Current CPM</span><span>${cpm}</span></div>
          <div class="bsc-row ok"><span>Generating now</span><span>${actual}W</span></div>`;
     const actionBtn = lv > 0
-      ? `<button class="bsc-action-btn" onclick="Events.emit('navigate',{screen:'dynamo-bike'});Events.emit('dynamo_bike:render')">🚴 PEDAL DYNAMO</button>`
+      ? `<button class="bsc-action-btn" onclick="Events.emit('navigate',{screen:'dynamo-bike'});Events.emit('dynamo_bike:render')">⚡ CHARGE</button>`
       : '';
     return { title: '⚡ DYNAMO BIKE', visual, statsRows, actionBtn };
   }

@@ -365,13 +365,18 @@ const BuildingShelterScreen = {
     const visual = `<svg width="120" height="90" viewBox="0 0 120 90">
       ${BuildingHouse.svg(60, 55, hLvl, false, false)}
     </svg>`;
-    const energy    = s.base.sleepBonus || 0;
-    const raidReduc = s.base.raidDamageMult !== undefined ? Math.round((1-s.base.raidDamageMult)*100) : 0;
+    const energy    = s.base.sleepEnergyBonus || 0;
+    const raidReduc = s.base.shelterRaidReduction ? Math.round(s.base.shelterRaidReduction * 100) : 0;
     const statsRows = `
       <div class="bsc-row"><span>Level</span><span>${lv}/10 — ${names[lv-1]||''}</span></div>
-      <div class="bsc-row ok"><span>Sleep energy bonus</span><span>+${energy}%</span></div>
+      <div class="bsc-row ok"><span>Sleep energy bonus</span><span>+${Math.round(energy*100)}%</span></div>
       <div class="bsc-row ok"><span>Raid damage reduction</span><span>${raidReduc > 0 ? '-'+raidReduc+'%' : '—'}</span></div>`;
-    const actionBtn = `<button class="bsc-action-btn" data-goto="shelter">😴 SLEEP</button>`;
+    // Inline sleep/rest buttons — no sub-window navigation
+    const actionBtn = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <button class="bsc-action-btn" style="flex:1;min-width:120px" onclick="Player.sleep(8)">😴 SLEEP TILL DAWN</button>
+        <button class="bsc-action-btn" style="flex:1;min-width:120px;background:#1a1a28;border-color:#555" onclick="Player.sleep(2)">💤 SHORT REST (2h)</button>
+      </div>`;
     return { title: '🏠 SHELTER', visual, statsRows, actionBtn };
   }
 };

@@ -186,16 +186,28 @@ BuildingRadioTower.getScreenData = function(s) {
   const rr   = s.base.raidChanceReduction || 0;
   const missions = s.world.unlockedMissions || [];
   const sigRange = s.base.radioSignalRange || 0;
+  const radioOn  = s.power?.consumers?.radio;
+  const hasPower = (s.power?.stored || 0) > 0
+                || (typeof Power !== 'undefined' && Power.getGenerationRate() > 0);
+  const scanning = lv > 0 && radioOn && hasPower;
   const mNames = { signal_drop:'Signal Drop', rescue_beacon:'Rescue Beacon', black_market:'Black Market', command_bunker:'Command Bunker', endgame_transmission:'Endgame Transmission' };
   const missionHtml = ['signal_drop','rescue_beacon','black_market','command_bunker','endgame_transmission'].map(mk => {
     const got = missions.includes(mk);
     return '<div class="bsc-row ' + (got?'ok':'locked') + '"><span>' + (got?'✓':'🔒') + ' ' + mNames[mk] + '</span><span>' + (got?'UNLOCKED':'...') + '</span></div>';
   }).join('');
-  const actionBtn = lv > 0 ? '<button class="bsc-action-btn" onclick="WorldMap.render();window.Game.goTo(String.fromCharCode(109,97,112))">🌍 WORLD MAP</button>' : '';
+
+  let actionBtn = '';
+  if (lv > 0) {
+    const toggleLabel = radioOn ? '📡 TURN OFF SCANNER' : '📡 TURN ON SCANNER';
+    const btnClass = radioOn ? 'btn-secondary' : 'btn-primary';
+    actionBtn = `<button class="btn-pixel ${btnClass}" onclick="Power.toggleConsumer('radio');Base.renderBuildingScreen('radio_tower')">${toggleLabel}</button>`;
+  }
+
   const statsRows = lv === 0
     ? '<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>'
     : '<div class="bsc-row"><span>Level</span><span>' + lv + ' / 10</span></div>' +
-      '<div class="bsc-row ok"><span>Raid chance reduced</span><span>' + Math.round(rr*100) + '%</span></div>' +
+      '<div class="bsc-row ' + (scanning?'ok':'') + '"><span>Scanner</span><span>' + (scanning ? '📡 ACTIVE (0.5W)' : radioOn && !hasPower ? '⚠️ NO POWER' : '⚫ OFF') + '</span></div>' +
+      '<div class="bsc-row ok"><span>Raid reduction</span><span>' + (scanning ? Math.round(rr*100)+'% active' : '0% (scanner off)') + '</span></div>' +
       '<div class="bsc-row"><span>Signal range</span><span>' + sigRange + ' / 10</span></div>' +
       '<div class="bsc-row"><span>Missions unlocked</span><span>' + missions.length + ' / 5</span></div>' +
       missionHtml;

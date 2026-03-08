@@ -217,6 +217,15 @@ const BuildingGroundCanvas = {
       BuildingLights.drawGlowPools(ctx, hLvl, cx, cy, fw, fh);
     }
 
+    // ── BaseLights standalone glow pools ─────────────────────────────────
+    const blLvl = Math.max(1, Math.min(10, State.data?.base?.buildings?.baselights?.level || 0));
+    const blLit = lightsLit && blLvl > 0;
+    if (blLit && typeof BuildingBaseLights !== 'undefined') {
+      const fw = W - 120;
+      const fh = H - 120;
+      BuildingBaseLights.drawGlowPools(ctx, blLvl, cx, cy, fw, fh);
+    }
+
     // ── Gate mosaic tile (lv10) ───────────────────────────────
     if (hLvl >= 10) {
       const mx = cx - 60, my = cy + 380;

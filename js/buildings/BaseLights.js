@@ -63,7 +63,8 @@ const BuildingBaseLights = {
 
   // ── SVG for a single fixture ────────────────────────────────────────────
   fixtureSVG(x, y, type, lit) {
-    const col  = lit ? '#ffd060' : '#3a3a4a';
+    // Unlit: visible dim warm grey so fixtures are always seen when built
+    const col  = lit ? '#ffd060' : '#5a5040';
     const glow = lit ? 'filter="url(#glow-yellow)"' : '';
     const gloW = lit ? 'filter="url(#glow-yellow)"' : '';
 
