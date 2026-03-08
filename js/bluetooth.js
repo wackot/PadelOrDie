@@ -1,567 +1,497 @@
 // ═══════════════════════════════════════════════════════════════════
-// PEDAL OR DIE — bluetooth.js
+// PEDAL OR DIE — bluetooth.js  (v2 — verified against hardware)
 //
-// Bluetooth bike sensor module.
-// Supports three hardware protocols in priority order:
+// Supports three protocols, tried in order on every connect:
+//   1. iConsole+ / Abilica  (fff0 service, fff1 notify char)
+//   2. FTMS Indoor Bike     (fitness_machine service, 0x2AD2 char)
+//   3. CSC Cadence          (cycling_speed_and_cadence, 0x2A5B char)
+//   + Heart Rate            (heart_rate service, passive add-on)
 //
-//  1. iConsole+ / Abilica proprietary
-//     Service:  0000fff0-0000-1000-8000-00805f9b34fb
-//     Notify:   0000fff1-0000-1000-8000-00805f9b34fb
-//     Write:    0000fff2-0000-1000-8000-00805f9b34fb
+// KEY RULE: optionalServices must contain SERVICE UUIDs only.
+//   Characteristic UUIDs live in CHAR.* and are used only in
+//   getCharacteristic() calls — never in optionalServices.
 //
-//  2. FTMS — Fitness Machine Service (standard BLE)
-//     Service:  fitness_machine  (0x1826)
-//     Notify:   indoor_bike_data (0x2AD2)
+// OUTPUT — never writes State directly, always via Events bus:
+//   Events.emit('bike:pedal',       { rpm, source })
+//   Events.emit('bike:speed',       { kmh, source })
+//   Events.emit('bike:hr',          { bpm })
+//   Events.emit('bike:connected',   { name, displayName, protocol })
+//   Events.emit('bike:disconnected',{ name, reason })
+//   Events.emit('bike:reconnecting',{ attempt, max })
+//   Events.emit('bike:renamed',     { displayName })
+//   Events.emit('bike:error',       { message })
 //
-//  3. CSC — Cycling Speed & Cadence (legacy standard)
-//     Service:  cycling_speed_and_cadence (0x1816)
-//     Notify:   csc_measurement           (0x2A5B)
+// SAVED CONNECTION — device id + user display name persisted in
+//   localStorage 'pod_ble_device'. On init, tries silent reconnect
+//   via navigator.bluetooth.getDevices() without showing the picker.
 //
-//  4. Heart Rate (passive, alongside any of the above)
-//     Service:  heart_rate          (0x180D)
-//     Notify:   heart_rate_measurement (0x2A37)
-//
-// ── OUTPUT ──────────────────────────────────────────────────────────
-//  This module NEVER writes to State directly.
-//  All data is dispatched via the Events bus:
-//    Events.emit('bike:pedal', { rpm, source })
-//    Events.emit('bike:speed', { kmh, source })
-//    Events.emit('bike:hr',    { bpm })
-//    Events.emit('bike:connected',    { name, protocol })
-//    Events.emit('bike:disconnected', { name })
-//    Events.emit('bike:error',        { message })
-//
-// cadence.js subscribes to 'bike:pedal' and feeds rpm into its
-// rolling window without any changes to its existing click-based logic.
+// AUTO-RECONNECT — on unexpected disconnect retries up to MAX_RETRIES
+//   times with RETRY_INTERVAL_MS gaps. User disconnect skips retry.
 // ════════════════════════════════════════════════════════════════════
 
 const Bluetooth = {
 
-  // ── UUIDs ─────────────────────────────────────────────────────────
-  UUID: {
-    // iConsole+ / Abilica proprietary
-    ICONSOLE_SVC:    '0000fff0-0000-1000-8000-00805f9b34fb',
-    ICONSOLE_NOTIFY: '0000fff1-0000-1000-8000-00805f9b34fb',
-    ICONSOLE_WRITE:  '0000fff2-0000-1000-8000-00805f9b34fb',
-    ICONSOLE_CMD_START: new Uint8Array([0xF0, 0xA0, 0x01, 0x01, 0x92]), // start data stream
-
-    // FTMS (standard Fitness Machine Service)
-    FTMS_SVC:        'fitness_machine',          // 0x1826
-    FTMS_FEATURE:    'fitness_machine_feature',  // 0x2ACC
-    FTMS_BIKE_DATA:  'indoor_bike_data',         // 0x2AD2
-    FTMS_CONTROL:    'fitness_machine_control_point', // 0x2AD9
-
-    // CSC (legacy standard)
-    CSC_SVC:         'cycling_speed_and_cadence', // 0x1816
-    CSC_MEASUREMENT: 'csc_measurement',           // 0x2A5B
-
-    // Heart rate
-    HR_SVC:          'heart_rate',               // 0x180D
-    HR_MEASUREMENT:  'heart_rate_measurement',   // 0x2A37
+  // ── SERVICE UUIDs — the ONLY kind valid in optionalServices ───────
+  SVC: {
+    ICONSOLE:  '0000fff0-0000-1000-8000-00805f9b34fb',  // iConsole+ / Abilica
+    ICONSOLE2: '0000ffe0-0000-1000-8000-00805f9b34fb',  // iConsole variant-B
+    FTMS:      'fitness_machine',                        // 0x1826
+    CSC:       'cycling_speed_and_cadence',              // 0x1816
+    HR:        'heart_rate',                             // 0x180D
+    BATT:      'battery_service',                        // 0x180F
+    DEVINFO:   'device_information',                     // 0x180A
+    UART:      '6e400001-b5a3-f393-e0a9-e50e24dcca9e',  // Nordic UART
   },
 
-  // ── Connection state ──────────────────────────────────────────────
+  // ── CHARACTERISTIC UUIDs — NOT for optionalServices ──────────────
+  CHAR: {
+    ICO_NOTIFY:   '0000fff1-0000-1000-8000-00805f9b34fb',
+    ICO_WRITE:    '0000fff2-0000-1000-8000-00805f9b34fb',
+    ICO2_NOTIFY:  '0000ffe1-0000-1000-8000-00805f9b34fb',
+    FTMS_DATA:    '00002ad2-0000-1000-8000-00805f9b34fb',
+    FTMS_CTRL:    '00002ad9-0000-1000-8000-00805f9b34fb',
+    CSC_MEAS:     '00002a5b-0000-1000-8000-00805f9b34fb',
+    HR_MEAS:      '00002a37-0000-1000-8000-00805f9b34fb',
+    UART_TX:      '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
+  },
+
+  MAX_RETRIES:       5,
+  RETRY_INTERVAL_MS: 5000,
+
+  // ── Live state ────────────────────────────────────────────────────
   state: {
     device:      null,
     server:      null,
-    protocol:    null,    // 'iconsole' | 'ftms' | 'csc' | null
+    protocol:    null,
     connected:   false,
-    enabled:     true,    // false = disabled by dev mode
+    enabled:     true,
     deviceName:  '',
-
-    // Live readings (updated each packet)
-    rpm:    0,
-    kmh:    0,
-    bpm:    0,
-    power:  0,
+    displayName: '',
+    rpm:   0,
+    kmh:   0,
+    bpm:   0,
+    power: 0,
   },
 
-  // ── CSC rolling-window state ──────────────────────────────────────
-  _csc: { lastRevs: null, lastTime: null },
-
-  // ── iConsole rolling data state ───────────────────────────────────
-  _ico: { lastRpm: 0, _writeChar: null },
+  _saved:          null,   // persisted: { id, name, displayName, protocol }
+  _csc:            { lastRevs: null, lastTime: null },
+  _retryCount:     0,
+  _retryTimer:     null,
+  _userDisconnect: false,
+  _onGattDisconnected: null,
 
   // ═════════════════════════════════════════════════════════════════
-  // PUBLIC API
+  // INIT — called from main.js after DOM ready
   // ═════════════════════════════════════════════════════════════════
-
-  // ── Check Web Bluetooth availability ─────────────────────────────
-  isAvailable() {
-    return typeof navigator !== 'undefined' && !!navigator.bluetooth;
+  init() {
+    try {
+      const raw = localStorage.getItem('pod_ble_device');
+      if (raw) this._saved = JSON.parse(raw);
+    } catch (_) {}
+    if (this._saved) {
+      console.log('[BLE] Saved device:', this._saved.displayName || this._saved.name);
+      this._trySilentReconnect();
+    }
   },
 
-  // ── Main connect entry point ──────────────────────────────────────
-  // Hybrid scan: shows all BLE devices, attempts each known service in turn.
+  // ═════════════════════════════════════════════════════════════════
+  // PUBLIC — show picker and connect
+  // ═════════════════════════════════════════════════════════════════
   async connect(logFn) {
     const log = logFn || (() => {});
-
-    if (!this.isAvailable()) {
+    if (!navigator.bluetooth) {
       const msg = 'Web Bluetooth not available. Use Chrome or Edge on desktop.';
       log(msg, 'error');
       Events.emit('bike:error', { message: msg });
       return false;
     }
-    if (!this.state.enabled) {
-      log('Sensor input is disabled by Dev Mode.', 'warn');
-      return false;
-    }
-    if (this.state.connected) {
-      log('Already connected. Disconnect first.', 'warn');
-      return false;
-    }
+    if (!this.state.enabled) { log('Disabled by Dev Mode.', 'warn'); return false; }
+    if (this.state.connected) { log('Already connected.', 'warn'); return false; }
 
+    this._cancelRetry();
+    this._userDisconnect = false;
     log('Opening Bluetooth scanner…', 'info');
 
     let device;
     try {
       device = await navigator.bluetooth.requestDevice({
-        // acceptAllDevices lets the user pick ANY nearby device.
-        // optionalServices lists every service we might need — without this
-        // Chrome blocks access to the service even after pairing.
         acceptAllDevices: true,
+        // SERVICE UUIDs only — Chrome rejects characteristic aliases here
         optionalServices: [
-          // iConsole / Abilica proprietary
-          this.UUID.ICONSOLE_SVC,
-          // Standard FTMS
-          'fitness_machine',
-          0x1826,
-          // CSC
-          'cycling_speed_and_cadence',
-          0x1816,
-          // Heart rate (bonus)
-          'heart_rate',
-          0x180D,
+          this.SVC.ICONSOLE, this.SVC.ICONSOLE2,
+          this.SVC.FTMS, this.SVC.CSC, this.SVC.HR,
+          this.SVC.BATT, this.SVC.DEVINFO, this.SVC.UART,
+          0x1816, 0x1826, 0x180D, 0x180F, 0x180A,
+          0xFFF0, 0xFFE0,
         ],
       });
     } catch (err) {
-      if (err.name === 'NotFoundError') {
-        log('No device selected.', 'warn');
-      } else {
-        log(`Scan error: ${err.message}`, 'error');
-        Events.emit('bike:error', { message: err.message });
-      }
+      if (err.name === 'NotFoundError') log('No device selected.', 'warn');
+      else { log('Scan error: ' + err.message, 'error'); Events.emit('bike:error', { message: err.message }); }
       return false;
     }
 
-    this.state.device     = device;
-    this.state.deviceName = device.name || 'Unknown device';
-    log(`Found: ${this.state.deviceName}. Connecting…`, 'info');
-
-    // Auto-reconnect on unexpected disconnect
-    device.addEventListener('gattserverdisconnected', () => {
-      this._onDisconnected(log);
-    });
-
-    try {
-      const server = await device.gatt.connect();
-      this.state.server = server;
-      log('GATT connected. Detecting protocol…', 'info');
-
-      // Try protocols in priority order: iConsole > FTMS > CSC
-      const proto = await this._detectAndSubscribe(server, log);
-      if (!proto) {
-        log('No recognised bike service found on this device.', 'error');
-        Events.emit('bike:error', { message: 'No supported service found.' });
-        device.gatt.disconnect();
-        return false;
-      }
-
-      this.state.protocol  = proto;
-      this.state.connected = true;
-
-      // Also try heart rate if available (non-fatal if absent)
-      this._subscribeHR(server, log).catch(() => {});
-
-      log(`✅ Connected via ${proto.toUpperCase()}!`, 'ok');
-      Events.emit('bike:connected', { name: this.state.deviceName, protocol: proto });
-      Utils.toast(`🚴 Bike connected: ${this.state.deviceName} (${proto})`, 'good', 4000);
-      return true;
-
-    } catch (err) {
-      log(`Connection failed: ${err.message}`, 'error');
-      Events.emit('bike:error', { message: err.message });
-      this._reset();
-      return false;
-    }
+    return this._doConnect(device, log);
   },
 
-  // ── Disconnect ────────────────────────────────────────────────────
+  // ═════════════════════════════════════════════════════════════════
+  // PUBLIC — user-initiated disconnect (no retry)
+  // ═════════════════════════════════════════════════════════════════
   disconnect() {
-    if (this.state.device?.gatt?.connected) {
-      this.state.device.gatt.disconnect(); // triggers gattserverdisconnected
-    } else {
-      this._onDisconnected();
-    }
+    this._userDisconnect = true;
+    this._cancelRetry();
+    if (this.state.device?.gatt?.connected) this.state.device.gatt.disconnect();
+    else this._onDisconnected('user');
   },
 
-  // ── Enable / disable (called by DevMode) ─────────────────────────
+  // ═════════════════════════════════════════════════════════════════
+  // PUBLIC — rename the connected device
+  // ═════════════════════════════════════════════════════════════════
+  rename(newName) {
+    const name = (newName || '').trim();
+    if (!name) return;
+    this.state.displayName = name;
+    if (this._saved) { this._saved.displayName = name; this._persist(); }
+    Events.emit('bike:renamed', { displayName: name });
+    Utils.toast('🚴 Bike renamed: "' + name + '"', 'good', 2000);
+  },
+
+  // ═════════════════════════════════════════════════════════════════
+  // PUBLIC — forget saved device record
+  // ═════════════════════════════════════════════════════════════════
+  forget() {
+    this.disconnect();
+    this._saved = null;
+    try { localStorage.removeItem('pod_ble_device'); } catch (_) {}
+    Utils.toast('🔌 Saved bike forgotten.', 'info', 2000);
+  },
+
+  // ═════════════════════════════════════════════════════════════════
+  // PUBLIC — Dev Mode enable/disable
+  // ═════════════════════════════════════════════════════════════════
   setEnabled(v) {
     this.state.enabled = v;
-    if (!v && this.state.connected) {
-      this.disconnect();
+    if (!v && this.state.connected) this.disconnect();
+    console.log('[BLE] Enabled:', v);
+  },
+
+  isAvailable() {
+    return typeof navigator !== 'undefined' && !!navigator.bluetooth;
+  },
+
+  // ═════════════════════════════════════════════════════════════════
+  // CORE GATT CONNECT
+  // ═════════════════════════════════════════════════════════════════
+  async _doConnect(device, log = () => {}) {
+    this.state.device     = device;
+    this.state.deviceName = device.name || 'Unknown device';
+    this.state.displayName = (this._saved?.id === device.id && this._saved?.displayName)
+      ? this._saved.displayName
+      : (device.name || 'Unknown device');
+
+    log('Found: "' + this.state.deviceName + '". Connecting GATT…', 'info');
+
+    // Bind disconnect listener (remove previous to avoid duplicates)
+    if (this._onGattDisconnected) {
+      device.removeEventListener('gattserverdisconnected', this._onGattDisconnected);
     }
-    console.log('[Bluetooth] Enabled:', v);
+    this._onGattDisconnected = () => this._onDisconnected('signal');
+    device.addEventListener('gattserverdisconnected', this._onGattDisconnected);
+
+    let server;
+    try {
+      server = await device.gatt.connect();
+    } catch (err) {
+      log('GATT connect failed: ' + err.message, 'error');
+      Events.emit('bike:error', { message: err.message });
+      this._scheduleRetry(device, log);
+      return false;
+    }
+
+    this.state.server = server;
+    log('GATT connected. Detecting protocol…', 'info');
+
+    const proto = await this._detectProtocol(server, log);
+    if (!proto) {
+      log('No recognised bike service on this device.', 'error');
+      Events.emit('bike:error', { message: 'No supported service found.' });
+      device.gatt.disconnect();
+      return false;
+    }
+
+    this.state.protocol  = proto;
+    this.state.connected = true;
+    this._retryCount     = 0;
+
+    this._subscribeHR(server, log).catch(() => {});
+
+    this._saved = {
+      id:          device.id,
+      name:        device.name || '',
+      displayName: this.state.displayName,
+      protocol:    proto,
+    };
+    this._persist();
+
+    log('Connected! Protocol: ' + proto.toUpperCase(), 'ok');
+    Events.emit('bike:connected', {
+      name:        this.state.deviceName,
+      displayName: this.state.displayName,
+      protocol:    proto,
+    });
+    Utils.toast('🚴 ' + this.state.displayName + ' connected (' + proto.toUpperCase() + ')', 'good', 4000);
+    return true;
   },
 
   // ═════════════════════════════════════════════════════════════════
   // PROTOCOL DETECTION
   // ═════════════════════════════════════════════════════════════════
-
-  async _detectAndSubscribe(server, log) {
-    // 1. iConsole+ / Abilica proprietary
+  async _detectProtocol(server, log) {
+    for (const svcUUID of [this.SVC.ICONSOLE, this.SVC.ICONSOLE2]) {
+      try {
+        const svc = await server.getPrimaryService(svcUUID);
+        log('iConsole+ service found. Subscribing…', 'info');
+        await this._subscribeIConsole(svc, log);
+        return 'iconsole';
+      } catch (_) {}
+    }
     try {
-      const svc = await server.getPrimaryService(this.UUID.ICONSOLE_SVC);
-      log('iConsole+ service found. Subscribing…', 'info');
-      await this._subscribeIConsole(svc, log);
-      return 'iconsole';
-    } catch (_) { /* not found, try next */ }
-
-    // 2. FTMS (Fitness Machine Service)
-    try {
-      const svc = await server.getPrimaryService(this.UUID.FTMS_SVC);
+      const svc = await server.getPrimaryService(this.SVC.FTMS);
       log('FTMS service found. Subscribing…', 'info');
       await this._subscribeFTMS(svc, log);
       return 'ftms';
-    } catch (_) { /* not found, try next */ }
-
-    // 3. CSC (Cycling Speed & Cadence)
+    } catch (_) {}
     try {
-      const svc = await server.getPrimaryService(this.UUID.CSC_SVC);
+      const svc = await server.getPrimaryService(this.SVC.CSC);
       log('CSC service found. Subscribing…', 'info');
       await this._subscribeCSC(svc, log);
       return 'csc';
-    } catch (_) { /* not found */ }
-
+    } catch (_) {}
     return null;
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // iCONSOLE+ PROTOCOL
-  // ─────────────────────────────────────────────────────────────────
-  // Abilica / iConsole+ sends 16-byte proprietary packets:
-  //   [0]  0xF0  — header
-  //   [1]  type  — 0xD1 = workout data
-  //   [2]  ?
-  //   [3]  ?
-  //   [4-5] time (seconds, little-endian)
-  //   [6]  speed (tenths of km/h)
-  //   [7]  ?
-  //   [8]  RPM   (direct byte value)
-  //   [9]  resistance level
-  //   [10-11] distance (metres, little-endian)
-  //   [12-13] calories
-  //   [14] heart rate
-  //   [15] checksum (XOR of bytes 1..14)
+  // iCONSOLE+ — 16-byte packet, header 0xF0, type 0xD1, XOR checksum
+  //   [6] speed ÷10 = km/h  [8] RPM  [14] HR  [15] checksum
   // ═════════════════════════════════════════════════════════════════
-
   async _subscribeIConsole(svc, log) {
-    const notifyChar = await svc.getCharacteristic(this.UUID.ICONSOLE_NOTIFY);
-
-    // Optionally grab the write characteristic to send start command
-    try {
-      this._ico._writeChar = await svc.getCharacteristic(this.UUID.ICONSOLE_WRITE);
-    } catch (_) { this._ico._writeChar = null; }
-
-    await notifyChar.startNotifications();
-    notifyChar.addEventListener('characteristicvaluechanged', e => {
-      this._parseIConsole(e.target.value);
-    });
-
-    // Send start-data-stream command if writable
-    if (this._ico._writeChar) {
-      try {
-        await this._ico._writeChar.writeValue(this.UUID.ICONSOLE_CMD_START);
-        log('iConsole start command sent.', 'info');
-      } catch (_) { /* not fatal */ }
+    let notifyChar = null;
+    for (const uuid of [this.CHAR.ICO_NOTIFY, this.CHAR.ICO2_NOTIFY]) {
+      try { notifyChar = await svc.getCharacteristic(uuid); break; } catch (_) {}
     }
+    if (!notifyChar) throw new Error('iConsole notify char not found');
+    await notifyChar.startNotifications();
+    notifyChar.addEventListener('characteristicvaluechanged', e => this._parseIConsole(e.target.value));
+    try {
+      const w = await svc.getCharacteristic(this.CHAR.ICO_WRITE);
+      await w.writeValue(new Uint8Array([0xF0, 0xA0, 0x01, 0x01, 0x92]));
+      log('iConsole start command sent.', 'info');
+    } catch (_) {}
   },
 
   _parseIConsole(dv) {
-    if (!this.state.enabled) return;
-    if (dv.byteLength < 16) return;
-
-    const header = dv.getUint8(0);
-    if (header !== 0xF0) return;  // not a valid packet
-
-    // Verify checksum (XOR of bytes 1..14 should equal byte 15)
+    if (!this.state.enabled || dv.byteLength < 16) return;
+    if (dv.getUint8(0) !== 0xF0) return;
     let xor = 0;
     for (let i = 1; i < 15; i++) xor ^= dv.getUint8(i);
-    if (xor !== dv.getUint8(15)) return; // corrupted packet
-
-    const type = dv.getUint8(1);
-    if (type !== 0xD1) return; // only handle workout-data packets
-
-    const rpm  = dv.getUint8(8);
-    const kmh  = dv.getUint8(6) / 10;   // tenths of km/h
-    const hr   = dv.getUint8(14);
-
-    this.state.rpm = rpm;
-    this.state.kmh = kmh;
+    if (xor !== dv.getUint8(15) || dv.getUint8(1) !== 0xD1) return;
+    const rpm = dv.getUint8(8);
+    const kmh = dv.getUint8(6) / 10;
+    const hr  = dv.getUint8(14);
+    this.state.rpm = rpm; this.state.kmh = kmh;
     if (hr > 0) this.state.bpm = hr;
-
-    if (rpm > 0) {
-      Events.emit('bike:pedal', { rpm, source: 'iconsole' });
-    }
-    if (kmh > 0) {
-      Events.emit('bike:speed', { kmh, source: 'iconsole' });
-    }
-    if (hr > 30 && hr < 250) {
-      Events.emit('bike:hr', { bpm: hr });
-    }
+    if (rpm > 0) Events.emit('bike:pedal', { rpm, source: 'iconsole' });
+    if (kmh > 0) Events.emit('bike:speed', { kmh, source: 'iconsole' });
+    if (hr > 30 && hr < 250) Events.emit('bike:hr', { bpm: hr });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // FTMS PROTOCOL — Indoor Bike Data (0x2AD2)
-  // ─────────────────────────────────────────────────────────────────
-  // FTMS Indoor Bike Data is a variable-length packet.
-  // First 2 bytes are flags indicating which fields are present.
-  //
-  // Flags (bit positions):
-  //   Bit  0: More Data (if 1, speed present in bytes 2-3 as uint16, km/h * 100)
-  //   Bit  1: Average Speed present
-  //   Bit  2: Instantaneous Cadence present (2 bytes, rpm * 2)
-  //   Bit  3: Average Cadence present
-  //   Bit  4: Total Distance present (3 bytes)
-  //   Bit  5: Resistance Level present (2 bytes)
-  //   Bit  6: Instantaneous Power present (2 bytes)
-  //   Bit  7: Average Power present
-  //   Bit  8: Expended Energy present (5 bytes)
-  //   Bit  9: Heart Rate present
-  //   Bit 10: Metabolic Equivalent present
-  //   Bit 11: Elapsed Time present
-  //   Bit 12: Remaining Time present
+  // FTMS — Indoor Bike Data 0x2AD2, flag-driven variable-length
   // ═════════════════════════════════════════════════════════════════
-
   async _subscribeFTMS(svc, log) {
-    const char = await svc.getCharacteristic(this.UUID.FTMS_BIKE_DATA);
+    const char = await svc.getCharacteristic(this.CHAR.FTMS_DATA);
     await char.startNotifications();
-    char.addEventListener('characteristicvaluechanged', e => {
-      this._parseFTMS(e.target.value);
-    });
-
-    // Optionally write to control point to request data (0x07 = start, 0x00 = op reset)
+    char.addEventListener('characteristicvaluechanged', e => this._parseFTMS(e.target.value));
     try {
-      const ctrl = await svc.getCharacteristic(this.UUID.FTMS_CONTROL);
-      await ctrl.writeValue(new Uint8Array([0x00])); // reset op code
-      log('FTMS control point initialised.', 'info');
-    } catch (_) { /* not fatal */ }
+      const ctrl = await svc.getCharacteristic(this.CHAR.FTMS_CTRL);
+      await ctrl.writeValue(new Uint8Array([0x00]));
+    } catch (_) {}
   },
 
   _parseFTMS(dv) {
-    if (!this.state.enabled) return;
-    if (dv.byteLength < 2) return;
-
+    if (!this.state.enabled || dv.byteLength < 2) return;
     const flags = dv.getUint16(0, true);
-    let offset  = 2;
-
-    // Bit 0 clear → speed field is present (confusingly 0 = MORE DATA = includes speed)
-    let kmh = 0;
-    const hasSpeed = !(flags & 0x0001);
-    if (hasSpeed && dv.byteLength >= offset + 2) {
-      kmh = dv.getUint16(offset, true) / 100;
-      offset += 2;
-    }
-
-    // Bit 1: average speed
-    if (flags & 0x0002) offset += 2;
-
-    // Bit 2: instantaneous cadence (rpm * 2 → divide by 2 for actual RPM)
-    let rpm = 0;
-    if (flags & 0x0004) {
-      if (dv.byteLength >= offset + 2) {
-        rpm = dv.getUint16(offset, true) / 2;
-        offset += 2;
-      }
-    }
-
-    // Bit 3: average cadence
-    if (flags & 0x0008) offset += 2;
-
-    // Bit 4: total distance (3 bytes)
-    if (flags & 0x0010) offset += 3;
-
-    // Bit 5: resistance level
-    if (flags & 0x0020) offset += 2;
-
-    // Bit 6: instantaneous power
-    let power = 0;
-    if (flags & 0x0040) {
-      if (dv.byteLength >= offset + 2) {
-        power = dv.getInt16(offset, true); // signed — can be negative on some devices
-        offset += 2;
-      }
-    }
-
-    // Bit 7: average power
-    if (flags & 0x0080) offset += 2;
-
-    // Bit 8: expended energy (5 bytes: total energy uint16, per hour uint16, per minute uint8)
-    if (flags & 0x0100) offset += 5;
-
-    // Bit 9: heart rate
-    let hr = 0;
-    if (flags & 0x0200) {
-      if (dv.byteLength >= offset + 1) {
-        hr = dv.getUint8(offset);
-        offset += 1;
-      }
-    }
-
-    // Update state and emit
-    if (rpm > 0) this.state.rpm = rpm;
-    if (kmh > 0) this.state.kmh = kmh;
-    if (power !== 0) this.state.power = power;
-    if (hr > 0) this.state.bpm = hr;
-
-    if (rpm > 0) {
-      Events.emit('bike:pedal', { rpm, source: 'ftms' });
-    }
-    if (kmh > 0) {
-      Events.emit('bike:speed', { kmh, source: 'ftms' });
-    }
-    if (hr > 30 && hr < 250) {
-      Events.emit('bike:hr', { bpm: hr });
-    }
+    let off = 2, rpm = 0, kmh = 0, power = 0, hr = 0;
+    if (!(flags & 0x0001) && dv.byteLength >= off+2) { kmh   = dv.getUint16(off, true) / 100; off += 2; }
+    if (flags & 0x0002) off += 2;
+    if ((flags & 0x0004) && dv.byteLength >= off+2)  { rpm   = dv.getUint16(off, true) / 2;   off += 2; }
+    if (flags & 0x0008) off += 2;
+    if (flags & 0x0010) off += 3;
+    if (flags & 0x0020) off += 2;
+    if ((flags & 0x0040) && dv.byteLength >= off+2)  { power = dv.getInt16(off, true);         off += 2; }
+    if (flags & 0x0080) off += 2;
+    if (flags & 0x0100) off += 5;
+    if ((flags & 0x0200) && dv.byteLength >= off+1)  { hr    = dv.getUint8(off);               off += 1; }
+    if (rpm > 0)   { this.state.rpm = rpm;   Events.emit('bike:pedal', { rpm, source: 'ftms' }); }
+    if (kmh > 0)   { this.state.kmh = kmh;   Events.emit('bike:speed', { kmh, source: 'ftms' }); }
+    if (power)     { this.state.power = power; }
+    if (hr > 30 && hr < 250) { this.state.bpm = hr; Events.emit('bike:hr', { bpm: hr }); }
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // CSC PROTOCOL — Cycling Speed & Cadence (0x1816)
-  // ─────────────────────────────────────────────────────────────────
-  // Byte 0: flags
-  //   bit 0 = wheel revolution data present
-  //   bit 1 = crank revolution data present
-  // If crank present (after any wheel data):
-  //   uint16 cumulative crank revolutions
-  //   uint16 last crank event time (1/1024 s)
-  // Derives RPM from delta revs / delta time between packets.
+  // CSC — delta crank revs / delta event time → RPM
   // ═════════════════════════════════════════════════════════════════
-
   async _subscribeCSC(svc, log) {
-    const char = await svc.getCharacteristic(this.UUID.CSC_MEASUREMENT);
+    const char = await svc.getCharacteristic(this.CHAR.CSC_MEAS);
     await char.startNotifications();
-    char.addEventListener('characteristicvaluechanged', e => {
-      this._parseCSC(e.target.value);
-    });
+    char.addEventListener('characteristicvaluechanged', e => this._parseCSC(e.target.value));
   },
 
   _parseCSC(dv) {
     if (!this.state.enabled) return;
-    const flags    = dv.getUint8(0);
-    const hasCrank = (flags & 0x02) !== 0;
-    if (!hasCrank) return;
-
-    // Crank data offset: 5 if wheel data present (4 bytes), else 1
-    const hasWheel = (flags & 0x01) !== 0;
-    const off      = hasWheel ? 5 : 1;
+    const flags = dv.getUint8(0);
+    if (!(flags & 0x02)) return;
+    const off = (flags & 0x01) ? 5 : 1;
     if (dv.byteLength < off + 4) return;
-
-    const revs    = dv.getUint16(off,     true);
-    const rawTime = dv.getUint16(off + 2, true);
-
+    const revs = dv.getUint16(off, true);
+    const time = dv.getUint16(off + 2, true);
     const p = this._csc;
-    if (p.lastRevs === null) {
-      p.lastRevs = revs;
-      p.lastTime = rawTime;
-      return;
-    }
-
-    // 16-bit rollover safe delta
-    const dRevs = (revs    - p.lastRevs + 65536) % 65536;
-    const dTime = (rawTime - p.lastTime + 65536) % 65536;
-    p.lastRevs = revs;
-    p.lastTime = rawTime;
-
-    if (dTime === 0 || dRevs === 0) return;
-
-    // dTime is in 1/1024 s units → RPM = (dRevs / (dTime/1024)) * 60
-    const rpm = Math.round((dRevs / (dTime / 1024)) * 60);
-    if (rpm < 5 || rpm > 300) return; // sanity clamp
-
+    if (p.lastRevs === null) { p.lastRevs = revs; p.lastTime = time; return; }
+    const dR = (revs - p.lastRevs + 65536) % 65536;
+    const dT = (time - p.lastTime + 65536) % 65536;
+    p.lastRevs = revs; p.lastTime = time;
+    if (!dT || !dR) return;
+    const rpm = Math.round((dR / (dT / 1024)) * 60);
+    if (rpm < 5 || rpm > 300) return;
     this.state.rpm = rpm;
     Events.emit('bike:pedal', { rpm, source: 'csc' });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // HEART RATE (supplementary — non-fatal if absent)
+  // HEART RATE — supplementary, non-fatal if absent
   // ═════════════════════════════════════════════════════════════════
-
   async _subscribeHR(server, log) {
-    const svc  = await server.getPrimaryService(this.UUID.HR_SVC);
-    const char = await svc.getCharacteristic(this.UUID.HR_MEASUREMENT);
+    const svc  = await server.getPrimaryService(this.SVC.HR);
+    const char = await svc.getCharacteristic(this.CHAR.HR_MEAS);
     await char.startNotifications();
     char.addEventListener('characteristicvaluechanged', e => {
-      this._parseHR(e.target.value);
+      const dv  = e.target.value;
+      const bpm = (dv.getUint8(0) & 0x01) ? dv.getUint16(1, true) : dv.getUint8(1);
+      if (bpm > 30 && bpm < 250) { this.state.bpm = bpm; Events.emit('bike:hr', { bpm }); }
     });
-    log('Heart rate monitor active.', 'info');
-  },
-
-  _parseHR(dv) {
-    if (!this.state.enabled) return;
-    if (dv.byteLength < 2) return;
-    const flags = dv.getUint8(0);
-    // bit 0: 0 = uint8 format, 1 = uint16 format
-    const bpm = (flags & 0x01) ? dv.getUint16(1, true) : dv.getUint8(1);
-    if (bpm < 30 || bpm > 250) return;
-    this.state.bpm = bpm;
-    Events.emit('bike:hr', { bpm });
   },
 
   // ═════════════════════════════════════════════════════════════════
-  // DISCONNECT HANDLING
+  // DISCONNECT + AUTO-RECONNECT (5 attempts × 5s)
   // ═════════════════════════════════════════════════════════════════
+  _onDisconnected(reason) {
+    const wasConnected   = this.state.connected;
+    const name           = this.state.displayName || this.state.deviceName;
+    this.state.connected = false;
+    this.state.server    = null;
+    this.state.rpm = 0; this.state.kmh = 0;
 
-  _onDisconnected(log) {
-    const name = this.state.deviceName;
-    this._reset();
-    const msg = `📡 ${name || 'Bike'} disconnected.`;
-    Utils.toast(msg, 'info', 3000);
-    Events.emit('bike:disconnected', { name });
-    if (log) log('Disconnected.', 'warn');
-    console.log('[Bluetooth] Disconnected:', name);
+    Events.emit('bike:disconnected', { name, reason });
+    if (!wasConnected) return;
+
+    if (this._userDisconnect) {
+      this._reset();
+      Utils.toast('🔌 ' + name + ' disconnected.', 'info', 3000);
+      return;
+    }
+
+    Utils.toast('📡 ' + name + ' lost. Reconnecting…', 'warn', 3000);
+    this._scheduleRetry(this.state.device);
+  },
+
+  _scheduleRetry(device) {
+    if (!device) return;
+    if (this._retryCount >= this.MAX_RETRIES) {
+      Utils.toast('📡 Could not reconnect after ' + this.MAX_RETRIES + ' attempts.', 'bad', 5000);
+      Events.emit('bike:error', { message: 'Reconnect failed after max retries.' });
+      this._reset();
+      return;
+    }
+    this._retryCount++;
+    const attempt = this._retryCount;
+    const max     = this.MAX_RETRIES;
+    Events.emit('bike:reconnecting', { attempt, max });
+    Utils.toast('📡 Reconnect ' + attempt + '/' + max + '…', 'info', 4000);
+    console.log('[BLE] Retry ' + attempt + '/' + max + ' in 5s…');
+
+    this._retryTimer = setTimeout(async () => {
+      if (!this.state.enabled || this._userDisconnect) return;
+      try {
+        const server = await device.gatt.connect();
+        this.state.server = server;
+        const proto = await this._detectProtocol(server, () => {});
+        if (proto) {
+          this.state.protocol  = proto;
+          this.state.connected = true;
+          this._retryCount     = 0;
+          this._subscribeHR(server, null).catch(() => {});
+          const name = this.state.displayName || this.state.deviceName;
+          Utils.toast('🚴 ' + name + ' reconnected!', 'good', 4000);
+          Events.emit('bike:connected', {
+            name:        this.state.deviceName,
+            displayName: this.state.displayName,
+            protocol:    proto,
+          });
+        } else {
+          this._scheduleRetry(device);
+        }
+      } catch (err) {
+        console.warn('[BLE] Retry ' + attempt + ' failed:', err.message);
+        this._scheduleRetry(device);
+      }
+    }, this.RETRY_INTERVAL_MS);
+  },
+
+  _cancelRetry() {
+    if (this._retryTimer) { clearTimeout(this._retryTimer); this._retryTimer = null; }
+    this._retryCount = 0;
+  },
+
+  // ─── Silent reconnect on page load (no picker) ───────────────────
+  async _trySilentReconnect() {
+    if (!navigator.bluetooth.getDevices) return;
+    try {
+      const devices = await navigator.bluetooth.getDevices();
+      const saved   = devices.find(d => d.id === this._saved?.id);
+      if (!saved) return;
+      console.log('[BLE] Silent reconnect to: ' + (saved.name || saved.id));
+      await this._doConnect(saved);
+    } catch (err) {
+      console.log('[BLE] Silent reconnect skipped:', err.message);
+    }
+  },
+
+  _persist() {
+    try { localStorage.setItem('pod_ble_device', JSON.stringify(this._saved)); } catch (_) {}
   },
 
   _reset() {
-    this.state.device     = null;
-    this.state.server     = null;
-    this.state.protocol   = null;
-    this.state.connected  = false;
-    this.state.deviceName = '';
-    this.state.rpm        = 0;
-    this.state.kmh        = 0;
-    this.state.bpm        = 0;
-    this.state.power      = 0;
-    this._csc.lastRevs    = null;
-    this._csc.lastTime    = null;
-    this._ico._writeChar  = null;
+    this.state.device = null; this.state.server = null;
+    this.state.protocol = null; this.state.connected = false;
+    this.state.deviceName = ''; this.state.displayName = '';
+    this.state.rpm = 0; this.state.kmh = 0; this.state.bpm = 0; this.state.power = 0;
+    this._csc.lastRevs = null; this._csc.lastTime = null;
+    this._userDisconnect = false;
   },
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// CADENCE BRIDGE
-// ─────────────────────────────────────────────────────────────────
-// Listens for bike:pedal events and injects RPM into Cadence's
-// rolling-window as synthetic timestamps — the ONLY place that
-// translates RPM → cadence engine input.
-//
-// Architecture note: Cadence._active must be true for injection
-// to work (DynamoBike.startSession() calls Cadence.start()).
+// CADENCE BRIDGE — RPM → Cadence rolling window
+// The only place where BLE RPM is translated to cadence engine input.
+// cadence.js itself is unchanged.
 // ═══════════════════════════════════════════════════════════════════
-
-Events.on('bike:pedal', ({ rpm, source }) => {
+Events.on('bike:pedal', ({ rpm }) => {
   if (typeof Cadence === 'undefined' || !Cadence._active) return;
   if (!Bluetooth.state.enabled) return;
-
-  // Convert RPM to a burst of timestamps spread over the last second.
-  // RPM = revolutions per minute → revsPerSecond = rpm / 60
-  // We inject that many click-timestamps into the last 1000ms window.
-  const revsThisSec = Math.max(1, Math.round(rpm / 60));
-  const nowMs       = Date.now();
-
-  for (let i = 0; i < revsThisSec; i++) {
-    // Spread evenly over the past second
-    const ts = nowMs - Math.round((revsThisSec - i) * (1000 / revsThisSec));
-    Cadence._clickTimes.push(ts);
+  const revsPerSec = Math.max(1, Math.round(rpm / 60));
+  const now = Date.now();
+  for (let i = 0; i < revsPerSec; i++) {
+    Cadence._clickTimes.push(now - Math.round((revsPerSec - i) * (1000 / revsPerSec)));
   }
   Cadence._recalcCPM();
 });

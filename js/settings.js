@@ -78,17 +78,25 @@ const Settings = {
   // ─────────────────────────────────────────────────────
   _buildHTML() {
     const s   = this._prefs;
-    // Delegate BLE state to Bluetooth module (settings.js only owns the UI)
-    const ble = typeof Bluetooth !== 'undefined' ? Bluetooth.state : null;
-    const bleConnected  = ble?.connected  || false;
-    const bleEnabled    = ble?.enabled    ?? true;
-    const bleDeviceName = ble?.deviceName || '';
-    const bleProtocol   = ble?.protocol   || '';
-    const bleRpm        = ble?.rpm        || 0;
-    const bleStatusIcon = bleConnected ? '🟢' : '⚫';
-    const bleStatusText = bleConnected
-      ? `${bleDeviceName} · ${bleProtocol.toUpperCase()} · ${bleRpm} RPM`
-      : 'No bike connected';
+    // BLE state lives in Bluetooth module — settings only owns the UI
+    const ble          = typeof Bluetooth !== 'undefined' ? Bluetooth.state : null;
+    const bleSaved     = typeof Bluetooth !== 'undefined' ? Bluetooth._saved : null;
+    const bleConnected = ble?.connected   || false;
+    const bleEnabled   = ble?.enabled     ?? true;
+    const bleProto     = ble?.protocol    || '';
+    const bleRpm       = ble?.rpm         || 0;
+    const bleName      = ble?.displayName || ble?.deviceName || '';
+    const bleReconnect = (typeof Bluetooth !== 'undefined') && !bleConnected && !!bleSaved;
+
+    // Status icon: green=connected, yellow=reconnecting, grey=idle/saved
+    const bleIcon = bleConnected ? '🟢'
+                  : bleReconnect ? '🟡'
+                  : '⚫';
+    const bleStatusLine = bleConnected
+      ? `${bleName} · ${bleProto.toUpperCase()} · ${bleRpm} RPM`
+      : bleReconnect
+        ? `Last: ${bleSaved.displayName || bleSaved.name} · reconnecting…`
+        : 'No bike connected';
 
     const slider = (id, label, icon, value, min=0, max=1, step=0.05) => `
       <div class="sett-row">
@@ -125,25 +133,49 @@ const Settings = {
         <div class="sett-section">
           <div class="sett-section-label">🚴 BIKE SENSOR</div>
           <div class="sett-ble-status">
-            <span class="sett-ble-icon">${bleStatusIcon}</span>
-            <span class="sett-ble-text">${bleStatusText}</span>
+            <span class="sett-ble-icon">${bleIcon}</span>
+            <span class="sett-ble-text">${bleStatusLine}</span>
             ${!bleEnabled ? '<span class="sett-ble-disabled">⚠ Disabled by Dev Mode</span>' : ''}
           </div>
-          ${bleConnected
-            ? `<button class="sett-btn sett-btn-danger"
+
+          ${bleConnected ? `
+            <div class="sett-ble-rename">
+              <input type="text" id="sett-ble-name-input"
+                class="sett-ble-name-input"
+                placeholder="Rename bike…"
+                value="${bleName}"
+                onkeydown="if(event.key==='Enter')Settings._bleRename()">
+              <button class="sett-btn sett-btn-small" onclick="Settings._bleRename()">✔</button>
+            </div>
+            <div class="sett-ble-buttons">
+              <button class="sett-btn sett-btn-danger"
                 onclick="Bluetooth.disconnect();setTimeout(()=>Settings._refresh(),400)">
                 🔌 DISCONNECT
-              </button>`
-            : `<button class="sett-btn sett-btn-primary"
+              </button>
+              <button class="sett-btn sett-btn-ghost"
+                onclick="if(confirm('Forget saved bike?')){Bluetooth.forget();Settings._refresh();}">
+                🗑 FORGET
+              </button>
+            </div>
+          ` : `
+            <div class="sett-ble-buttons">
+              <button class="sett-btn sett-btn-primary"
                 onclick="Bluetooth.connect(Settings._bleLog.bind(Settings)).then(ok=>ok&&Settings._refresh())"
                 ${!bleEnabled ? 'disabled title="Disabled by Dev Mode"' : ''}>
                 🔍 SEARCH FOR BIKE
-              </button>`
-          }
+              </button>
+              ${bleSaved ? `
+                <button class="sett-btn sett-btn-ghost"
+                  onclick="if(confirm('Forget saved bike?')){Bluetooth.forget();Settings._refresh();}">
+                  🗑 FORGET
+                </button>` : ''}
+            </div>
+          `}
+
           <div class="sett-ble-log" id="sett-ble-log"></div>
           <div class="sett-ble-hint">
-            Supports Abilica / iConsole+, FTMS fitness machines,<br>
-            and standard CSC sensors (Garmin, Wahoo, Polar).
+            Abilica / iConsole+ · FTMS · CSC (Magene, Garmin, Wahoo)<br>
+            ${bleSaved ? 'Last connected device saved — auto-reconnects on load.' : 'Connects and saves device for future sessions.'}
           </div>
         </div>
 
@@ -152,6 +184,15 @@ const Settings = {
         <span class="sett-footer-note">Settings auto-saved.</span>
       </div>
     `;
+  },
+
+  // ── Rename handler called by the ✔ button ──────────────────────
+  _bleRename() {
+    const input = document.getElementById('sett-ble-name-input');
+    if (input && typeof Bluetooth !== 'undefined') {
+      Bluetooth.rename(input.value);
+      this._refresh();
+    }
   },
 
   // ─────────────────────────────────────────────────────

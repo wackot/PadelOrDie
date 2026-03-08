@@ -299,7 +299,7 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.38 — Decoupled Architecture');
+    console.log('[Game] Initializing Pedal or Die v0.39 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {
@@ -327,6 +327,15 @@ const Game = {
 
       // Init settings (loads saved prefs, applies brightness + volumes)
       Settings.init();
+
+      // Init Bluetooth (loads saved device, attempts silent reconnect)
+      if (typeof Bluetooth !== 'undefined') {
+        Bluetooth.init();
+        // Refresh settings panel on any connection state change
+        ['bike:connected', 'bike:disconnected', 'bike:reconnecting', 'bike:renamed'].forEach(ev => {
+          Events.on(ev, () => { if (Settings._visible) Settings._refresh(); });
+        });
+      }
 
       // Show main menu + start menu music after first interaction
       Utils.showScreen('menu');
