@@ -502,3 +502,86 @@ drops: [
 ### KNOWN ARCHITECTURE NOTE
 - `Settings.init()` MUST be called after `Audio.init()` is available but Audio doesn't need to be running yet — `setMasterVol/setMusicVol/setSfxVol/setMonsterVol` guard against null `_ctx` via optional chaining
 
+
+---
+
+## v0.38 Changes
+
+### New module: js/bluetooth.js
+
+**Load order:** after `cadence.js`, before `settings.js`
+
+#### Responsibilities
+- All BLE hardware interaction (scan, connect, parse, disconnect)
+- Never writes to `State` — all output via `Events.emit`
+- `settings.js` owns the UI; `bluetooth.js` owns the protocol
+
+#### Protocol detection order (tries each, uses first that responds)
+1. **iConsole+ / Abilica** — `0000fff0-0000-1000-8000-00805f9b34fb`
+   - Notify char: `0000fff1-...` · Write char: `0000fff2-...`
+   - Sends start-stream command `[0xF0, 0xA0, 0x01, 0x01, 0x92]`
+   - Parses 16-byte proprietary packets: header `0xF0`, type `0xD1`, XOR checksum
+   - Fields: byte[8]=RPM, byte[6]/10=km/h, byte[14]=HR
+2. **FTMS** — `fitness_machine` (0x1826)
+   - Indoor Bike Data char `0x2AD2` — variable-length, flag-driven layout
+   - Decodes: speed (bit0), instantaneous cadence (bit2), power (bit6), HR (bit9)
+   - Writes reset op-code `0x00` to control point `0x2AD9` on connect
+3. **CSC** — `cycling_speed_and_cadence` (0x1816)
+   - `csc_measurement` (0x2A5B) — derives RPM from delta crank revs / delta event time
+   - 16-bit rollover-safe delta computation; sanity clamp 5–300 RPM
+4. **Heart Rate** (supplementary, non-fatal) — `heart_rate` (0x180D)
+
+#### Scan strategy
+```js
+navigator.bluetooth.requestDevice({
+  acceptAllDevices: true,      // user sees ALL nearby devices
+  optionalServices: [
+    '0000fff0-0000-1000-8000-00805f9b34fb',  // iConsole
+    'fitness_machine', 0x1826,               // FTMS
+    'cycling_speed_and_cadence', 0x1816,     // CSC
+    'heart_rate', 0x180D,                    // HR
+  ]
+})
+```
+`acceptAllDevices: true` is required because Abilica devices may advertise
+under generic names. Without listing services in `optionalServices`, Chrome
+blocks GATT service access even after pairing.
+
+#### Events emitted
+| Event | Payload | When |
+|---|---|---|
+| `bike:pedal` | `{ rpm, source }` | Each data packet with RPM > 0 |
+| `bike:speed` | `{ kmh, source }` | Each packet with speed > 0 |
+| `bike:hr` | `{ bpm }` | Heart rate packets |
+| `bike:connected` | `{ name, protocol }` | Successful connection |
+| `bike:disconnected` | `{ name }` | GATT disconnect |
+| `bike:error` | `{ message }` | Scan/connect failure |
+
+#### Cadence bridge (bottom of bluetooth.js)
+```js
+Events.on('bike:pedal', ({ rpm }) => {
+  // converts RPM → synthetic click timestamps → Cadence._clickTimes
+  // Cadence._recalcCPM() picks them up in the rolling 5s window
+})
+```
+This is the ONLY place that translates BLE RPM into the cadence engine.
+`cadence.js` itself is unchanged — it still runs on `_clickTimes`.
+
+#### Public API
+- `Bluetooth.connect(logFn)` — async, returns `true` on success
+- `Bluetooth.disconnect()` — graceful GATT disconnect
+- `Bluetooth.setEnabled(bool)` — called by DevMode; `false` stops all data injection and disconnects
+- `Bluetooth.state` — live read-only snapshot: `{ connected, protocol, deviceName, rpm, kmh, bpm, power, enabled }`
+- `Bluetooth.isAvailable()` — checks `navigator.bluetooth`
+
+### settings.js changes
+- `_buildHTML()`: BLE section now reads from `Bluetooth.state` instead of `this._ble`
+- Connect button calls `Bluetooth.connect(Settings._bleLog.bind(Settings))`
+- Disconnect button calls `Bluetooth.disconnect()`
+- Removed: `_ble` property, `bleSearch()`, `bleDisconnect()`, `_onBLEData()`, `setBleEnabled()` — all replaced by `Bluetooth.*`
+- `_bleLog(msg, cls)` retained — passed as `logFn` to `Bluetooth.connect()` so scan progress appears in the settings panel
+
+### devmode.js changes
+- `cadenceSensor` toggle ON → `Bluetooth.setEnabled(true)`
+- `cadenceSensor` toggle OFF → `Bluetooth.setEnabled(false)` (was `Settings.setBleEnabled`)
+
