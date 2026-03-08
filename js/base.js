@@ -178,10 +178,10 @@ const Base = {
     world.addEventListener('pointerup',     endPtr);
     world.addEventListener('pointercancel', endPtr);
 
-    // Mouse wheel zoom
+    // Mouse wheel zoom — small increments for fine control
     world.addEventListener('wheel', e => {
       e.preventDefault();
-      const factor  = e.deltaY > 0 ? 0.88 : 1.14;
+      const factor  = e.deltaY > 0 ? 0.95 : 1.05;
       const newZoom = Utils.clamp(this._zoom * factor, 0.25, 3.0);
       // Zoom towards cursor
       this._panX = e.offsetX - (e.offsetX - this._panX) * (newZoom / this._zoom);
@@ -593,8 +593,8 @@ const Base = {
       case 'dynamo_bike':   this.renderBuildingScreen('dynamo_bike'); Events.emit('navigate', { screen: 'bld-dynamo_bike' }); break;
       case 'woodburner':    Events.emit('navigate', { screen: 'gen-woodburner'}); Events.emit('power:gen:render', { key:'woodburner' }); break;
       case 'coal_plant':    Events.emit('navigate', { screen: 'gen-coal_plant'}); Events.emit('power:gen:render', { key:'coal' });       break;
-      case 'solar_array':   Events.emit('navigate', { screen: 'gen-solar_array'}); Events.emit('power:gen:render', { key:'solar' });     break;
-      case 'battery_bank':  Events.emit('navigate', { screen: 'gen-battery_bank'}); Events.emit('power:bat:render');                     break;
+      case 'solar_array':   this.renderBuildingScreen('solar_array'); Events.emit('navigate', { screen: 'bld-solar_array' });   break;
+      case 'battery_bank':  this.renderBuildingScreen('battery_bank'); Events.emit('navigate', { screen: 'bld-battery_bank' }); break;
       case 'table':       Events.emit('navigate', { screen: 'crafting' }); Events.emit('crafting:render'); break;
       case 'map':         Events.emit('navigate', { screen: 'map' }); Events.emit('worldmap:render');  break;
       case 'field':
@@ -641,6 +641,8 @@ const Base = {
       bunker:         () => BuildingBunker.getScreenData(s),
       powerhouse:     () => BuildingPowerhouseScreen.getScreenData(s),
       dynamo_bike:    () => BuildingDynamoBikeScreen.getScreenData(s),
+      battery_bank:   () => BuildingBatteryBankScreen.getScreenData(s),
+      solar_array:    () => BuildingSolarArrayScreen.getScreenData(s),
     };
 
     const fn = screenMap[id];

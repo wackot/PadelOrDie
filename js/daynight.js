@@ -216,14 +216,28 @@ const DayNight = {
     // (Power checks its own consumers state; no need for dayNight to know about Power)
     Events.emit('tick:dawn:power');
 
-    // Greenhouse passive food + water
+    // Greenhouse passive food + water (independent of power)
     if ((b.passiveFood || 0) > 0) {
       State.addResource('food', b.passiveFood);
       Utils.toast(`🌿 Greenhouse produced ${b.passiveFood} food!`, 'good', 3000);
     }
-    if ((b.passiveWater || 0) > 0) {
-      State.addResource('water', b.passiveWater);
-      Utils.toast(`🌿 Greenhouse produced ${b.passiveWater} water!`, 'good', 3000);
+    // Greenhouse water (from greenhouse upgrades — not from well pump)
+    const ghWater = b.rainPassiveWater || 0;
+    if (ghWater > 0) {
+      State.addResource('water', ghWater);
+      Utils.toast(`🌧️ Rain collector produced ${ghWater} water!`, 'good', 3000);
+    }
+
+    // Well electric pump passive water — ONLY when pump is on AND powered
+    const pumpActive = State.data.power?.consumers?.waterPump;
+    const hasPower   = (State.data.power?.stored || 0) > 0
+                    || (typeof Power !== 'undefined' && Power.getGenerationRate() > 0);
+    const wellWater  = b.wellPassiveWater || 0;
+    if (wellWater > 0 && pumpActive && hasPower) {
+      State.addResource('water', wellWater);
+      Utils.toast(`💧 Electric pump filled ${wellWater} water!`, 'good', 3000);
+    } else if (wellWater > 0 && !pumpActive) {
+      // Manual well — no auto water unless pump is running
     }
 
     // Advanced farming system — grow all plots by 1 day, alert when ready

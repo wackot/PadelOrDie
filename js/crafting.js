@@ -1167,6 +1167,8 @@ const Crafting = {
         if (newLevel >= 5)  b.radioRareDropBonus  = 0.15;
         if (newLevel >= 7)  b.radioAlertBonus     = 30;
         if (newLevel >= 9)  b.radioPrewarnAll     = true;
+        // Unlock radio power consumer at Lv1
+        if (newLevel >= 1 && typeof Power !== 'undefined') Power.unlockConsumer('radio');
         // Unlock special missions at key levels
         const missionUnlocks = { 2:'signal_drop', 4:'rescue_beacon', 6:'black_market', 8:'command_bunker', 10:'endgame_transmission' };
         if (missionUnlocks[newLevel]) {

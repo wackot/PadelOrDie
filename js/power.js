@@ -515,8 +515,9 @@ const Power = {
 
   _consumersPanel(consumers, gen) {
     const items = [
-      { key:'lights',    icon:'💡', name:'Base Lighting',     cost:'varies', req:'Build Base Lights', unlock: 'lights' },
-      { key:'elecBench', icon:'🔬', name:'Electric Bench',    cost:'0.3W/hr',  req:'Build Elec Bench', unlock: 'elecBench' },
+      { key:'lights',    icon:'💡', name:'Base Lighting',     cost:'varies',  req:'Build Base Lights', unlock: 'lights' },
+      { key:'elecBench', icon:'🔬', name:'Electric Bench',    cost:'0.3W/hr', req:'Build Elec Bench',  unlock: 'elecBench' },
+      { key:'radio',     icon:'📡', name:'Radio Tower',       cost:'0.5W/hr', req:'Build Radio Tower', unlock: 'radio' },
     ].map(c => {
       const isUnlocked = State.data.power.unlockedConsumers?.[c.unlock] || false;
       const isOn       = consumers[c.key] || false;
@@ -583,6 +584,7 @@ const Power = {
       d += wLv >= 10 ? 1.5 : wLv >= 9 ? 1.2 : 0.8;
     }
     if (consumers.elecBench) d += 0.3;
+    if (consumers.radio)     d += 0.5;  // radio tower scan — 0.5W when active
     return d;
   },
 
@@ -730,3 +732,42 @@ Events.on('power:bat:render', () => {
 Events.on('hud:update', () => { Power._updateHUDIndicator?.(); });
 Events.on('map:changed', () => { Power._updateHUDIndicator?.(); });
 
+
+// ── Battery Bank building screen (bld-screen system) ─────────────────────
+const BuildingBatteryBankScreen = {
+  getScreenData(s) {
+    const p   = s.power;
+    const lv  = p.battery?.level || 0;
+    const max = (typeof Power !== 'undefined') ? Power.getMaxStorage() : 0;
+    const stored = Math.round(p.stored || 0);
+    const pct = max > 0 ? Math.round((stored / max) * 100) : 0;
+    const col = pct >= 60 ? '#4caf50' : pct >= 25 ? '#ffd600' : '#e53935';
+
+    const visual = `<div style="font-size:2.8em;text-align:center;padding:12px">🔋</div>`;
+    const statsRows = lv === 0
+      ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+      : `<div class="bsc-row"><span>Level</span><span>${lv}</span></div>
+         <div class="bsc-row ok"><span>Capacity</span><span>${max} Wh</span></div>
+         <div class="bsc-row"><span>Stored</span><span style="color:${col}">${stored} Wh (${pct}%)</span></div>`;
+    return { title: '🔋 BATTERY BANK', visual, statsRows, actionBtn: '' };
+  }
+};
+
+// ── Solar Array building screen (bld-screen system) ──────────────────────
+const BuildingSolarArrayScreen = {
+  getScreenData(s) {
+    const p    = s.power;
+    const lv   = p.generators?.solar?.level || 0;
+    const isDay = !s.world.isNight;
+    const out  = (typeof Power !== 'undefined') ? Power._liveOutput('solar') : 0;
+    const max  = (typeof Power !== 'undefined') ? (Power._genOutput?.solar || 2) * lv : 0;
+
+    const visual = `<div style="font-size:2.8em;text-align:center;padding:12px">☀️</div>`;
+    const statsRows = lv === 0
+      ? `<div class="bsc-row locked"><span>Status</span><span>🔒 Not yet built</span></div>`
+      : `<div class="bsc-row"><span>Level</span><span>${lv}</span></div>
+         <div class="bsc-row ok"><span>Max output</span><span>${max.toFixed(1)}W</span></div>
+         <div class="bsc-row ${isDay?'ok':''}"><span>Current output</span><span>${out}W ${isDay?'(daytime)':'(night — offline)'}</span></div>`;
+    return { title: '☀️ SOLAR ARRAY', visual, statsRows, actionBtn: '' };
+  }
+};

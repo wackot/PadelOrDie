@@ -41,13 +41,43 @@ const Raids = {
     // Night is always 2× — but if player is out foraging at night (with light) even MORE raids
     const nightEncReduction = State.data.base.bikeNightEncounterReduction || 0;
     const nightMult = (isNight ? 2.0 : 1.0) * (1 - nightEncReduction);
-    const chance = baseChance * nightMult;
+
+    // Radio tower raid reduction — ONLY when radio consumer is on AND powered
+    const radioOn  = State.data.power?.consumers?.radio;
+    const radioPwr = (State.data.power?.stored || 0) > 0
+                  || (typeof Power !== 'undefined' && Power.getGenerationRate() > 0);
+    const radioReduction = (radioOn && radioPwr) ? (State.data.base.raidChanceReduction || 0) : 0;
+
+    const chance = baseChance * nightMult * (1 - radioReduction);
     if (Math.random() < chance) this.triggerRaid(isNight ? 'night' : 'random');
   },
 
   // ── Trigger a raid ─────────────────────────
   triggerRaid(source = 'random') {
     if (State.data.world.activeRaid) return;
+
+    // ── Electric fence instant defeat ────────────────────────────────────
+    // If fence is electrified AND powered AND (zap in inventory OR fence Lv10), defeat instantly
+    const fLv  = State.data.base.buildings.fence?.level || 0;
+    const elecActive = State.data.power?.consumers?.elecFence;
+    const hasPower   = (State.data.power?.stored || 0) > 0
+                    || (typeof Power !== 'undefined' && Power.getGenerationRate() > 0);
+    const hasZap     = (State.data.inventory?.elec_fence_upgrade || 0) > 0;
+    const fenceDefeats = elecActive && hasPower && (hasZap || fLv >= 10);
+
+    if (fenceDefeats) {
+      // Consume one zap charge unless Lv10
+      if (fLv < 10 && hasZap) {
+        State.data.inventory.elec_fence_upgrade = Math.max(0, (State.data.inventory.elec_fence_upgrade || 1) - 1);
+      }
+      State.data.stats.raidsRepelled = (State.data.stats.raidsRepelled || 0) + 1;
+      State.data.world.daysSinceLastRaid = 0;
+      Utils.toast(`⚡ Electric fence zapped the raiders! Attack defeated instantly.`, 'good', 4000);
+      Audio.sfxVictory?.();
+      Events.emit('hud:update');
+      return; // raid cancelled
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     const animal              = Animals.randomRaidAnimal();
     this._currentAnimal       = animal;
@@ -73,6 +103,11 @@ const Raids = {
 
   // ── Open raid screen ──────────────────────
   _openRaidScreen() {
+    // Guard: clear any pre-existing timer to prevent double-tick race
+    if (this._raidTimer) { clearInterval(this._raidTimer); this._raidTimer = null; }
+    // Clear any leftover result overlay from a previous raid
+    const prev = document.getElementById('screen-raid');
+    if (prev) { const old = prev.querySelector('.raid-result'); if (old) old.remove(); }
     this._buildRaidScreen();
     Events.emit('navigate', { screen: 'raid' });
     Audio.play('raid');
@@ -258,6 +293,12 @@ const Raids = {
 
   // ── Raid tick ─────────────────────────────
   _raidTick() {
+    // Guard: if raid already ended (timer should have been cleared), abort
+    if (!State.data.world.activeRaid) {
+      clearInterval(this._raidTimer);
+      this._raidTimer = null;
+      return;
+    }
     if (this._checkPaused) return;
 
     if (!this._raidStartTime) this._raidStartTime = Date.now();
@@ -402,50 +443,47 @@ const Raids = {
   // ── End raid ──────────────────────────────
   _endRaid(playerWon) {
     clearInterval(this._raidTimer);
+    this._raidTimer = null;
     Cadence.stop();
     State.data.world.activeRaid   = false;
     State.data.world.raidStrength = 0;
 
-    if (playerWon) {
+    // Capture loot BEFORE nulling _currentAnimal
+    let lootGained = [];
+    if (playerWon && this._currentAnimal) {
       State.data.stats.raidsRepelled++;
       Audio.sfxVictory();
-      // Apply loot drops from the defeated animal
-      if (this._currentAnimal) {
-        const loot = Animals.rollDrops(this._currentAnimal.id);
-        const gained = [];
-        Object.entries(loot).forEach(([res, amt]) => {
-          State.addResource(res, amt);
-          gained.push(`${amt} ${res}`);
-        });
-        if (gained.length > 0) {
-          setTimeout(() => Utils.toast(`🎁 Loot: ${gained.join(', ')}`, 'good', 4000), 800);
-        }
+      const loot = Animals.rollDrops(this._currentAnimal.id);
+      Object.entries(loot).forEach(([res, amt]) => {
+        State.addResource(res, amt);
+        lootGained.push(`${amt} ${res}`);
+      });
+      if (lootGained.length > 0) {
+        setTimeout(() => Utils.toast(`🎁 Loot: ${lootGained.join(', ')}`, 'good', 4000), 800);
       }
-    } else {
+    } else if (!playerWon) {
       State.data.stats.raidsFailed++;
       Audio.sfxDefeat();
       this._applyRaidLoss();
     }
 
     Audio.play('base');
-    this._showResult(playerWon);
+    this._showResult(playerWon, lootGained);
     this._currentAnimal = null;
     console.log('[Raids] Ended. Victory:', playerWon);
   },
 
   // ── Result overlay ─────────────────────────
-  _showResult(victory) {
+  _showResult(victory, lootGained = []) {
     const screen = document.getElementById('screen-raid');
     if (!screen) return;
 
-    let lootLine = '';
-    if (victory && this._currentAnimal) {
-      const loot = Animals.rollDrops(this._currentAnimal.id);
-      const parts = Object.entries(loot).map(([r,a]) => `${a}× ${r}`);
-      lootLine = parts.length > 0
-        ? `<div class="raid-result-loot">🎁 Loot: ${parts.join('  ')}</div>`
-        : `<div class="raid-result-loot">No loot this time.</div>`;
-    }
+    // Remove any stale result overlay before adding a new one (prevents stacking)
+    screen.querySelectorAll('.raid-result').forEach(el => el.remove());
+
+    const lootLine = victory && lootGained.length > 0
+      ? `<div class="raid-result-loot">🎁 Loot: ${lootGained.join('  ')}</div>`
+      : victory ? `<div class="raid-result-loot">No loot this time.</div>` : '';
 
     const overlay = document.createElement('div');
     overlay.className = `raid-result ${victory ? 'victory' : 'defeat'}`;

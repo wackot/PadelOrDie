@@ -98,14 +98,16 @@ const State = {
         lights:    false,
         elecFence: false,
         waterPump: false,
-        elecBench: false
+        elecBench: false,
+        radio:     false
       },
       // Which consumers have been unlocked (built)
       unlockedConsumers: {
         lights:    false,
         elecFence: false,
         waterPump: false,
-        elecBench: false
+        elecBench: false,
+        radio:     false
       }
     },
 
