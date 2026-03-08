@@ -134,30 +134,6 @@ const Crafting = {
       type:'base_upgrade', ingredients:{ wood:8, metal:3 }, effect:{ defenceRating:10 },
       unlockCondition: { resource:'metal', amount:3 }
     },
-    solar_panel: {
-      id:'solar_panel', category:'base', name:'Solar Panel', emoji:'☀️',
-      desc:'Free power. Unlocks electronics crafting.',
-      type:'base_upgrade', ingredients:{ electronics:5, metal:4 }, effect:{ hasPower:true },
-      unlockCondition: { resource:'electronics', amount:5 }
-    },
-    storage_upgrade: {
-      id:'storage_upgrade', category:'base', name:'Storage Expansion', emoji:'🗃️',
-      desc:'More room for resources.',
-      type:'base_upgrade', ingredients:{ wood:10, metal:2 }, effect:{ storageMult:2 },
-      unlockCondition: { resource:'wood', amount:10 }
-    },
-    greenhouse: {
-      id:'greenhouse', category:'base', name:'Greenhouse', emoji:'🌿',
-      desc:'Grow food at base. Passive +1 food per day.',
-      type:'base_upgrade', ingredients:{ wood:12, cloth:4, rope:3 }, effect:{ passiveFood:1 },
-      unlockCondition: { resource:'cloth', amount:4 }
-    },
-    radio_tower: {
-      id:'radio_tower', category:'base', name:'Radio Tower', emoji:'📡',
-      desc:'Scan for threats. Reduces raid frequency by 30%.',
-      type:'base_upgrade', ingredients:{ electronics:6, metal:8, rope:4 }, effect:{ raidReduction:0.3 },
-      unlockCondition: { resource:'electronics', amount:6 }
-    },
 
     // UNIQUE MATERIAL RECIPES — require location-specific drops
     spore_extract: {

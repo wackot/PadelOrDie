@@ -85,7 +85,7 @@ const Raids = {
     if (!screen) return;
 
     const animal  = this._currentAnimal;
-    const defence = State.data.base.defenceRating;
+    const defence = State.getEffectiveDefence();
     const isNight = State.data.world.isNight;
 
     // Title bar + alert
@@ -229,7 +229,7 @@ const Raids = {
     Cadence.registerClick();
     Audio.sfxPedal();
     const ratio   = Cadence.getRatio();
-    const defence = State.data.base.defenceRating;
+    const defence = State.getEffectiveDefence();
     const dmg     = Utils.randFloat(0.5, 1.5) * ratio * (1 + defence / 100);
     this._enemyHealth = Math.max(0, this._enemyHealth - dmg);
     // Animate: player lunges toward monster on click if ratio is good

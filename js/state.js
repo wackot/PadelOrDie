@@ -377,6 +377,22 @@ const State = {
     );
   },
 
+  // Returns defence rating, minus electric fence bonus if power is out
+  getEffectiveDefence() {
+    const base = this.data.base.defenceRating || 0;
+    const p    = this.data.power;
+    // If elecFence consumer is active but stored power + generation == 0, fence is dark
+    if (p?.consumers?.elecFence) {
+      const stored = p.stored || 0;
+      const gen    = (typeof Power !== 'undefined') ? Power.getGenerationRate() : 0;
+      if (stored <= 0 && gen <= 0) {
+        return Math.max(0, base - 60);  // remove the electric fence bonus
+      }
+    }
+    return base;
+  },
+
+
   // ── Private ───────────────────────────────
   _deepMerge(target, source) {
     for (const key of Object.keys(source)) {

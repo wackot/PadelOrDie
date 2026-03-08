@@ -335,9 +335,9 @@ const Base = {
     const wtX    = cx + fw * 0.10;
     const wtY    = cy - fh * 0.44;
 
-    // COMPOST BIN — lower centre
-    const cbX    = cx + fw * 0.04;
-    const cbY    = cy + fh * 0.44;
+    // COMPOST BIN — upper far-right corner (near field, away from alarm)
+    const cbX    = cx + fw * 0.44;
+    const cbY    = cy - fh * 0.18;
 
     // SMOKEHOUSE — right side, mid
     const shX    = cx + fw * 0.44;
@@ -351,8 +351,8 @@ const Base = {
     const mkX    = cx - fw * 0.44;
     const mkY    = cy + fh * 0.28;
 
-    // BUNKER — lower centre, clear gate area
-    const bnX    = cx;
+    // BUNKER — lower-left, distinct from all other buildings (separated from gate area)
+    const bnX    = cx - fw * 0.20;
     const bnY    = cy + fh * 0.44;
 
     // DYNAMO BIKE — left side, near powerhouse
@@ -374,6 +374,45 @@ const Base = {
     // BATTERY BANK — between powerhouse and centre
     const bbX    = cx - fw * 0.06;
     const bbY    = cy - fh * 0.16;
+
+    // ── Construction site overlay (issue 31) ────────────────────────────
+    // When a building is under construction, show a scaffold icon at its map
+    // position so the player can click it to enter the pedalling screen.
+    const ab = State.data.activeBuild;
+    const _posMap = {
+      shelter: [houseX, houseY],    house: [houseX, houseY],
+      well:    [wellX, wellY],      fridge: [barnX, barnY],
+      greenhouse: [ghX, ghY],       field: [fiX, fiY],
+      powerhouse: [phX, phY],       elecbench: [ebX, ebY],
+      storage: [stX, stY],          bike: [bkX, bkY],
+      greenhouse: [ghX, ghY],       radio_tower: [rtX, rtY],
+      rain_collector: [rcX, rcY],   solar_station: [ssX, ssY],
+      watchtower: [wtX, wtY],       compost_bin: [cbX, cbY],
+      smokehouse: [shX, shY],       alarm_system: [alX, alY],
+      medkit_station: [mkX, mkY],   bunker: [bnX, bnY],
+      dynamo_bike: [dbX, dbY],      woodburner: [wbX, wbY],
+      coal_plant: [cpX, cpY],       solar_array: [saX, saY],
+      battery_bank: [bbX, bbY],     baselights: [cx + fw*0.20, cy + fh*0.08],
+      fence: [cx, cy - fh*0.40],    workshop: [wsX, wsY],
+    };
+    const _abPos = ab ? (_posMap[ab.key] || null) : null;
+    const pct = ab ? Math.round(((ab.secsTotal - ab.secsLeft) / ab.secsTotal) * 100) : 0;
+    const _constructionSVG = (ab && _abPos) ? `
+      <g class="construction-site-marker" style="cursor:pointer" onclick="Base.goToConstruction()">
+        <rect x="${_abPos[0]-48}" y="${_abPos[1]-48}" width="96" height="96"
+          fill="rgba(20,14,4,0.82)" stroke="#ffd600" stroke-width="3" rx="8"
+          filter="url(#glow-yellow)"/>
+        <text x="${_abPos[0]}" y="${_abPos[1]-10}" font-size="32" text-anchor="middle"
+          dominant-baseline="middle">🏗</text>
+        <text x="${_abPos[0]}" y="${_abPos[1]+14}" font-family="Press Start 2P" font-size="9"
+          fill="#ffd600" text-anchor="middle">BUILDING</text>
+        <rect x="${_abPos[0]-38}" y="${_abPos[1]+28}" width="76" height="10"
+          fill="#222" rx="3"/>
+        <rect x="${_abPos[0]-38}" y="${_abPos[1]+28}" width="${Math.round(76*pct/100)}" height="10"
+          fill="#ffd600" rx="3"/>
+        <text x="${_abPos[0]}" y="${_abPos[1]+42}" font-family="Press Start 2P" font-size="7"
+          fill="#aaa" text-anchor="middle">${pct}%</text>
+      </g>` : '';
 
     svg.innerHTML = `
       <defs>
@@ -457,7 +496,16 @@ const Base = {
       ${this._hitZone('well',           wellX,  wellY,  70,  80,  'WELL')}
       ${this._hitZone('table',          wsX,    wsY,    70,  70,  'CRAFTING')}
       ${this._hitZone('map',            mapX,   mapY,   70,  70,  'WORLD MAP')}
-      ${this._hitZone('fence',          cx,     ft+10,  120, 36,  'DEFENCES (' + dr + ')')}
+      ${(() => {
+        const effDef = State.getEffectiveDefence();
+        const fenceUnpowered = State.data?.power?.consumers?.elecFence
+          && (State.data?.power?.stored || 0) <= 0
+          && !hasPwr;
+        const fenceLabel = fenceUnpowered
+          ? `⚠️ FENCE (NO POWER: ${effDef} DEF)`
+          : `DEFENCES (${dr})`;
+        return this._hitZone('fence', cx, ft+10, 120, 36, fenceLabel);
+      })()}
       ${this._hitZone('greenhouse',     ghX,    ghY,    70,  80,  'GREENHOUSE')}
       ${this._hitZone('field',          fiX,    fiY,    80,  70,  'CROP FIELD')}
       ${this._hitZone('powerhouse',     phX,    phY,    70,  80,  '⚡ POWER HOUSE')}
@@ -479,6 +527,9 @@ const Base = {
       ${phLvl > 0 ? this._hitZone('solar_array',  saX, saY, 80, 70, '☀️ SOLAR ARRAY Lv' + saLvl) : ''}
       ${phLvl > 0 ? this._hitZone('battery_bank', bbX, bbY, 70, 70, '🔋 BATTERY Lv' + bbLvl)     : ''}
       ${this._hitZone('baselights', cx + fw * 0.20, cy + fh * 0.08, 60, 60, '💡 LIGHTS Lv' + blLvl)}
+
+      <!-- Construction site overlay — rendered ABOVE hit zones so it's tappable -->
+      ${_constructionSVG}
     `;
 
     // Building clicks handled by pointerup tap detection above
@@ -497,10 +548,49 @@ const Base = {
     this.goToBuilding(id);
   },
 
+  goToConstruction() {
+    const ab = State.data.activeBuild;
+    if (!ab) return;
+    const title  = document.getElementById('construction-title');
+    const visual = document.getElementById('construction-visual');
+    const stats  = document.getElementById('construction-stats');
+    if (title)  title.textContent  = `🏗 BUILDING: ${ab.upg?.name || ab.key.toUpperCase()}`;
+    if (visual) visual.innerHTML   = `<div style="font-size:3em;text-align:center;padding:12px">🏗</div>`;
+    if (stats)  stats.innerHTML    = `<span id="constr-secs">${Math.ceil(ab.secsLeft)}s remaining</span> — 🚴 Pedal to speed up!`;
+    Events.emit('navigate', { screen: 'construction' });
+    Cadence.start();
+    this._startConstructionRefresh();
+  },
+
+  _constructionRefreshTimer: null,
+  _startConstructionRefresh() {
+    clearInterval(this._constructionRefreshTimer);
+    this._constructionRefreshTimer = setInterval(() => {
+      const ab  = State.data.activeBuild;
+      const bar = document.getElementById('construction-bar');
+      const sec = document.getElementById('constr-secs');
+      if (!ab) {
+        clearInterval(this._constructionRefreshTimer);
+        Utils.toast('✅ Construction complete!', 'good', 3000);
+        Events.emit('navigate', { screen: 'base' });
+        return;
+      }
+      const pct = Math.round(((ab.secsTotal - ab.secsLeft) / ab.secsTotal) * 100);
+      if (bar) bar.style.width = pct + '%';
+      if (sec)  sec.textContent = `${Math.ceil(ab.secsLeft)}s remaining`;
+      const lbl = document.getElementById('construction-speed-label');
+      if (lbl) {
+        const cpm   = State.data.cadence?.clicksPerMinute || 0;
+        const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
+        lbl.textContent = bonus > 0 ? `⚡ +${bonus.toFixed(1)}s/tick` : 'slow';
+      }
+    }, 500);
+  },
+
   goToBuilding(id) {
     switch (id) {
-      case 'powerhouse':    Events.emit('navigate', { screen: 'power' });        Events.emit('power:render');          break;
-      case 'dynamo_bike':   Events.emit('navigate', { screen: 'dynamo-bike' });  Events.emit('dynamo_bike:render');    break;
+      case 'powerhouse':    this.renderBuildingScreen('powerhouse'); Events.emit('navigate', { screen: 'bld-powerhouse' }); break;
+      case 'dynamo_bike':   this.renderBuildingScreen('dynamo_bike'); Events.emit('navigate', { screen: 'bld-dynamo_bike' }); break;
       case 'woodburner':    Events.emit('navigate', { screen: 'gen-woodburner'}); Events.emit('power:gen:render', { key:'woodburner' }); break;
       case 'coal_plant':    Events.emit('navigate', { screen: 'gen-coal_plant'}); Events.emit('power:gen:render', { key:'coal' });       break;
       case 'solar_array':   Events.emit('navigate', { screen: 'gen-solar_array'}); Events.emit('power:gen:render', { key:'solar' });     break;
@@ -508,7 +598,8 @@ const Base = {
       case 'table':       Events.emit('navigate', { screen: 'crafting' }); Events.emit('crafting:render'); break;
       case 'map':         Events.emit('navigate', { screen: 'map' }); Events.emit('worldmap:render');  break;
       case 'field':
-        Events.emit('farming:open');
+        this.renderBuildingScreen('field');
+        Events.emit('navigate', { screen: 'bld-field' });
         break;
       default:
         if (document.getElementById('screen-bld-' + id)) {
@@ -548,6 +639,8 @@ const Base = {
       alarm_system:   () => BuildingAlarmSystem.getScreenData(s),
       medkit_station: () => BuildingMedkitStation.getScreenData(s),
       bunker:         () => BuildingBunker.getScreenData(s),
+      powerhouse:     () => BuildingPowerhouseScreen.getScreenData(s),
+      dynamo_bike:    () => BuildingDynamoBikeScreen.getScreenData(s),
     };
 
     const fn = screenMap[id];
@@ -557,7 +650,8 @@ const Base = {
     const result = fn();
     if (result) { ({ title, visual, statsRows, actionBtn = '' } = result); }
 
-    const upgKey = id;
+    // Key remap: 'house' building id → 'shelter' in BuildingUpgrades
+    const upgKey = id === 'house' ? 'shelter' : id;
     const upg    = BuildingUpgrades?.[upgKey];
     let upgradeSection = '';
 
@@ -565,6 +659,7 @@ const Base = {
       const shelterLv = bld.house?.level || 1;
       const reqLv     = upg.unlockReq || 0;
       const isLocked  = reqLv > shelterLv;
+      // stKey: state key for bld[stKey].level — 'shelter' in upgrades maps to 'house' in state
       const stKey     = upgKey === 'shelter' ? 'house' : upgKey;
       const curLv     = bld[stKey]?.level || 0;
       const isMax     = curLv >= upg.maxLevel;
@@ -649,7 +744,8 @@ const Base = {
   showUpgradeConfirm(screenId, upgKey) {
     const upg   = BuildingUpgrades?.[upgKey];
     if (!upg) return;
-    const curLv = State.data.base.buildings[upgKey]?.level || 0;
+    const stKey = upgKey === 'shelter' ? 'house' : upgKey;
+    const curLv = State.data.base.buildings[stKey]?.level || 0;
     const next  = upg.levels[curLv];
     if (!next) return;
 
