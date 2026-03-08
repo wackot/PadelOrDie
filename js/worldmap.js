@@ -355,7 +355,7 @@ const WorldMap = {
               <button class="map-zoom-btn" id="wm-zoom-fit">⊡</button>
               <button class="map-zoom-btn" id="wm-zoom-out">－</button>
             </div>
-            <button class="btn-pixel btn-secondary" id="btn-back-from-map" style="padding:6px 12px">← BASE</button>
+            <button class="btn-pixel btn-primary" id="btn-back-from-map" style="padding:8px 16px;font-size:clamp(0.28rem,1.2vw,0.45rem)">← BACK TO BASE</button>
           </div>
         </div>
         <div class="wm-canvas-wrap" id="wm-canvas-wrap">
@@ -1136,8 +1136,8 @@ const WorldMap = {
           🚴 PEDAL!
           <span class="pedal-sub">Faster = quicker travel + fight off monsters!</span>
         </button>
-        <button class="btn-pixel btn-secondary" id="btn-abort-travel" style="width:100%;margin-top:6px;padding:10px;opacity:0.7">
-          ← TURN BACK
+        <button class="btn-pixel btn-primary" id="btn-abort-travel" style="width:100%;margin-top:6px;padding:12px">
+          ← BACK TO BASE
         </button>
         <div class="travel-encounter hidden" id="travel-encounter"></div>
       </div>
@@ -1160,9 +1160,7 @@ const WorldMap = {
       if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
       this._travelling = false;
 
-      if (State.data?.world) State.data.world.playerAway =
-
-        (State.data?.world?.playerAway);
+      if (State.data?.world) State.data.world.playerAway = false;
       this._roadEncounterActive = false;
       Utils.toast('↩ Turned back.', 'info');
       Events.emit('navigate', { screen: 'base' });

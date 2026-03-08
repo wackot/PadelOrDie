@@ -42,6 +42,7 @@ const Cadence = {
   // ── Register a click/pedal ────────────────
   registerClick() {
     if (!this._active) return;
+    if (typeof Base !== 'undefined' && Base._paused) return;
     // Dev click mode: inject synthetic clicks to simulate full-speed pedalling
     if (State.clickModeActiveFn && State.clickModeActiveFn()) {
       const target = this.getTargetCPM() || 60;
@@ -116,6 +117,7 @@ const Cadence = {
 
   // ── Private: decay CPM when idle ──────────
   _decayCPM() {
+    if (typeof Base !== 'undefined' && Base._paused) return;
     this._prune();
     this._recalcCPM();
   },

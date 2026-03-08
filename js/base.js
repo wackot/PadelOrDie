@@ -9,6 +9,24 @@ const Base = {
   _paused: false,
   _pausedTimers: [],
 
+  togglePause() {
+    this._paused = !this._paused;
+    const overlay = document.getElementById('pause-overlay');
+    const btn     = document.getElementById('btn-pause');
+
+    if (this._paused) {
+      // Pause: stop the day/night clock and cadence decay
+      DayNight._paused = true;
+      if (overlay) overlay.classList.remove('hidden');
+      if (btn) btn.textContent = '▶';
+    } else {
+      // Resume
+      DayNight._paused = false;
+      if (overlay) overlay.classList.add('hidden');
+      if (btn) btn.textContent = '⏸';
+    }
+  },
+
   buildings: {
     house:      { id:'house',       title:'Shelter',        desc:'Sleep and restore energy here.',                        action:'shelter'    },
     fridge:     { id:'fridge',      title:'Food Store',     desc:'Eat food and manage supplies.',                         action:'fridge'     },
