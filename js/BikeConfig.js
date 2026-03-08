@@ -143,9 +143,13 @@ const BikeConfig = {
         <div class="bkcfg-body">
           <div class="bkcfg-section-label">LIVE SENSOR READINGS</div>
           <p class="bkcfg-desc">
-            Pedal your bike to see live values. Select which channel should
-            control your in-game speed. Your choice is saved automatically.
+            Pedal your bike to see live values below. Select which channel
+            controls your in-game speed. Your choice is saved automatically.
           </p>
+          <div id="bkcfg-idle-warn" class="bkcfg-idle-warn" style="display:none">
+            ⚠ No data yet. If your bike has a display, start a workout session on it first —
+            some bikes only broadcast data when a session is active.
+          </div>
 
           <div class="bkcfg-channels">
 
@@ -224,6 +228,13 @@ const BikeConfig = {
     if (rpmEl) rpmEl.textContent = ble.rpm || 0;
     if (kmhEl) kmhEl.textContent = ble.kmh ? ble.kmh.toFixed(1) : '0';
     if (hrEl)  hrEl.textContent  = ble.bpm || '—';
+
+    // Show/hide idle warning
+    const idleWarn = document.getElementById('bkcfg-idle-warn');
+    if (idleWarn) {
+      const isIdle = ble.rpm === 0 && ble.kmh === 0;
+      idleWarn.style.display = isIdle ? 'block' : 'none';
+    }
   },
 
   // ═════════════════════════════════════════════════════════════════

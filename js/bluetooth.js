@@ -345,20 +345,84 @@ const Bluetooth = {
   },
 
   _parseIConsole(dv) {
-    if (!this.state.enabled || dv.byteLength < 16) return;
+    if (!this.state.enabled) return;
+    const len = dv.byteLength;
+    if (len < 4) return;
     if (dv.getUint8(0) !== 0xF0) return;
-    let xor = 0;
-    for (let i = 1; i < 15; i++) xor ^= dv.getUint8(i);
-    if (xor !== dv.getUint8(15) || dv.getUint8(1) !== 0xD1) return;
 
-    const rpm   = dv.getUint8(8);
-    const kmh   = dv.getUint8(6) / 10;
-    const hr    = dv.getUint8(14);
-    const level = dv.getUint8(9);
-    const dist  = dv.getUint16(10, true);
-    const cal   = dv.getUint16(12, true);
+    const type = dv.getUint8(1);
 
-    // Update raw channel buffer (always, regardless of mapping)
+    // ── Type 0xD1 — standard workout data packet (16 bytes) ──────
+    // Header 0xF0 | Type 0xD1 | ... | [6] speed/10 | [8] RPM |
+    // [9] level | [10-11] dist | [12-13] cal | [14] HR | [15] XOR
+    if (type === 0xD1 && len >= 16) {
+      let xor = 0;
+      for (let i = 1; i < 15; i++) xor ^= dv.getUint8(i);
+      if (xor !== dv.getUint8(15)) {
+        console.warn('[BLE] iConsole 0xD1 checksum fail');
+        return;
+      }
+      const rpm   = dv.getUint8(8);
+      const kmh   = dv.getUint8(6) / 10;
+      const hr    = dv.getUint8(14);
+      const level = dv.getUint8(9);
+      const dist  = dv.getUint16(10, true);
+      const cal   = dv.getUint16(12, true);
+      this._applyIConsoleData(rpm, kmh, hr, level, dist, cal);
+      return;
+    }
+
+    // ── Type 0xE0 / 0xE1 — some iConsole+ models send workout data
+    //    in a different packet type. Try decoding same byte positions.
+    if ((type === 0xE0 || type === 0xE1) && len >= 16) {
+      const rpm = dv.getUint8(8);
+      const kmh = dv.getUint8(6) / 10;
+      const hr  = dv.getUint8(14);
+      // Only accept if values are plausible
+      if (rpm > 0 || kmh > 0) {
+        console.log('[BLE] iConsole type 0x' + type.toString(16) + ' — using same byte layout');
+        this._applyIConsoleData(rpm, kmh, hr, dv.getUint8(9), dv.getUint16(10,true), dv.getUint16(12,true));
+        return;
+      }
+    }
+
+    // ── Type 0xA0 — status/idle packets: log once, don't error ───
+    // Bike is connected but not in workout mode. Game still stores
+    // partial data (speed=0, rpm=0) so BikeConfig panel updates.
+    if (type === 0xA0) {
+      // Only log occasionally to avoid spam
+      if (!this._lastA0Log || Date.now() - this._lastA0Log > 5000) {
+        console.log('[BLE] iConsole 0xA0 status packet — bike idle (start workout on bike display)');
+        this._lastA0Log = Date.now();
+      }
+      // Still emit bike:data so BikeConfig panel shows "waiting"
+      this.channels.iconsole_rpm   = 0;
+      this.channels.iconsole_speed = 0;
+      Events.emit('bike:data', { channels: Object.assign({}, this.channels) });
+      return;
+    }
+
+    // ── Unknown type — log raw so we can learn from it ───────────
+    if (!this._unknownTypes) this._unknownTypes = {};
+    if (!this._unknownTypes[type]) {
+      this._unknownTypes[type] = true;
+      const bytes = new Uint8Array(dv.buffer);
+      const hex = Array.from(bytes).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+      console.log('[BLE] iConsole unknown type 0x' + type.toString(16).toUpperCase() + ' len=' + len + ' HEX: ' + hex);
+      // Still try to extract data at the same byte positions
+      if (len >= 9) {
+        const rpm = dv.getUint8(8);
+        const kmh = dv.getUint8(6) / 10;
+        if (rpm > 0 || kmh > 0) {
+          console.log('[BLE] iConsole unknown type — trying same layout: RPM=' + rpm + ' SPD=' + kmh);
+          this._applyIConsoleData(rpm, kmh, len >= 15 ? dv.getUint8(14) : 0, 0, 0, 0);
+        }
+      }
+    }
+  },
+
+  // Shared data application for all iConsole packet types
+  _applyIConsoleData(rpm, kmh, hr, level, dist, cal) {
     this.channels.iconsole_rpm   = rpm;
     this.channels.iconsole_speed = kmh;
     this.channels.iconsole_hr    = hr;
@@ -373,18 +437,10 @@ const Bluetooth = {
     if (hr > 30 && hr < 250) Events.emit('bike:hr', { bpm: hr });
     if (kmh > 0) Events.emit('bike:speed', { kmh, source: 'iconsole' });
 
-    // Apply mapping to decide what drives RPM
     const src = this.getMapping().rpmSource;
-    let effectiveRpm = 0;
-    if (src === 'iconsole_speed') {
-      // Derive RPM from speed: assume ~0.7m wheel circumference, typical cadence ratio
-      // RPM = (speed_kmh * 1000/60) / (wheel_circ_m * gear_ratio)
-      // Simple heuristic: 60 RPM ≈ 20 km/h for most stationary bikes
-      effectiveRpm = Math.round(kmh * 3);
-    } else {
-      // 'auto' or 'iconsole_rpm' — use byte[8] directly
-      effectiveRpm = rpm;
-    }
+    const effectiveRpm = (src === 'iconsole_speed')
+      ? Math.round(kmh * 3)
+      : rpm;
 
     this.state.rpm = effectiveRpm;
     if (effectiveRpm > 0) Events.emit('bike:pedal', { rpm: effectiveRpm, source: 'iconsole' });
