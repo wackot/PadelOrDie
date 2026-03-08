@@ -396,3 +396,64 @@ drops: [
 - "🏚 Base" craft category now contains only `reinforced_door` (a genuine craftable item)
 - No change to `BuildingUpgrades` — all four still upgrade correctly from the base map
 
+
+---
+
+## v0.36 Changes
+
+### Issue 34 — Shelter sleep/rest inline (no sub-window)
+- `BuildingShelterScreen.getScreenData()` now returns two inline buttons in `actionBtn`: "😴 SLEEP TILL DAWN" (`Player.sleep(8)`) and "💤 SHORT REST (2h)" (`Player.sleep(2)`)
+- No more `data-goto="shelter"` navigation — the entire shelter interaction is on the bld-screen
+- Fixed stale field references: `sleepBonus` → `sleepEnergyBonus`, `raidDamageMult` → `shelterRaidReduction`
+
+### Issue 35 — Dynamo bike CHARGE button, no upgrade in pedal screen
+- `DynamoBike.renderScreen()` (the pedal screen): removed BUILD/UPGRADE section and pips, replaced with "CHARGING SESSION" label
+- "▶ START PEDALLING" button renamed to "⚡ CHARGE"
+- "← BACK TO BASE" button changed to "← BACK TO DYNAMO" (returns to bld-screen not base map)
+- `BuildingDynamoBikeScreen` action button label changed from "🚴 PEDAL DYNAMO" to "⚡ CHARGE"
+
+### Issue 36 — Battery bank uses bld-screen layout
+- `goToBuilding('battery_bank')` now routes to `renderBuildingScreen('battery_bank')` + `bld-battery_bank` screen
+- Added `BuildingBatteryBankScreen.getScreenData(s)` in power.js — shows level, capacity, stored Wh with colour-coded bar
+- Added `<div id="screen-bld-battery_bank">` to index.html
+- Upgrade section: `BuildingUpgrades.battery_bank` doesn't exist → upgrade section gracefully absent (power system handles it)
+
+### Issue 37 — BaseLights fixtures visible + glow spheres working
+- `fixtureSVG()`: unlit colour changed from `#3a3a4a` (near-black/invisible) to `#5a5040` (visible warm dim grey)
+- `GroundCanvas.draw()`: now calls `BuildingBaseLights.drawGlowPools(ctx, blLvl, cx, cy, fw, fh)` when `blLit` (lights consumer on + powered + baselights built)
+- Glow pools previously existed in `BaseLights.js` but were never called from the canvas — now wired
+
+### Issue 38 — Solar array uses bld-screen layout
+- `goToBuilding('solar_array')` now routes to `renderBuildingScreen('solar_array')` + `bld-solar_array` screen
+- Added `BuildingSolarArrayScreen.getScreenData(s)` in power.js — shows level, max output, day/night current output
+- Added `<div id="screen-bld-solar_array">` to index.html
+
+### Issue 39 — Electric fence instant-defeat mechanic
+- At start of `triggerRaid()`: checks `consumers.elecFence && hasPower && (hasZap || fLv >= 10)`
+- If true: consumes 1× `elec_fence_upgrade` from inventory (unless Lv10), increments `raidsRepelled`, shows toast, returns early — no raid screen shown
+- At Lv10: no zap item required; fence defeats all attacks while powered
+
+### Issue 40 — Well passive water only when electric pump is on
+- `daynight.js _tickDawn()`: split `passiveWater` into two independent sources:
+  - `rainPassiveWater` (rain collector/greenhouse) → always ticks, no power needed
+  - `wellPassiveWater` → only ticks when `consumers.waterPump === true` AND power is available
+- Manual well (Lv1-7) no longer silently drips water each dawn
+
+### Issue 41 — Radio tower requires power, on/off toggle
+- Added `radio` to power consumer list (toggleable, 0.5W/hr drain)
+- `_calcDrain()`: adds 0.5W when `consumers.radio` is true
+- `_maybeRaid()`: raid reduction only applies when `consumers.radio && hasPower`; otherwise 0% reduction
+- `crafting.js radio_tower case`: calls `Power.unlockConsumer('radio')` at Lv1
+- `RadioTower.getScreenData()`: shows scanner ON/OFF status, "no power" warning, toggle button
+- `state.js`: added `radio: false` to initial `consumers` and `unlockedConsumers`
+
+### Issue 42 — Raid crash / double-screen fix
+- `_openRaidScreen()`: clears any existing `_raidTimer` before creating new one; removes stale `.raid-result` overlays
+- `_raidTick()`: new guard at top — if `!State.data.world.activeRaid`, clears timer and returns
+- `_endRaid()`: sets `_raidTimer = null` after clearing; captures loot array before nulling `_currentAnimal`
+- `_showResult(victory, lootGained)`: accepts pre-rolled loot array (no re-roll on null animal); purges existing `.raid-result` overlays before appending new one
+
+### Issue 43 — Finer mouse wheel zoom on base map
+- Wheel zoom factors changed from `0.88 / 1.14` (12-16% per tick) to `0.95 / 1.05` (5% per tick)
+- Zoom range unchanged: 0.25× to 3.0×
+
