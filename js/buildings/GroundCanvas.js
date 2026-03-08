@@ -59,9 +59,13 @@ const BuildingGroundCanvas = {
     }
 
     // ── Compound interior yard ────────────────────────────────
-    const pad = 40;
-    const yardW = 920, yardH = 920;
-    const yardX = pad, yardY = pad;
+    // Yard grows with shelter level — Lv1=620px, Lv10=1380px (full fence interior)
+    const basePad = 60;
+    const yardGrow = Math.round((hLvl - 1) / 9 * (1380 - 620)); // 0 at Lv1, 760 at Lv10
+    const yardW = 620 + yardGrow;
+    const yardH = 620 + yardGrow;
+    const yardX = Math.round((W - yardW) / 2);   // always centred
+    const yardY = Math.round((H - yardH) / 2);
 
     if (hLvl >= 2) {
       const yardFills = [
@@ -69,9 +73,9 @@ const BuildingGroundCanvas = {
         '#3e3220', '#444038', '#4a4640', '#52504c', '#5a5854',
       ];
       if (yardFills[hLvl - 1]) {
-        const iy = yardX + 60, ix = yardY + 60, iw = yardW - 120, ih = yardH - 120;
-        for (let y = ix; y < ix+ih; y += T) {
-          for (let x = iy; x < iy+iw; x += T) {
+        const xMin = yardX + 60, yMin = yardY + 60, iw = yardW - 120, ih = yardH - 120;
+        for (let y = yMin; y < yMin+ih; y += T) {
+          for (let x = xMin; x < xMin+iw; x += T) {
             const n = noise(x/T+10, y/T+10);
             ctx.fillStyle = yardFills[hLvl - 1];
             ctx.fillRect(x, y, T, T);
