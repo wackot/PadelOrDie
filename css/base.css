@@ -962,3 +962,58 @@
 .dynamo-ao-btn.off { background: #1a1a2e; color: #546e7a; border: 1px solid #2a3a4a; }
 .dynamo-ao-status  { font-size: 0.6rem; color: #4caf50; margin-top: 6px; }
 .dynamo-ao-status.off { color: #546e7a; }
+
+/* ── HUD fold-out menu (Issue 51) ────────────────────────────────── */
+.hud-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.hud-menu-toggle {
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 0;
+  min-width: 32px;
+}
+.hud-menu-items {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(7,9,15,0.97);
+  border: 1px solid rgba(41,182,246,0.2);
+  padding: 6px;
+  z-index: 9000;
+  min-width: 44px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+.hud-menu-items.hidden { display: none; }
+.hud-menu-item { width: 100%; text-align: center; }
+
+/* ── Resource help panel in building modal (Issue 52) ────────────── */
+.bld-res-help {
+  position: relative;
+  background: rgba(255,214,0,0.06);
+  border: 1px solid rgba(255,214,0,0.3);
+  padding: 10px 32px 10px 12px;
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+}
+.bld-res-help-title {
+  font-weight: bold;
+  color: #ffd600;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+}
+.bld-res-help-hint { color: #b0bec5; line-height: 1.5; }
+.bld-res-help-close {
+  position: absolute;
+  top: 6px; right: 8px;
+  background: none; border: none;
+  color: #546e7a; cursor: pointer;
+  font-size: 0.8rem; padding: 2px 4px;
+}
+.bld-cost-row[onclick] { transition: background 0.1s; }
+.bld-cost-row[onclick]:hover { background: rgba(255,214,0,0.06); }
