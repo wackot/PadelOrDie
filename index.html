@@ -80,12 +80,18 @@
       <span class="hud-res">⛽ <span id="res-gasoline">0</span></span>
       <span class="hud-res">🥫 <span id="res-food">0</span></span>
       <span class="hud-res">🧴 <span id="res-water">0</span></span>
-      <button id="btn-player-stats" class="btn-audio-hud" title="Player Stats" onclick="PlayerStats.open()">👤</button>
-      <button id="btn-achievements" class="btn-audio-hud" title="Achievements" onclick="Achievements.open()">🏆</button>
-      <button id="btn-audio-toggle" class="btn-audio-hud" title="Toggle Music">🔊</button>
-      <button id="btn-pause" class="btn-audio-hud" title="Pause">⏸</button>
-      <button id="btn-settings" class="btn-audio-hud" title="Settings" onclick="Settings.toggle()">⚙️</button>
-      <button id="btn-devmode" class="btn-audio-hud btn-devmode-hud" title="Dev Mode" onclick="DevMode.toggle()">🛠</button>
+      <!-- ── Fold-out HUD menu ── -->
+      <div class="hud-menu-wrap" id="hud-menu-wrap">
+        <div class="hud-menu-items hidden" id="hud-menu-items">
+          <button id="btn-player-stats" class="btn-audio-hud hud-menu-item" title="Player Stats" onclick="PlayerStats.open();HudMenu.close()">👤</button>
+          <button id="btn-achievements" class="btn-audio-hud hud-menu-item" title="Achievements" onclick="Achievements.open();HudMenu.close()">🏆</button>
+          <button id="btn-audio-toggle" class="btn-audio-hud hud-menu-item" title="Toggle Music">🔊</button>
+          <button id="btn-pause" class="btn-audio-hud hud-menu-item" title="Pause">⏸</button>
+          <button id="btn-settings" class="btn-audio-hud hud-menu-item" title="Settings" onclick="Settings.toggle();HudMenu.close()">⚙️</button>
+          <button id="btn-devmode" class="btn-audio-hud btn-devmode-hud hud-menu-item" title="Dev Mode" onclick="DevMode.toggle();HudMenu.close()">🛠</button>
+        </div>
+        <button class="btn-audio-hud hud-menu-toggle" id="hud-menu-toggle" title="Menu" onclick="HudMenu.toggle()">⋮</button>
+      </div>
     </div>
   </div>
 
