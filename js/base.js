@@ -160,8 +160,16 @@ const Base = {
     }, { passive: false });
 
     let _suppressNextClick = false;
-    // Absorb synthetic click events fired after pointer-tap on Android/iOS
-    world.addEventListener('click', e => { if (_suppressNextClick) { _suppressNextClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    // Absorb synthetic click events fired after pointer-tap on Android/iOS.
+    // Registered on document (capture phase) so it intercepts the click regardless
+    // of which screen is visible when the synthetic click fires (~300ms after touch).
+    document.addEventListener('click', e => {
+      if (_suppressNextClick) {
+        _suppressNextClick = false;
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, true);
 
     const endPtr = e => {
       // If this was a clean tap (no drag), fire click on element under pointer
@@ -669,7 +677,9 @@ const Base = {
     const upg    = BuildingUpgrades?.[upgKey];
     let upgradeSection = '';
 
-    if (upg) {
+    // Some buildings handle their own upgrade UI (e.g. battery_bank via Power.buildBattery)
+    const skipUpgradeSection = result && result.skipUpgradeSection;
+    if (upg && !skipUpgradeSection) {
       const shelterLv = bld.house?.level || 1;
       const reqLv     = upg.unlockReq || 0;
       const isLocked  = reqLv > shelterLv;

@@ -1164,6 +1164,8 @@ const Foraging = {
     this._encounterHP        = animal.strength * 2;
     this._encounterMaxHP     = this._encounterHP;
     this._encounterLoseTimer = 0;
+    this._atkAccum           = 0;  // reset CPM attack accumulator
+    this._encounterGrace     = 3;  // 3-tick grace: lose timer frozen while cadence spins up
     this._comboCount         = 0;
     this._lastHitTime        = 0;
     this._playerHurtFlash    = 0;
@@ -1208,24 +1210,39 @@ const Foraging = {
     const ratio  = cpm / target;
     const def    = State.data.base.defenceRating;
 
-    if (ratio >= 1.1) {
-      // Heavy attack: 99+ CPM (pushing past target)
-      const dmg = Utils.randFloat(2, 4) * (1 + def / 150) * ratio;
-      this._encounterHP = Math.max(0, this._encounterHP - dmg);
-      this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - 1);
-      this._arenaUpdate('heavy', dmg);
-    } else if (ratio >= 0.8) {
-      // Light attack: 72+ CPM (normal riding)
-      const dmg = Utils.randFloat(0.5, 1.5) * (1 + def / 200) * ratio;
-      this._encounterHP = Math.max(0, this._encounterHP - dmg);
-      this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - 0.5);
-      this._arenaUpdate('light', dmg);
-    } else if (ratio >= 0.5) {
-      // Holding on: 45+ CPM — no damage dealt, no progress lost
+    // ── CPM-driven automatic attack accumulator ───────────────────────────
+    // attacks per second = ratio * 1.5  (same formula as road encounters)
+    // No button press needed — cadence sensor drives this directly.
+    if (this._atkAccum === undefined) this._atkAccum = 0;
+    if (this._encounterGrace === undefined) this._encounterGrace = 0;
+    if (this._encounterGrace > 0) this._encounterGrace--;
+
+    // Attack rate: 1.5 attacks/sec at target CPM. Fire at accumulator >= 0.6
+    // so even 40 CPM (ratio≈0.44) gets ~1 hit/sec
+    const atkRate = Math.max(0, ratio * 1.5);
+    this._atkAccum += atkRate;
+
+    let totalDmg = 0;
+    let hits = 0;
+    while (this._atkAccum >= 0.6) {
+      this._atkAccum -= 0.6;
+      const dmg = Utils.randFloat(1.5, 4) * (1 + def / 180) * Math.max(0.3, ratio);
+      totalDmg += dmg;
+      hits++;
+    }
+
+    if (hits > 0) {
+      this._encounterHP = Math.max(0, this._encounterHP - totalDmg);
+      this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - ratio);
+      const phase = ratio >= 1.1 ? 'heavy' : 'light';
+      this._arenaUpdate(phase, totalDmg, hits);
+    } else if (ratio >= 0.2) {
+      // Pedalling but accumulating — show feedback
+      this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - 0.2);
       this._arenaUpdate('hold', 0);
     } else {
-      // Too slow — lose timer ticks up
-      this._encounterLoseTimer++;
+      // Too slow — lose timer (respects grace)
+      if (this._encounterGrace <= 0) this._encounterLoseTimer++;
       this._arenaUpdate('slow', 0);
     }
 
@@ -1239,7 +1256,7 @@ const Foraging = {
   },
 
   // Called per tick to update arena visuals
-  _arenaUpdate(phase, dmg) {
+  _arenaUpdate(phase, dmg, hits) {
     const hpPct  = Math.max(0, (this._encounterHP / this._encounterMaxHP) * 100);
     const losePct= Math.min(100, (this._encounterLoseTimer / 15) * 100);
 
@@ -1262,9 +1279,11 @@ const Foraging = {
     const player = document.getElementById('ca-player');
 
     if (phase === 'hold') {
-      if (status) { status.textContent = '⚔️ Holding — pedal to 90+ CPM to attack!'; status.className = 'ca-status ca-status-hold'; }
+      if (status) { status.textContent = '⚡ Building attack… pedal harder!'; status.className = 'ca-status ca-status-hold'; }
     } else if (phase === 'heavy') {
-      if (status) { status.textContent = '💥 FULL ATTACK! Keep hammering!'; status.className = 'ca-status ca-status-heavy'; }
+      const hitStr = hits > 1 ? `${hits} HITS` : 'HIT';
+      const dmgStr = dmg > 0 ? ` (${dmg.toFixed(1)} dmg)` : '';
+      if (status) { status.textContent = `💥 ${hitStr}!${dmgStr}`; status.className = 'ca-status ca-status-heavy'; }
       // Player lunges forward — translate right
       if (player) { player.style.transition = 'transform 0.1s ease-out'; player.style.transform = 'translateX(18px) rotate(5deg)'; }
       // Monster recoils back
@@ -1276,7 +1295,8 @@ const Foraging = {
       this._spawnHitEffect(true, dmg);
       this._arenaShake(4);
     } else if (phase === 'light') {
-      if (status) { status.textContent = '⚔️ Dealing damage! Pedal harder!'; status.className = 'ca-status ca-status-light'; }
+      const _dmgStr2 = dmg > 0 ? ` (${dmg.toFixed(1)})` : '';
+      if (status) { status.textContent = `⚔️ Hit!${_dmgStr2} Pedal harder!`; status.className = 'ca-status ca-status-light'; }
       if (player) { player.style.transition = 'transform 0.12s ease-out'; player.style.transform = 'translateX(8px)'; }
       if (mon)    { mon.style.transition = 'transform 0.15s ease-out'; mon.style.transform = 'translateX(6px) rotate(2deg)'; }
       setTimeout(() => {
@@ -1367,7 +1387,8 @@ const Foraging = {
   _clickDamage() {
     if (!this._encounterActive) return;
     const cpm = State.data.cadence?.clicksPerMinute ?? 0, target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90;
-    if (cpm / target < 0.7) return;  // 63+ CPM = clicks deal damage
+    // Click always deals bonus damage (no CPM gate — it's a bonus on top of auto-attacks)
+    if (this._atkAccum !== undefined) this._atkAccum += 0.5; // boost next auto-attack
     const def = State.data.base.defenceRating;
     const dmg = Utils.randFloat(0.2, 0.6) * (cpm / target) * (1 + def / 200);
     this._encounterHP = Math.max(0, this._encounterHP - dmg);

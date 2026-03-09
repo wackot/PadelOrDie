@@ -364,6 +364,66 @@ const BuildingUpgrades = {
           cargoBonus:5.0, hasLight:true, nightMult:2.0, nightEncounterReduction:0.30 }
       ]
     },
+    // ── SOLAR ARRAY — standalone solar power building ──────────────────
+    solar_array: {
+      name:'Solar Array', icon:'☀️', maxLevel:10, unlockReq:6,
+      stateKey:'solar_array',
+      levels: [
+        { desc:'Lv0 — Not built. Requires Power House. Generates power during daylight hours.',
+          cost:{ wood:0 } },
+        { desc:'Lv1 — 2 solar panels. Up to 4W during the day. Silent, no fuel needed.',
+          cost:{ metal:10, electronics:4, glass:4 } },
+        { desc:'Lv2 — 4 panels. Up to 8W. Better angle tracking.',
+          cost:{ metal:16, electronics:6, glass:8 } },
+        { desc:'Lv3 — 6 panels. Up to 12W. Coated glass, improved efficiency.',
+          cost:{ metal:22, electronics:10, glass:10, chemicals:2 } },
+        { desc:'Lv4 — 8 panels. Up to 16W. Weather-resistant frame.',
+          cost:{ metal:28, electronics:14, glass:12, chemicals:4 } },
+        { desc:'Lv5 — 10 panels. Up to 20W. Micro-inverter fitted.',
+          cost:{ metal:36, electronics:18, glass:14, chemicals:6, circuit_board:1 } },
+        { desc:'Lv6 — 12 panels. Up to 24W. Charge controller upgrade.',
+          cost:{ metal:42, electronics:22, glass:16, chemicals:8, circuit_board:2 } },
+        { desc:'Lv7 — 16 panels. Up to 32W. Dual-axis tracker.',
+          cost:{ metal:50, electronics:28, glass:18, chemicals:10, circuit_board:3 } },
+        { desc:'Lv8 — 20 panels. Up to 40W. Bifacial cells — generates even on overcast days.',
+          cost:{ metal:60, electronics:34, glass:20, chemicals:12, circuit_board:4 } },
+        { desc:'Lv9 — 24 panels. Up to 48W. Military-surplus cells — peak efficiency.',
+          cost:{ metal:70, electronics:42, glass:22, chemicals:14, circuit_board:6, military_chip:1 } },
+        { desc:'Lv10 — 30 panels. Up to 60W. Maximum solar coverage.',
+          cost:{ metal:85, electronics:52, glass:24, chemicals:16, circuit_board:8, military_chip:2 } }
+      ]
+    },
+
+    // ── BATTERY BANK — energy storage building ───────────────────────────
+    battery_bank: {
+      name:'Battery Bank', icon:'🔋', maxLevel:10, unlockReq:6,
+      stateKey:'battery_bank',
+      levels: [
+        { desc:'Lv0 — Not built. Requires Power House. Stores electricity for use at night.',
+          cost:{ wood:0 } },
+        { desc:'Lv1 — 4× lead-acid cells. Stores 200 Wh. Enough for one night of lights.',
+          cost:{ metal:8, electronics:4, battery_cell:4 } },
+        { desc:'Lv2 — 8 cells. Stores 400 Wh. Powers lights and water pump through the night.',
+          cost:{ metal:12, electronics:6, battery_cell:8 } },
+        { desc:'Lv3 — 12 cells. Stores 600 Wh. Can run the electric fence for 2 days.',
+          cost:{ metal:16, electronics:8, battery_cell:12, copper_wire:4 } },
+        { desc:'Lv4 — 16 cells. Stores 800 Wh. Good energy reserve for emergencies.',
+          cost:{ metal:22, electronics:12, battery_cell:16, copper_wire:6 } },
+        { desc:'Lv5 — Upgraded to lithium cells. Stores 1200 Wh. Faster charging cycle.',
+          cost:{ metal:28, electronics:16, battery_cell:8, copper_wire:8, circuit_board:2 } },
+        { desc:'Lv6 — 1600 Wh capacity. Battery management system fitted.',
+          cost:{ metal:34, electronics:20, battery_cell:10, circuit_board:3, capacitor:4 } },
+        { desc:'Lv7 — 2000 Wh capacity. Deep-cycle cells — less degradation over time.',
+          cost:{ metal:42, electronics:24, battery_cell:12, circuit_board:4, capacitor:6 } },
+        { desc:'Lv8 — 2500 Wh capacity. Thermal management — operates in extreme cold.',
+          cost:{ metal:52, electronics:30, battery_cell:14, circuit_board:6, capacitor:8, power_core:1 } },
+        { desc:'Lv9 — 3200 Wh capacity. Military-grade lithium polymer cells.',
+          cost:{ metal:62, electronics:36, battery_cell:16, circuit_board:8, power_core:2, military_chip:1 } },
+        { desc:'Lv10 — 4000 Wh capacity. Maximum storage — run the entire base for days.',
+          cost:{ metal:75, electronics:44, battery_cell:20, circuit_board:10, power_core:4, military_chip:2 } }
+      ]
+    },
+
     powerhouse: {
       name:'Power House', icon:'⚡', maxLevel:10, unlockReq:6,
       levels: [

@@ -1125,6 +1125,7 @@ const WorldMap = {
           </div>
           <div class="travel-stats">
             <span id="travel-pct">0%</span>
+            <span id="travel-eta" style="color:#29b6f6;font-size:0.75rem">— ETA</span>
             <span id="travel-enc-status" style="color:#ffd600">🚴 Pedalling...</span>
           </div>
         </div>
@@ -1238,7 +1239,7 @@ const WorldMap = {
       this._drawMap();
 
       // Update travel HUD
-      this._updateTravelHUD(progress, cpm, ratio);
+      this._updateTravelHUD(progress, cpm, ratio, speed, normalTime);
 
       // Road encounter tick (runs every second when active)
       if (this._roadEncounterActive) {
@@ -1263,7 +1264,7 @@ const WorldMap = {
     this._travelTimer = setTimeout(tick, 1000);
   },
 
-  _updateTravelHUD(progress, cpm, ratio) {
+  _updateTravelHUD(progress, cpm, ratio, speed, normalTime) {
     const pct = Math.round(progress * 100);
     const barEl  = document.getElementById('travel-prog-bar');
     const pctEl  = document.getElementById('travel-pct');
@@ -1272,6 +1273,18 @@ const WorldMap = {
 
     if (barEl) barEl.style.width = `${pct}%`;
     if (pctEl) pctEl.textContent = `${pct}%`;
+
+    // ETA: remaining progress / current speed = seconds left
+    const etaEl = document.getElementById('travel-eta');
+    if (etaEl && speed > 0 && progress < 1) {
+      const secsLeft = Math.round((1 - progress) / speed);
+      const m = Math.floor(secsLeft / 60);
+      const s = secsLeft % 60;
+      etaEl.textContent = m > 0 ? `${m}m ${s}s left` : `${s}s left`;
+      etaEl.style.color = speed > (1/(normalTime*1.15)) * 1.1 ? '#4caf50' : '#29b6f6';
+    } else if (etaEl) {
+      etaEl.textContent = '';
+    }
     if (spdEl) {
       const label = cpm < 60 ? '🐌 SLOW — monsters may catch you!' :
                     cpm < 100 ? '🚴 NORMAL — safe speed' :
@@ -1299,7 +1312,8 @@ const WorldMap = {
     this._roadEncounterHP = (animal.baseStrength || 20) * 0.7; // road encounters are slightly easier
     this._roadEncounterMaxHP = this._roadEncounterHP;
     this._roadEncounterLoseTimer = 0;
-    this._lastEncounterClick = 0; // reset so timer starts fresh
+    this._atkAccum = 0; // reset attack accumulator
+    this._encounterGrace = 3; // 3-tick grace: lose timer frozen while cadence builds up
 
     const encEl = document.getElementById('travel-encounter');
     const statusEl = document.getElementById('travel-enc-status');
@@ -1334,43 +1348,66 @@ const WorldMap = {
     const animal = this._roadEncounterAnimal;
     const def    = State.data.base.defenceRating || 10;
 
-    const hpEl     = document.getElementById('road-enc-hp');
-    const instrEl  = document.getElementById('road-enc-instr');
-    const loseEl   = document.getElementById('road-enc-lose');
-    const loseSecs = document.getElementById('road-enc-lose-secs');
+    const hpEl    = document.getElementById('road-enc-hp');
+    const instrEl = document.getElementById('road-enc-instr');
+    const loseEl  = document.getElementById('road-enc-lose');
+    const loseSecs= document.getElementById('road-enc-lose-secs');
 
-    // Lose timer driven by time since last click (not CPM — works for phone tapping)
-    const msSinceClick = Date.now() - (this._lastEncounterClick || 0);
-    const isActive = msSinceClick < 1500; // clicked within last 1.5s = "fighting"
+    // ── CPM-driven automatic attack system ───────────────────────────────
+    // Attacks per second = ratio * 1.5.  Each tick (1s) we fire that many attacks.
+    // Works purely from cadence — no button press needed.
+    // Accumulate fractional attacks across ticks.
+    if (this._atkAccum === undefined) this._atkAccum = 0;
+    if (this._encounterGrace === undefined) this._encounterGrace = 0;
 
-    if (isActive) {
-      // Any pedalling while clicking does damage; more CPM = more damage
-      // ratio=1.0 = target speed (90 CPM) = solid attack
-      // ratio≥1.2 = fast speed (108+ CPM) = heavy attack
-      const dmg = Utils.randFloat(1, 3) * (1 + def/200) * Math.max(0.5, ratio);
-      this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dmg);
-      this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - Math.min(1, ratio * 0.5));
-      if (ratio >= 1.2) {
-        if (instrEl) instrEl.textContent = '💥 FULL ATTACK! Keep hammering!';
-      } else if (ratio >= 0.5) {
-        if (instrEl) instrEl.textContent = '⚔️ Fighting — pedal harder for more damage!';
-      } else {
-        if (instrEl) instrEl.textContent = '⚠️ Pedal faster to deal damage!';
-      }
-    } else {
-      // Not clicking — lose timer counts up
-      this._roadEncounterLoseTimer++;
-      if (instrEl) instrEl.textContent = `🐌 CLICK/TAP TO FIGHT! Monster takes loot in ${Math.max(0, 5 - Math.floor(this._roadEncounterLoseTimer))}s!`;
+    // Grace period: freeze lose timer for first 3 ticks while cadence sensor spins up
+    if (this._encounterGrace > 0) this._encounterGrace--;
+
+    // Attack rate: 1.5 attacks/sec at target CPM. Fire when accumulator >= 0.6
+    // (lower threshold = more responsive at slow cadence)
+    const atkRate = Math.max(0, ratio * 1.5);
+    this._atkAccum += atkRate;
+
+    let totalDmg = 0;
+    let hits = 0;
+    while (this._atkAccum >= 0.6) {
+      this._atkAccum -= 0.6;
+      const dmg = Utils.randFloat(2, 5) * (1 + def / 200) * Math.max(0.3, ratio);
+      totalDmg += dmg;
+      hits++;
     }
 
-    if (hpEl) { hpEl.style.width = `${(this._roadEncounterHP/this._roadEncounterMaxHP)*100}%`; }
-    if (loseEl) { loseEl.style.width = `${Math.min(100,(this._roadEncounterLoseTimer/5)*100)}%`; }
-    if (loseSecs) { loseSecs.textContent = Math.max(0, 5 - Math.floor(this._roadEncounterLoseTimer)); }
+    if (hits > 0) {
+      this._roadEncounterHP = Math.max(0, this._roadEncounterHP - totalDmg);
+      this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - ratio * 0.5);
+      const hitMsg = hits > 1 ? `💥 ${hits} HITS! (${totalDmg.toFixed(1)} dmg)` :
+                     ratio >= 1.1 ? `💥 HIT! (${totalDmg.toFixed(1)} dmg)` :
+                                    `⚔️ Hit! (${totalDmg.toFixed(1)} dmg)`;
+      if (instrEl) instrEl.textContent = hitMsg;
+    } else if (ratio >= 0.2) {
+      // Pedalling — show attack rate so user knows it's working
+      const rateStr = (ratio * 1.5 / 0.6).toFixed(1);
+      if (instrEl) instrEl.textContent = `⚡ Attacking ${rateStr}/s — pedal harder for more!`;
+      this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 0.2);
+    } else {
+      // Too slow or stopped — lose timer (respects grace period)
+      if (this._encounterGrace <= 0) this._roadEncounterLoseTimer++;
+      const maxLose = 8;
+      const secsLeft = Math.max(0, maxLose - Math.floor(this._roadEncounterLoseTimer));
+      if (instrEl) instrEl.textContent = ratio > 0
+        ? `🐌 Pedal faster! Monster overwhelms in ${secsLeft}s!`
+        : `⚠️ START PEDALLING! Monster attacks in ${secsLeft}s!`;
+    }
+
+    const maxLose = 8;
+    if (hpEl)    { hpEl.style.width = `${(this._roadEncounterHP/this._roadEncounterMaxHP)*100}%`; }
+    if (loseEl)  { loseEl.style.width = `${Math.min(100,(this._roadEncounterLoseTimer/maxLose)*100)}%`; }
+    if (loseSecs){ loseSecs.textContent = Math.max(0, maxLose - Math.floor(this._roadEncounterLoseTimer)); }
 
     // Resolution
     if (this._roadEncounterHP <= 0 || this._roadEncounterHP / this._roadEncounterMaxHP <= (animal.fleeThreshold || 0.15)) {
       this._resolveRoadEncounter('win');
-    } else if (this._roadEncounterLoseTimer >= 5) {
+    } else if (this._roadEncounterLoseTimer >= maxLose) {
       this._resolveRoadEncounter('lose');
     }
   },
@@ -1378,20 +1415,18 @@ const WorldMap = {
   _roadEncounterClick() {
     if (!this._roadEncounterActive) return;
     const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90), 0, 2);
-    // Clicking always does damage — base + pedal bonus
-    const baseDmg = Utils.randFloat(3, 6);
-    const speedBonus = ratio >= 1.1 ? ratio * 2 : ratio >= 0.67 ? 1.0 : 0.5;
-    const dmg = baseDmg * speedBonus;
+    // Button click = instant bonus hit (adds to the CPM-driven auto-attack)
+    const dmg = Utils.randFloat(3, 7) * Math.max(0.5, ratio);
     this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dmg);
-    this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 1);
-    this._lastEncounterClick = Date.now();
-    // Update HP bar immediately on click — don't wait for 1s tick
+    this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 0.5);
+    // Boost the accumulator so next auto-attack fires sooner
+    if (this._atkAccum !== undefined) this._atkAccum += 0.4;
     const hpEl = document.getElementById('road-enc-hp');
     if (hpEl && this._roadEncounterMaxHP > 0) {
       hpEl.style.width = `${(this._roadEncounterHP / this._roadEncounterMaxHP) * 100}%`;
     }
     const instrEl = document.getElementById('road-enc-instr');
-    if (instrEl) instrEl.textContent = ratio >= 1.2 ? '💥 DIRECT HIT!' : '⚔️ Hit! Keep clicking!';
+    if (instrEl) instrEl.textContent = `💥 BONUS HIT! (${dmg.toFixed(1)} dmg)`;
     if (this._roadEncounterHP <= 0 || this._roadEncounterHP / this._roadEncounterMaxHP <= (this._roadEncounterAnimal?.fleeThreshold || 0.15)) {
       this._resolveRoadEncounter('win');
     }
