@@ -753,7 +753,7 @@ const Crafting = {
       'shelter','fence','well','storage','bike',
       'greenhouse','field','compost_bin','smokehouse',
       'workshop','rain_collector','watchtower','radio_tower',
-      'powerhouse','elecbench','alarm_system','solar_station',
+      'powerhouse','woodburner','coal_plant','elecbench','alarm_system','solar_station',
       'medkit_station','bunker',
     ];
 
@@ -790,6 +790,53 @@ const Crafting = {
       `<div class="bld-grid">${tiles}</div>` +
       `<div class="bld-modal-backdrop hidden" id="bld-modal-backdrop" onclick="Crafting._closeBuildingModal()"></div>` +
       `<div class="bld-modal hidden" id="bld-modal"></div>`;
+  },
+
+  // Issue 52: show where to find a missing resource
+  _showResourceHelp(resourceId) {
+    const recipe = this.recipes[resourceId];
+    const name   = recipe?.name || resourceId.replace(/_/g, ' ');
+    const em     = this.emojiMap[resourceId] || '📦';
+
+    // Build location hints
+    const locationHints = {
+      wood:         '🌲 Forage at Ruined Farm, Forest, any early zone',
+      metal:        '🔩 Forage at Industrial Zone, Junkyard, City Ruins',
+      rope:         '🪢 Forage at Ruined Farm, Flooded Town',
+      cloth:        '🧵 Forage at Old Hospital, Flooded Town',
+      food:         '🥫 Forage at Ruined Farm, Flooded Town. Grow at Greenhouse/Field',
+      medicine:     '💊 Forage at Old Hospital, Rescue Beacon',
+      electronics:  '💡 Forage at Tech Campus, Dead City, Industrial Zone',
+      chemicals:    '⚗️ Forage at Industrial Zone, Cave, Tech Campus',
+      gasoline:     '⛽ Forage at Industrial Zone, Dead City',
+      coal:         '⛏️ Mine at Cave zone',
+      glass:        '🪟 Craft at Workbench (sand + heat) or forage Industrial Zone',
+      copper_wire:  '🔌 Craft at Electrical Bench from metal + chemicals',
+      circuit_board:'🖥️ Craft at Electrical Bench. Found at Tech Campus (rare)',
+      military_chip:'🎖️ Found at Military Base (legendary loot)',
+      antiseptic:   '🧴 Craft from medicine + chemicals, or forage Hospital',
+      crystal_battery:'💎 Craft at Electrical Bench (advanced)',
+    };
+    const hint = locationHints[resourceId]
+      || (recipe ? `🔨 Craft at workbench/bench — requires: ${Object.entries(recipe.ingredients||{}).map(([k,v])=>`${this.emojiMap[k]||'📦'}${v} ${k}`).join(', ')}` : '🗺 Explore further zones to find this resource');
+
+    const have  = State.data.inventory[resourceId] || 0;
+
+    // Show as a toast-style overlay in the modal
+    const modal = document.getElementById('bld-modal');
+    if (!modal) { Utils.toast(`${em} ${name}: ${hint}`, 'info', 5000); return; }
+
+    // Inject a help panel at top of modal
+    const existing = modal.querySelector('.bld-res-help');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.className = 'bld-res-help';
+    div.innerHTML = `
+      <div class="bld-res-help-title">${em} ${name} — You have: ${have}</div>
+      <div class="bld-res-help-hint">${hint}</div>
+      <button class="bld-res-help-close" onclick="this.closest('.bld-res-help').remove()">✕</button>
+    `;
+    modal.prepend(div);
   },
 
   _openBuildingModal(key) {
@@ -847,9 +894,12 @@ const Crafting = {
                   const have = State.data.inventory[r] || 0;
                   const ok   = have >= v;
                   const em   = this.emojiMap[r] || '📦';
-                  return `<div class="bld-cost-row ${ok?'ok':'short'}">
-                    <span>${em} ${r}</span>
-                    <span>${have}/${v} ${ok?'✓':'✗'}</span>
+                  const nm   = this.recipes[r]?.name || r.replace(/_/g,' ');
+                  const short = !ok ? ` — need ${v - have} more` : '';
+                  const onclick = !ok ? `onclick="Crafting._showResourceHelp('${r}')"` : '';
+                  return `<div class="bld-cost-row ${ok?'ok':'short'}" ${onclick} style="${!ok?'cursor:pointer':''}">
+                    <span>${em} ${nm}${short}</span>
+                    <span>${have}/${v} ${ok?'✓':'❓'}</span>
                   </div>`;
                 }).join('');
               return (rows
@@ -1057,11 +1107,11 @@ const Crafting = {
         const prevBonus = [0, 0, 8, 20, 38, 63, 98, 148, 213, 293][newLevel - 1] || 0;
         const curBonus  = [0, 0, 8, 20, 38, 63, 98, 148, 213, 293][newLevel] || 0;
         b.defenceRating += (curBonus - prevBonus);
-        // Level 9 extra bonus when powered
-        if (newLevel >= 9) {
-          const pw = State.data.power;
-          const hasPowerNow = pw && (pw.stored > 0 || typeof Power !== 'undefined' && Power.getGenerationRate() > 0);
-          if (hasPowerNow) b.defenceRating += 20; // extra electric bonus
+        // Level 9: unlock electric fence consumer and auto-enable it
+        if (newLevel >= 9 && typeof Power !== 'undefined') {
+          Power.unlockConsumer('elecFence');
+          State.data.power.consumers.elecFence = true; // auto-enable
+          Utils.toast('⚡ Electric fence online! Uses power. Zap charges in inventory auto-activate.', 'good', 5000);
         }
         break;
       }
@@ -1135,6 +1185,25 @@ const Crafting = {
         // Farming system handles yields per-plot — just record level
         b.cropYield = 0; // legacy: farming.js handles all yields now
         Events.emit('farming:field-unlocked', { level: newLevel });
+        break;
+      case 'woodburner':
+        // Delegate to Power generator system
+        if (typeof Power !== 'undefined') {
+          State.data.power.generators.woodburner.level = newLevel;
+          State.data.base.buildings.woodburner.level   = newLevel;
+          if (newLevel === 1) State.data.power.woodburnerFuelled = State.consumeResource('wood', 1);
+          Utils.toast(`🪵 Wood Burner Lv${newLevel} built! +${(3.5*newLevel).toFixed(1)}W max`, 'good', 3000);
+          Power.renderPanel?.();
+        }
+        break;
+      case 'coal_plant':
+        if (typeof Power !== 'undefined') {
+          State.data.power.generators.coal.level     = newLevel;
+          State.data.base.buildings.coal_plant.level = newLevel;
+          if (newLevel === 1) State.data.power.coalFuelled = State.consumeResource('coal', 1);
+          Utils.toast(`⛏️ Coal Plant Lv${newLevel} built! +${(4*newLevel).toFixed(1)}W max`, 'good', 3000);
+          Power.renderPanel?.();
+        }
         break;
       case 'powerhouse':
         break;

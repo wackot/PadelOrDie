@@ -159,6 +159,10 @@ const Base = {
       this._applyTransform(inner);
     }, { passive: false });
 
+    let _suppressNextClick = false;
+    // Absorb synthetic click events fired after pointer-tap on Android/iOS
+    world.addEventListener('click', e => { if (_suppressNextClick) { _suppressNextClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+
     const endPtr = e => {
       // If this was a clean tap (no drag), fire click on element under pointer
       if (tapStart && Object.keys(ptrs).length === 1) {
@@ -166,7 +170,7 @@ const Base = {
         const hit = el && (el.closest('[data-bid]') || (el.dataset && el.dataset.bid ? el : null));
         if (hit) {
           const bid = hit.dataset.bid || hit.closest('[data-bid]')?.dataset.bid;
-          if (bid) this._onBuildingClick(bid);
+          if (bid) { _suppressNextClick = true; this._onBuildingClick(bid); }
         }
       }
       delete ptrs[e.pointerId];

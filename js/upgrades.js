@@ -294,6 +294,40 @@ const BuildingUpgrades = {
       ]
     },
 
+    woodburner: {
+      name:'Wood Burner', icon:'🪵', maxLevel:10, unlockReq:3,
+      levels:[
+        { desc:'Lv0 — Not built yet.',                                           cost:{ wood:0 } },
+        { desc:'Lv1 — Small wood stove. 3.5W. Burns 1 wood/day.',               cost:{ metal:4, wood:5 } },
+        { desc:'Lv2 — Insulated stove. 7W. Burns 2 wood/day.',                  cost:{ metal:8, wood:8 } },
+        { desc:'Lv3 — Double-burn chamber. 10.5W. Burns 3 wood/day.',           cost:{ metal:14, wood:10, rope:2 } },
+        { desc:'Lv4 — Forced-draft burner. 14W. Burns 4 wood/day.',             cost:{ metal:20, wood:14, chemicals:2 } },
+        { desc:'Lv5 — Gasifier burner. 17.5W. Burns 5 wood/day.',              cost:{ metal:28, wood:18, chemicals:3 } },
+        { desc:'Lv6 — Recuperative system. 21W. Burns 6 wood/day.',             cost:{ metal:38, wood:24, chemicals:4 } },
+        { desc:'Lv7 — High-temp ceramics. 24.5W. Burns 7 wood/day.',           cost:{ metal:50, wood:30, chemicals:5, electronics:4 } },
+        { desc:'Lv8 — Waste-heat recovery. 28W. Burns 8 wood/day.',             cost:{ metal:64, wood:38, chemicals:7, electronics:6 } },
+        { desc:'Lv9 — Plasma igniter. 31.5W. Burns 9 wood/day.',               cost:{ metal:80, wood:48, chemicals:10, electronics:10 } },
+        { desc:'Lv10 — Micro-fusion burner. 35W. Burns 10 wood/day.',           cost:{ metal:100, wood:60, chemicals:14, electronics:15, circuit_board:3 } },
+      ]
+    },
+
+    coal_plant: {
+      name:'Coal Plant', icon:'⛏️', maxLevel:10, unlockReq:5,
+      levels:[
+        { desc:'Lv0 — Not built yet.',                                           cost:{ wood:0 } },
+        { desc:'Lv1 — Basic coal furnace. 4W. Burns 1 coal/day.',               cost:{ metal:6, chemicals:2, rope:2 } },
+        { desc:'Lv2 — Draft chimney. 8W. Burns 2 coal/day.',                    cost:{ metal:10, chemicals:3, rope:3 } },
+        { desc:'Lv3 — Grated firebox. 12W. Burns 3 coal/day.',                  cost:{ metal:16, chemicals:4, rope:4 } },
+        { desc:'Lv4 — Pressurised steam. 16W. Burns 4 coal/day.',               cost:{ metal:24, chemicals:5, electronics:2 } },
+        { desc:'Lv5 — Turbine assist. 20W. Burns 5 coal/day.',                  cost:{ metal:34, chemicals:7, electronics:4 } },
+        { desc:'Lv6 — Superheated steam. 24W. Burns 6 coal/day.',               cost:{ metal:46, chemicals:9, electronics:6 } },
+        { desc:'Lv7 — Combined cycle. 28W. Burns 7 coal/day.',                  cost:{ metal:60, chemicals:12, electronics:8, circuit_board:2 } },
+        { desc:'Lv8 — Heat exchanger. 32W. Burns 8 coal/day.',                  cost:{ metal:76, chemicals:16, electronics:12, circuit_board:3 } },
+        { desc:'Lv9 — Plasma combustion. 36W. Burns 9 coal/day.',              cost:{ metal:95, chemicals:20, electronics:16, circuit_board:5 } },
+        { desc:'Lv10 — Fusion-coal hybrid. 40W. Burns 10 coal/day.',            cost:{ metal:118, chemicals:26, electronics:22, circuit_board:8, military_chip:2 } },
+      ]
+    },
+
     // ── BIKE UPGRADES — 10 levels ────────────────────────
     bike: {
       name:'Bike Upgrade', icon:'🚴', maxLevel:10,

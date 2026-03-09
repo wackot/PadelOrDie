@@ -299,7 +299,7 @@ const Game = {
 
   // ── Init ─────────────────────────────────
   init() {
-    console.log('[Game] Initializing Pedal or Die v0.48 — Decoupled Architecture');
+    console.log('[Game] Initializing Pedal or Die v0.49 — Decoupled Architecture');
 
     // Init audio (needs user gesture — handled via first click)
     document.body.addEventListener('click', () => {
@@ -394,4 +394,28 @@ document.addEventListener('DOMContentLoaded', () => {
   Game.init();
   // Let each module boot itself — no direct module calls needed here
   Events.emit('game:boot');
+});
+
+// ── HUD fold-out menu ────────────────────────────────────────────────────
+const HudMenu = {
+  _open: false,
+  toggle() {
+    this._open = !this._open;
+    const items  = document.getElementById('hud-menu-items');
+    const tog    = document.getElementById('hud-menu-toggle');
+    if (items) items.classList.toggle('hidden', !this._open);
+    if (tog)   { tog.textContent = this._open ? '✕' : '⋮'; tog.style.color = this._open ? '#ef5350' : ''; }
+  },
+  close() {
+    this._open = false;
+    const items = document.getElementById('hud-menu-items');
+    const tog   = document.getElementById('hud-menu-toggle');
+    if (items) items.classList.add('hidden');
+    if (tog)   { tog.textContent = '⋮'; tog.style.color = ''; }
+  }
+};
+document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('pointerdown', e => {
+    if (HudMenu._open && !e.target.closest('#hud-menu-wrap')) HudMenu.close();
+  });
 });

@@ -9,41 +9,102 @@ const SaveSystem = {
 
   SAVE_KEY: 'pedalOrDie_save_v1',
 
-  // ── Save locally ─────────────────────────
+  // ── Save locally (localStorage + IndexedDB fallback for Android) ──
   saveLocal() {
+    const data = JSON.stringify(State.serialise());
+    // Try localStorage first
     try {
-      const data = JSON.stringify(State.serialise());
       localStorage.setItem(this.SAVE_KEY, data);
       Utils.toast('💾 Game saved!', 'good');
-      console.log('[Save] Saved locally');
+      console.log('[Save] Saved to localStorage');
+      // Also write to IDB as backup
+      this._idbWrite(data).catch(() => {});
       return true;
     } catch (e) {
-      Utils.toast('❌ Save failed!', 'bad');
-      console.error('[Save] Local save error:', e);
-      return false;
+      console.warn('[Save] localStorage failed, trying IndexedDB…', e);
     }
+    // Fallback: IndexedDB (works in Android WebView, private mode, etc.)
+    this._idbWrite(data).then(() => {
+      Utils.toast('💾 Saved (IDB)!', 'good');
+      console.log('[Save] Saved to IndexedDB');
+    }).catch(err => {
+      Utils.toast('❌ Save failed! Try export to file.', 'bad');
+      console.error('[Save] Both save methods failed:', err);
+    });
+    return true;
+  },
+
+  // ── IndexedDB helpers ─────────────────────
+  _idbName:    'PedalOrDieDB',
+  _idbVersion: 1,
+  _idbStore:   'saves',
+
+  _idbOpen() {
+    return new Promise((res, rej) => {
+      if (!window.indexedDB) return rej('No IDB');
+      const req = indexedDB.open(this._idbName, this._idbVersion);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(this._idbStore);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async _idbWrite(data) {
+    const db  = await this._idbOpen();
+    return new Promise((res, rej) => {
+      const tx  = db.transaction(this._idbStore, 'readwrite');
+      const req = tx.objectStore(this._idbStore).put(data, this.SAVE_KEY);
+      req.onsuccess = () => res();
+      req.onerror   = e  => rej(e.target.error);
+    });
+  },
+
+  async _idbRead() {
+    const db  = await this._idbOpen();
+    return new Promise((res, rej) => {
+      const tx  = db.transaction(this._idbStore, 'readonly');
+      const req = tx.objectStore(this._idbStore).get(this.SAVE_KEY);
+      req.onsuccess = e => res(e.target.result || null);
+      req.onerror   = e => rej(e.target.error);
+    });
   },
 
   // ── Load local save ───────────────────────
   SAVE_VERSION: '0.5',
 
-  loadLocal() {
+  async loadLocal() {
+    // Try localStorage first
     try {
       const raw = localStorage.getItem(this.SAVE_KEY);
-      if (!raw) return false;
-      const data = JSON.parse(raw);
-      State.load(data);
-      console.log('[Save] Loaded local save from', data.meta?.savedAt);
-      return true;
+      if (raw) {
+        const data = JSON.parse(raw);
+        State.load(data);
+        console.log('[Save] Loaded from localStorage, day', data.world?.day);
+        return true;
+      }
     } catch (e) {
-      console.error('[Save] Load error:', e);
-      return false;
+      console.warn('[Save] localStorage load failed:', e);
     }
+    // Fallback: IndexedDB
+    try {
+      const raw = await this._idbRead();
+      if (raw) {
+        const data = JSON.parse(raw);
+        State.load(data);
+        console.log('[Save] Loaded from IndexedDB, day', data.world?.day);
+        return true;
+      }
+    } catch (e) {
+      console.error('[Save] IDB load failed:', e);
+    }
+    return false;
   },
 
   // ── Check if save exists ──────────────────
-  hasSave() {
-    return !!localStorage.getItem(this.SAVE_KEY);
+  async hasSave() {
+    try { if (localStorage.getItem(this.SAVE_KEY)) return true; } catch(_) {}
+    try { const v = await this._idbRead(); if (v) return true; } catch(_) {}
+    return false;
   },
 
   // ── Export save as .json file ─────────────
