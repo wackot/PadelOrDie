@@ -301,26 +301,44 @@ const Bluetooth = {
   // PROTOCOL DETECTION
   // ═════════════════════════════════════════════════════════════════
   async _detectProtocol(server, log) {
-    for (const svcUUID of [this.SVC.ICONSOLE, this.SVC.ICONSOLE2]) {
-      try {
-        const svc = await server.getPrimaryService(svcUUID);
-        log('iConsole+ service found. Subscribing…', 'info');
-        await this._subscribeIConsole(svc, log);
-        return 'iconsole';
-      } catch (_) {}
-    }
+    // Try FTMS first — standard protocol, well-supported
+    // (Some devices expose both FTMS and iConsole; FTMS is preferred)
     try {
       const svc = await server.getPrimaryService(this.SVC.FTMS);
       log('FTMS service found. Subscribing…', 'info');
       await this._subscribeFTMS(svc, log);
       return 'ftms';
     } catch (_) {}
+
+    // CSC (cadence/speed sensor like Magene S3)
     try {
       const svc = await server.getPrimaryService(this.SVC.CSC);
       log('CSC service found. Subscribing…', 'info');
       await this._subscribeCSC(svc, log);
       return 'csc';
     } catch (_) {}
+
+    // iConsole+ (legacy vendor protocol) — try last
+    // Verify the notify char actually has properties before committing
+    for (const svcUUID of [this.SVC.ICONSOLE, this.SVC.ICONSOLE2]) {
+      try {
+        const svc = await server.getPrimaryService(svcUUID);
+        const notifyChar = await svc.getCharacteristic(this.CHAR.ICO_NOTIFY)
+          .catch(() => svc.getCharacteristic(this.CHAR.ICO2_NOTIFY).catch(() => null));
+        if (!notifyChar) continue;
+        // Check it actually has notify property — some devices expose fff0
+        // but fff1 has no usable properties (Chrome reports them as none)
+        const hasNotify = notifyChar.properties.notify || notifyChar.properties.indicate;
+        if (!hasNotify) {
+          log('iConsole service found but notify char has no properties — skipping.', 'warn');
+          continue;
+        }
+        log('iConsole+ service found. Subscribing…', 'info');
+        await this._subscribeIConsole(svc, log);
+        return 'iconsole';
+      } catch (_) {}
+    }
+
     return null;
   },
 
@@ -330,17 +348,39 @@ const Bluetooth = {
   // [15] = XOR checksum of bytes 1..14
   // ═════════════════════════════════════════════════════════════════
   async _subscribeIConsole(svc, log) {
-    // READ-ONLY mode — we never write to the bike.
-    // Just subscribe to the notify characteristic and parse whatever arrives.
-    // This avoids taking over the bike's screen or interrupting its session.
+    // READ-ONLY mode — no writes to the bike.
+    // Subscribe to notifications AND send periodic readValue() requests.
+    // The iConsole+ requires regular reads to keep sending notifications;
+    // without them it exits Bluetooth mode after a short timeout.
     let notifyChar = null;
     for (const uuid of [this.CHAR.ICO_NOTIFY, this.CHAR.ICO2_NOTIFY]) {
       try { notifyChar = await svc.getCharacteristic(uuid); break; } catch (_) {}
     }
     if (!notifyChar) throw new Error('iConsole notify char not found');
+
+    // Subscribe first
     await notifyChar.startNotifications();
     notifyChar.addEventListener('characteristicvaluechanged', e => this._parseIConsole(e.target.value));
-    log('iConsole: subscribed (read-only, no writes).', 'info');
+    log('iConsole: subscribed (read-only).', 'info');
+
+    // Trigger an immediate read — some devices only start notifying after first read
+    try {
+      const val = await notifyChar.readValue();
+      this._parseIConsole(val);
+      log('iConsole: initial readValue OK.', 'info');
+    } catch (_) {}
+
+    // Periodic keepalive reads — device exits BLE mode without them
+    // Store timer ref on _ico so we can cancel on disconnect
+    this._ico = this._ico || {};
+    this._ico.keepaliveChar = notifyChar;
+    this._ico.keepaliveTimer = setInterval(async () => {
+      if (!this.state.connected) {
+        clearInterval(this._ico.keepaliveTimer);
+        return;
+      }
+      try { await notifyChar.readValue(); } catch (_) {}
+    }, 2000);
   },
 
   _parseIConsole(dv) {
@@ -437,10 +477,25 @@ const Bluetooth = {
     const char = await svc.getCharacteristic(this.CHAR.FTMS_DATA);
     await char.startNotifications();
     char.addEventListener('characteristicvaluechanged', e => this._parseFTMS(e.target.value));
+    log('FTMS: subscribed to Indoor Bike Data.', 'info');
+
+    // FTMS Control Point sequence:
+    // 0x00 = Request Control  (required before any other CP command)
+    // 0x07 = Start or Resume  (tells machine to begin sending data)
     try {
       const ctrl = await svc.getCharacteristic(this.CHAR.FTMS_CTRL);
+      // Subscribe to CP indications first (required by spec before writing)
+      try { await ctrl.startNotifications(); } catch (_) {}
+      // Request control
       await ctrl.writeValue(new Uint8Array([0x00]));
-    } catch (_) {}
+      log('FTMS: requested control.', 'info');
+      // Small delay then start session
+      await new Promise(r => setTimeout(r, 200));
+      await ctrl.writeValue(new Uint8Array([0x07]));
+      log('FTMS: started session.', 'info');
+    } catch (e) {
+      log('FTMS: control point optional step failed (' + e.message + ') — continuing.', 'warn');
+    }
   },
 
   _parseFTMS(dv) {
@@ -629,6 +684,11 @@ const Bluetooth = {
   },
 
   _reset() {
+    // Cancel iConsole keepalive timer
+    if (this._ico?.keepaliveTimer) {
+      clearInterval(this._ico.keepaliveTimer);
+      this._ico.keepaliveTimer = null;
+    }
     this.state.device = null; this.state.server = null;
     this.state.protocol = null; this.state.connected = false;
     this.state.deviceName = ''; this.state.displayName = '';
@@ -636,6 +696,8 @@ const Bluetooth = {
     this._csc.lastRevs = null; this._csc.lastTime = null;
     this._userDisconnect = false;
     this.channels = {};
+    this._ico = null;
+    this._unknownTypes = {};
   },
 };
 
@@ -655,49 +717,47 @@ const Bluetooth = {
 // ═══════════════════════════════════════════════════════════════════
 
 (function() {
-  const ALPHA   = 0.35;   // EMA weight — lower = smoother but slower to respond
-  const HOLD_MS = 2500;   // hold last reading this long before zeroing (CSC ~1 packet/sec)
-  let smoothRpm = 0;
-  let holdTimer = null;
+  // ── How this works ──────────────────────────────────────────────
+  // cadence.js owns State.data.cadence.clicksPerMinute. Every 500ms
+  // its _decayCPM() calls _recalcCPM() which OVERWRITES State from
+  // _clickTimes. If we only write to State directly, _decayCPM undoes
+  // it 500ms later. So we must populate _clickTimes with synthetic
+  // timestamps that give the right CPM, and let cadence.js do the math.
+  //
+  // At N RPM we need N clicks spread evenly over the last 60 seconds
+  // inside a 5s window → N × (5000/60000) = N/12 clicks per window.
+  // We distribute them evenly across 5000ms so _recalcCPM sees N CPM.
 
-  function zeroOut() {
-    holdTimer  = null;
-    smoothRpm  = 0;
-    // Directly zero State — this is what cadence.js reads everywhere
-    if (typeof State !== 'undefined' && State.data?.cadence) {
-      State.data.cadence.clicksPerMinute = 0;
+  const WINDOW_MS = 5000;  // must match Cadence._windowMs
+
+  function injectRpm(rpm) {
+    if (!Cadence._active) Cadence.start();
+    // How many synthetic clicks fill a 5s window to read as `rpm` CPM:
+    // CPM = (count / 5000) * 60000  →  count = rpm * 5000 / 60000
+    const count = Math.max(1, Math.round(rpm * WINDOW_MS / 60000));
+    const now   = Date.now();
+    // Spread evenly across the window so _recalcCPM gets a stable count
+    const interval = WINDOW_MS / count;
+    Cadence._clickTimes = [];
+    for (let i = 0; i < count; i++) {
+      Cadence._clickTimes.push(now - Math.round((count - 1 - i) * interval));
     }
-    // Clear the click window too so natural decay also sees 0
-    if (typeof Cadence !== 'undefined' && Cadence._clickTimes) {
-      Cadence._clickTimes = [];
-    }
-    if (typeof Cadence !== 'undefined' && Cadence._updateUI) {
-      Cadence._updateUI();
-    }
+    // _recalcCPM will now read the correct value next time _decayCPM fires
+    // Call it immediately too so UI updates without waiting 500ms
+    Cadence._recalcCPM();
   }
 
   Events.on('bike:pedal', ({ rpm }) => {
     if (typeof Cadence === 'undefined') return;
     if (!Bluetooth.state.enabled) return;
-    if (!Cadence._active) Cadence.start();
-
-    // EMA smoothing — softens single-packet jitter from CSC sensors
-    smoothRpm = smoothRpm === 0
-      ? rpm
-      : Math.round(ALPHA * rpm + (1 - ALPHA) * smoothRpm);
-
-    // Write directly into State (bypasses 5s click window)
-    State.data.cadence.clicksPerMinute = smoothRpm;
-    if (Cadence._updateUI) Cadence._updateUI();
-
-    // Restart the hold timer — when it fires, zero everything
-    if (holdTimer) clearTimeout(holdTimer);
-    holdTimer = setTimeout(zeroOut, HOLD_MS);
+    injectRpm(rpm);
   });
 
-  // Also zero out when bike disconnects
+  // Zero out when bike disconnects — clear _clickTimes so decay zeroes it
   Events.on('bike:disconnected', () => {
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    zeroOut();
+    if (typeof Cadence !== 'undefined') {
+      Cadence._clickTimes = [];
+      if (Cadence._recalcCPM) Cadence._recalcCPM();
+    }
   });
 })();
