@@ -983,14 +983,16 @@ const WorldMap = {
     if (!panel) return;
     if (hint) hint.classList.add('hidden');
 
-    // Max world distance is ~sqrt(700²+500²) ≈ 860 units
-    const maxDist = 900;
+    // Max world distance — farthest zone is ~2500 units
+    const maxDist  = 2500;
     const normDist = Utils.clamp(distUnits / maxDist, 0, 1);
 
-    // Travel times: slow=120s, normal=90s, fast=60s — scaled by distance
-    const slowTime   = Math.round(6 * normDist + 4);   // DEV: fast travel (4–10s)
-    const normalTime = Math.round(4 * normDist + 3);
-    const fastTime   = Math.round(3 * normDist + 2);
+    // Travel times scale linearly with distance.
+    // At normal speed, farthest zone ≈ 20 min (1200s).
+    // Slow = 1.5× normal.  Fast = 0.6× normal (cycling hard cuts 40%).
+    const normalTime = Math.max(30, Math.round(normDist * 1200));
+    const slowTime   = Math.round(normalTime * 1.5);
+    const fastTime   = Math.round(normalTime * 0.6);
 
     const def = locationId ? this.locationDefs.find(d => d.id === locationId) : null;
     const unlocked = State.data.world.unlockedLocations || [];
@@ -1032,20 +1034,20 @@ const WorldMap = {
         <div class="wm-speed-card slow">
           <div class="wm-speed-icon">🐌</div>
           <div class="wm-speed-name">SLOW</div>
-          <div class="wm-speed-time">~${slowTime}s</div>
-          <div class="wm-speed-note">CPM &lt; 40<br/>⚠ Monsters CATCH you<br/>You'll LOSE all loot</div>
+          <div class="wm-speed-time">~${Math.round(slowTime/60)}m ${slowTime%60}s</div>
+          <div class="wm-speed-note">CPM &lt; 60<br/>⚠ Monsters CATCH you<br/>You'll LOSE all loot</div>
         </div>
         <div class="wm-speed-card normal">
           <div class="wm-speed-icon">🚴</div>
           <div class="wm-speed-name">NORMAL</div>
-          <div class="wm-speed-time">~${normalTime}s</div>
-          <div class="wm-speed-note">CPM 40–70<br/>Monsters scared away<br/>Safe passage</div>
+          <div class="wm-speed-time">~${Math.round(normalTime/60)}m ${normalTime%60}s</div>
+          <div class="wm-speed-note">CPM 60–100<br/>Monsters scared away<br/>Safe passage</div>
         </div>
         <div class="wm-speed-card fast">
           <div class="wm-speed-icon">💨</div>
           <div class="wm-speed-name">FAST</div>
-          <div class="wm-speed-time">~${fastTime}s</div>
-          <div class="wm-speed-note">CPM &gt; 70<br/>Defeat monsters<br/>Earn rare loot!</div>
+          <div class="wm-speed-time">~${Math.round(fastTime/60)}m ${fastTime%60}s</div>
+          <div class="wm-speed-note">CPM &gt; 100<br/>Defeat monsters<br/>Earn rare loot!</div>
         </div>
       </div>
 
@@ -1202,8 +1204,9 @@ const WorldMap = {
     const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
       const ratio  = Utils.clamp(cpm / target, 0, 2);
 
-      // DEV: fast travel — completes in ~10 real seconds
-      const baseSpeed = Utils.lerp(0.08, 0.12, Math.min(totalDist / 900, 1));
+      // Speed calibrated so ratio=1.0 arrives in exactly normalTime seconds.
+      // At ratio=1: speed = baseSpeed * (0.3 + 0.85) = baseSpeed * 1.15 = 1/normalTime
+      const baseSpeed = 1 / (normalTime * 1.15);
       const _devSpeedMult = State.travelSpeedMultFn ? State.travelSpeedMultFn() : 1;
       const speed = this._roadEncounterActive ? 0 : baseSpeed * (0.3 + ratio * 0.85) * _devSpeedMult + this._travelClickBonus;
       this._travelClickBonus = 0;
@@ -1265,11 +1268,11 @@ const WorldMap = {
     if (barEl) barEl.style.width = `${pct}%`;
     if (pctEl) pctEl.textContent = `${pct}%`;
     if (spdEl) {
-      const label = cpm < 40 ? '🐌 SLOW — monsters may catch you!' :
-                    cpm < 70 ? '🚴 NORMAL — safe speed' :
+      const label = cpm < 60 ? '🐌 SLOW — monsters may catch you!' :
+                    cpm < 100 ? '🚴 NORMAL — safe speed' :
                                '💨 FAST — monsters flee!';
       spdEl.textContent = label;
-      spdEl.style.color = cpm < 40 ? '#e53935' : cpm < 70 ? '#ffd600' : '#4caf50';
+      spdEl.style.color = cpm < 60 ? '#e53935' : cpm < 100 ? '#ffd600' : '#4caf50';
     }
     if (riderEl) {
       riderEl.style.animationDuration = `${Utils.lerp(0.6, 0.1, ratio)}s`;
@@ -1336,9 +1339,9 @@ const WorldMap = {
     const isActive = msSinceClick < 1500; // clicked within last 1.5s = "fighting"
 
     if (isActive) {
-      // Pedalling bonus on top of clicking
-      if (ratio >= 1.40) {
-        const dmg = Utils.randFloat(1, 3) * (1 + def/200);
+      // Pedalling bonus on top of clicking — ratio > 1.1 = above normal speed
+      if (ratio >= 1.1) {
+        const dmg = Utils.randFloat(1, 3) * (1 + def/200) * ratio;
         this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dmg);
         this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 0.5);
         if (instrEl) instrEl.textContent = '💥 FULL ATTACK! Keep hammering!';
@@ -1368,7 +1371,7 @@ const WorldMap = {
     const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
     // Clicking always does damage — base + pedal bonus
     const baseDmg = Utils.randFloat(3, 6);
-    const speedBonus = ratio >= 1.2 ? ratio * 2 : ratio >= 0.8 ? 1.0 : 0.5;
+    const speedBonus = ratio >= 1.1 ? ratio * 2 : ratio >= 0.67 ? 1.0 : 0.5;
     const dmg = baseDmg * speedBonus;
     this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dmg);
     this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 1);

@@ -93,6 +93,7 @@ const State = {
       // Fuel status (reset each dawn)
       woodburnerFuelled: false,
       coalFuelled:       false,
+      dynamoActive:      false,   // ON switch — bike on basemap generates power
       // Active consumers (each draws power/hr when ON)
       consumers: {
         lights:    false,
@@ -185,8 +186,8 @@ const State = {
 
     cadence: {
       clicksPerMinute:  0,
-      targetCPM:        60,       // normal foraging target
-      raidTargetCPM:    90,       // target during raid
+      targetCPM:        90,       // normal speed target
+      raidTargetCPM:    110,      // target during raid
       clickBuffer:      [],       // timestamps of recent clicks
       sessionClicks:    0
     },

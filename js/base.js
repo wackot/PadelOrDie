@@ -556,7 +556,10 @@ const Base = {
     const stats  = document.getElementById('construction-stats');
     if (title)  title.textContent  = `🏗 BUILDING: ${ab.upg?.name || ab.key.toUpperCase()}`;
     if (visual) visual.innerHTML   = `<div style="font-size:3em;text-align:center;padding:12px">🏗</div>`;
-    if (stats)  stats.innerHTML    = `<span id="constr-secs">${Math.ceil(ab.secsLeft)}s remaining</span> — 🚴 Pedal to speed up!`;
+    const _tgt = State.data.cadence?.targetCPM || 90;
+    if (stats)  stats.innerHTML    = `<span id="constr-secs">${Math.ceil(ab.secsLeft)}s remaining</span><br>
+      <span style="color:#888;font-size:0.85em">🚴 Pedal to speed up build<br>
+      Normal (${_tgt} CPM) = 3× speed · Fast (${Math.round(_tgt*1.2)} CPM) = up to 5× speed</span>`;
     Events.emit('navigate', { screen: 'construction' });
     Cadence.start();
     this._startConstructionRefresh();
@@ -581,8 +584,13 @@ const Base = {
       const lbl = document.getElementById('construction-speed-label');
       if (lbl) {
         const cpm   = State.data.cadence?.clicksPerMinute || 0;
-        const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
-        lbl.textContent = bonus > 0 ? `⚡ +${bonus.toFixed(1)}s/tick` : 'slow';
+        const _tgt2 = State.data.cadence?.targetCPM || 90;
+        const _ratio = Utils.clamp(cpm / _tgt2, 0, 2);
+        const bonus = _ratio * 2.0;
+        const totalRate = (1 + bonus).toFixed(1);
+        lbl.textContent = cpm > 20
+          ? `⚡ ${totalRate}× speed (${Math.round(cpm)} CPM)`
+          : '🚴 Pedal faster to speed up build!';
       }
     }, 500);
   },

@@ -983,9 +983,15 @@ const Crafting = {
     const ab = State.data.activeBuild;
     if (!ab) { clearInterval(this._buildTimer); this._buildTimer = null; return; }
 
-    // CPM bonus: every 10 CPM above 60 shaves 0.5 extra seconds per tick
+    // CPM bonus: pedalling speeds up construction.
+    // At target CPM (90), build speed is 2× base (2s off per tick).
+    // At 110+ CPM (fast), build speed is up to 3× base (3s per tick).
+    // Idle (0 CPM) = 1s per tick (normal real-time build).
     const cpm   = State.data.cadence?.clicksPerMinute ?? 0;
-    const bonus = Math.max(0, (cpm - 60) / 10) * 0.5;
+    const tgt   = State.data.cadence?.targetCPM || 90;
+    const ratio = Utils.clamp(cpm / tgt, 0, 2);
+    // 1s base + up to 2s bonus at ratio=1.0+ (total 3s/tick at fast pedalling)
+    const bonus = ratio * 2.0;
     ab.secsLeft = Math.max(0, ab.secsLeft - 1 - bonus);
 
     // Update tile countdown display
