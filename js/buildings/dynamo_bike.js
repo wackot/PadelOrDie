@@ -104,6 +104,22 @@ const DynamoBike = {
           Power flows to your battery — surplus is wasted without one.
         </p>
 
+        <div class="dynamo-always-on-panel">
+          <div class="dynamo-always-on-row">
+            <div>
+              <div class="dynamo-ao-label">🔌 ALWAYS-ON MODE</div>
+              <div class="dynamo-ao-sub">Bike anywhere on the base map to generate power. No screen needed.</div>
+            </div>
+            <button class="dynamo-ao-btn ${State.data.power.dynamoActive ? 'on' : 'off'}"
+              onclick="DynamoBike.toggleAlwaysOn()">
+              ${State.data.power.dynamoActive ? '● ON' : '○ OFF'}
+            </button>
+          </div>
+          ${State.data.power.dynamoActive
+            ? `<div class="dynamo-ao-status">⚡ Active — biking on base map generates power</div>`
+            : `<div class="dynamo-ao-status off">Turn on to generate power while using the base map</div>`}
+        </div>
+
         <div class="dynamo-session-panel">
           <div class="dynamo-cpm-display" id="dynamo-cpm-display">
             ${active ? this._cpmHtml() : '<span style="color:#555">— not pedalling —</span>'}
@@ -148,6 +164,17 @@ const DynamoBike = {
           style="margin-top:16px;max-width:180px">← BACK TO DYNAMO</button>
       </div>
     `;
+  },
+
+  // ── Toggle always-on basemap generation ──
+  toggleAlwaysOn() {
+    State.data.power.dynamoActive = !State.data.power.dynamoActive;
+    if (State.data.power.dynamoActive) {
+      Utils.toast('🔌 Dynamo ON — bike on base map to generate power', 'good', 3000);
+    } else {
+      Utils.toast('🔌 Dynamo OFF', 'info', 2000);
+    }
+    this.renderScreen();
   },
 
   // ── Start pedalling session ───────────────
@@ -315,3 +342,38 @@ const BuildingDynamoBikeScreen = {
     return { title: '⚡ DYNAMO BIKE', visual, statsRows, actionBtn };
   }
 };
+
+// ── Always-on basemap dynamo tick ─────────────────────────────────
+// Runs every real second. When dynamoActive=true and player is on
+// the base map, CPM drives power generation — no screen needed.
+Events.on('game:boot', () => {
+  setInterval(() => {
+    if (!State.data.power.dynamoActive) return;
+    if (typeof Base !== 'undefined' && Base._paused) return;
+    // Only on base or worldmap screen, not inside a building session
+    const active = document.querySelector('.screen:not(.hidden)');
+    const sid = active ? active.id : '';
+    if (sid !== 'screen-base' && sid !== 'screen-map') return;
+
+    const level = Math.max(
+      State.data.base.buildings?.dynamo_bike?.level || 0,
+      State.data.power?.generators?.bike?.level || 0
+    );
+    if (level < 1) return;
+
+    const cpm   = State.data.cadence?.clicksPerMinute || 0;
+    if (cpm < 10) return; // not actively pedalling
+
+    const tgt   = State.data.cadence?.targetCPM || 90;
+    const ratio = Utils.clamp(cpm / tgt, 0, 2);
+    const watts = level * 2.0 * ratio;       // same formula as dynamo session
+    const wh    = watts / 3600;             // 1 real second of generation
+
+    const maxStor = typeof Power !== 'undefined' ? Power.getMaxStorage() : 0;
+    if (maxStor <= 0) return; // no battery to store in
+    State.data.power.stored = Math.min(maxStor,
+      (State.data.power.stored || 0) + wh);
+
+    Events.emit('hud:update');
+  }, 1000);
+});
