@@ -66,7 +66,7 @@ const DynamoBike = {
     const batPct  = maxStor > 0 ? Math.round((stored / maxStor) * 100) : 0;
     const active  = !!this._tickInterval;
     const cpm     = State.data.cadence?.clicksPerMinute || 0;
-    const tgt     = State.data.cadence?.targetCPM       || 60;
+    const tgt     = State.data.cadence?.targetCPM       || 90;
     const watts   = level > 0
       ? (level * 2.0 * Math.max(0.2, Utils.clamp(cpm / tgt, 0, 2))).toFixed(1)
       : '0';
@@ -236,7 +236,7 @@ const DynamoBike = {
     if (level === 0) { this.stopSession(); return; }
 
     const cpm   = State.data.cadence?.clicksPerMinute || 0;
-    const tgt   = State.data.cadence?.targetCPM       || 60;
+    const tgt   = State.data.cadence?.targetCPM       || 90;
     const ratio = Utils.clamp(cpm / tgt, 0, 2);
     const watts = level * 2.0 * Math.max(0.2, ratio);
     const wh    = watts / 3600;
@@ -297,7 +297,7 @@ const DynamoBike = {
   // ── Private helpers ───────────────────────
   _cpmHtml() {
     const cpm = State.data.cadence?.clicksPerMinute || 0;
-    const tgt = State.data.cadence?.targetCPM       || 60;
+    const tgt = State.data.cadence?.targetCPM       || 90;
     const pct = Utils.clamp(Math.round((cpm / tgt) * 100), 0, 200);
     const col = cpm >= tgt ? '#4caf50' : cpm > tgt * 0.5 ? '#ffd600' : '#e53935';
     return `<span style="color:${col};font-size:1.4em">${cpm} CPM</span>
@@ -325,7 +325,7 @@ const BuildingDynamoBikeScreen = {
     const gen  = s.power?.generators?.bike;
     const maxW = [0, 8, 16, 24, 32, 40][lv] || 0;
     const cpm  = s.cadence?.clicksPerMinute || 0;
-    const tgt  = s.cadence?.targetCPM || 60;
+    const tgt  = s.cadence?.targetCPM || 90;
     const ratio = Math.min(cpm / tgt, 2);
     const actual = lv > 0 ? Math.round(maxW * ratio * 10) / 10 : 0;
 
