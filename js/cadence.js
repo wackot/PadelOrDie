@@ -16,6 +16,7 @@ const Cadence = {
 
   // ── Start listening ───────────────────────
   start() {
+    if (this._active && this._decayTimer) return; // already running — don't reset
     this._active = true;
     this._clickTimes = [];
     State.data.cadence.clicksPerMinute = 0;
@@ -45,7 +46,7 @@ const Cadence = {
     if (typeof Base !== 'undefined' && Base._paused) return;
     // Dev click mode: inject synthetic clicks to simulate full-speed pedalling
     if (State.clickModeActiveFn && State.clickModeActiveFn()) {
-      const target = this.getTargetCPM() || 60;
+      const target = this.getTargetCPM() || 90;
       const injectCount = Math.round(target / 10); // inject burst matching target CPM
       for (let i = 0; i < injectCount; i++) this._clickTimes.push(Date.now());
       this._recalcCPM();
@@ -58,7 +59,7 @@ const Cadence = {
     // Fitness: estimate stats from clicks
     // 1 click ≈ 1 pedal stroke; at 60 CPM = 1 rev/sec; ~0.003 km/click at 18km/h
     const st = State.data.stats;
-    const cpm = State.data.cadence.clicksPerMinute || 60;
+    const cpm = State.data.cadence.clicksPerMinute || 90;
     st.bestCPM = Math.max(st.bestCPM || 0, cpm);
     st.sessionBestCPM = Math.max(st.sessionBestCPM || 0, cpm);
     // 1 pedal click ≈ 3.5 cal/min ÷ 60 CPM ≈ 0.058 cal per click (scaled by intensity)

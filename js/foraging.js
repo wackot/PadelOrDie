@@ -9,8 +9,8 @@
 //
 // ENCOUNTER COMBAT:
 //   • CPM < target:       lose timer ticks (+1/sec), 15s = forced retreat
-//   • CPM ≥ target+20%:   light damage per second + click damage
-//   • CPM ≥ target+40%:   heavy damage per second + click damage
+//   • CPM ≥ target×0.8:   light damage per second + click damage  (72+ CPM)
+//   • CPM ≥ target×1.1:   heavy damage per second + click damage  (99+ CPM)
 //
 // SURVIVAL DRAIN:
 //   • Pedalling slows hunger/thirst drain (handled in daynight.js)
@@ -71,7 +71,7 @@ const Foraging = {
     this._currentEncounter = null;
     this._encounterLoseTimer = 0;
     this._log             = [];
-    this._duration        = Math.round((loc.duration || 60) * (this._intensityCfg.durationMult || 1));
+    this._duration        = Math.round((loc.duration || 90) * (this._intensityCfg.durationMult || 1));
     if (State.forageDurationFn) this._duration = State.forageDurationFn(this._duration);
 
     this._buildScreen(loc);
@@ -218,7 +218,7 @@ const Foraging = {
 
     // Speed multiplier: idle=0.5×, on-target=1.0×, hammering=2.0×
     const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
-    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
     const speedMult = Utils.clamp(0.5 + ratio, 0.5, 2.0);
 
@@ -1204,23 +1204,28 @@ const Foraging = {
     if (!animal) return;
 
     const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
-    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90;
     const ratio  = cpm / target;
     const def    = State.data.base.defenceRating;
 
-    if (ratio >= 1.40) {
-      const dmg = Utils.randFloat(2, 4) * (1 + def / 150);
+    if (ratio >= 1.1) {
+      // Heavy attack: 99+ CPM (pushing past target)
+      const dmg = Utils.randFloat(2, 4) * (1 + def / 150) * ratio;
       this._encounterHP = Math.max(0, this._encounterHP - dmg);
       this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - 1);
       this._arenaUpdate('heavy', dmg);
-    } else if (ratio >= 1.20) {
-      const dmg = Utils.randFloat(0.5, 1.5) * (1 + def / 200);
+    } else if (ratio >= 0.8) {
+      // Light attack: 72+ CPM (normal riding)
+      const dmg = Utils.randFloat(0.5, 1.5) * (1 + def / 200) * ratio;
       this._encounterHP = Math.max(0, this._encounterHP - dmg);
       this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - 0.5);
       this._arenaUpdate('light', dmg);
+    } else if (ratio >= 0.5) {
+      // Holding on: 45+ CPM — no damage dealt, no progress lost
+      this._arenaUpdate('hold', 0);
     } else {
+      // Too slow — lose timer ticks up
       this._encounterLoseTimer++;
-      // Monster attacks player when they're too slow
       this._arenaUpdate('slow', 0);
     }
 
@@ -1256,7 +1261,9 @@ const Foraging = {
     const mon    = document.getElementById('ca-monster');
     const player = document.getElementById('ca-player');
 
-    if (phase === 'heavy') {
+    if (phase === 'hold') {
+      if (status) { status.textContent = '⚔️ Holding — pedal to 90+ CPM to attack!'; status.className = 'ca-status ca-status-hold'; }
+    } else if (phase === 'heavy') {
       if (status) { status.textContent = '💥 FULL ATTACK! Keep hammering!'; status.className = 'ca-status ca-status-heavy'; }
       // Player lunges forward — translate right
       if (player) { player.style.transition = 'transform 0.1s ease-out'; player.style.transform = 'translateX(18px) rotate(5deg)'; }
@@ -1359,8 +1366,8 @@ const Foraging = {
   // Extra click damage (only when going fast enough)
   _clickDamage() {
     if (!this._encounterActive) return;
-    const cpm = State.data.cadence?.clicksPerMinute ?? 0, target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
-    if (cpm / target < 1.0) return;
+    const cpm = State.data.cadence?.clicksPerMinute ?? 0, target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90;
+    if (cpm / target < 0.7) return;  // 63+ CPM = clicks deal damage
     const def = State.data.base.defenceRating;
     const dmg = Utils.randFloat(0.2, 0.6) * (cpm / target) * (1 + def / 200);
     this._encounterHP = Math.max(0, this._encounterHP - dmg);
@@ -1560,7 +1567,7 @@ const Foraging = {
   _updateCharAnim() {
     const emoji = document.getElementById('char-emoji');
     if (!emoji) return;
-    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 1.5);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90), 0, 1.5);
     emoji.style.animationDuration = `${Utils.lerp(0.6, 0.1, ratio)}s`;
     emoji.textContent = this._encounterActive ? (ratio>=1.2 ? '⚔️' : '😰') : '🚴';
   },

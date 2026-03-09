@@ -44,7 +44,7 @@ const Power = {
     // Bike dynamo — scales with how hard you're pedalling
     if (gen.bike.level > 0) {
       const cpm = State.data.cadence.clicksPerMinute;
-    const tgt = (State.data.world.activeRaid ? State.data.cadence.raidTargetCPM : State.data.cadence.targetCPM) || 60;
+    const tgt = (State.data.world.activeRaid ? State.data.cadence.raidTargetCPM : State.data.cadence.targetCPM) || 90;
     const ratio = Utils.clamp(cpm / tgt, 0, 2);
       if (ratio > 0) total += this._genOutput.bike * gen.bike.level * ratio;
     }
@@ -263,7 +263,7 @@ const Power = {
     if (key === 'dynamo_bike') {
       const bldLvl = State.data.base.buildings?.dynamo_bike?.level || 0;
       const cpm    = State.data.cadence?.clicksPerMinute || 0;
-      const tgt    = State.data.cadence?.targetCPM || 60;
+      const tgt    = State.data.cadence?.targetCPM || 90;
       return (bldLvl * 8 * Math.max(0, Utils.clamp(cpm/tgt,0,2))).toFixed(1);
     }
     if (key === 'woodburner') return gen.woodburner.level > 0 && p.woodburnerFuelled ? (this._genOutput.woodburner * gen.woodburner.level).toFixed(1) : '0';

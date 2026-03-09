@@ -78,12 +78,12 @@ const DayNight = {
     const cpm    = State.data.cadence.clicksPerMinute;
     const target = (State.data.world.activeRaid
       ? State.data.cadence.raidTargetCPM
-      : State.data.cadence.targetCPM) || 60;
+      : State.data.cadence.targetCPM) || 90;
     const ratio  = Utils.clamp(cpm / target, 0, 1.5);
     const isForaging = State.data?.world?.playerAway ?? false;
     // Fitness: track pedalling time (each tick = 1 game-hour = ~_tickMs ms real time)
     if (cpm > 10) {
-      const minPerTick = (this._tickMs || 6000) / 60000;
+      const minPerTick = (this._tickMs || 9000) / 60000;
       State.data.stats.totalPedalMinutes = (State.data.stats.totalPedalMinutes || 0) + minPerTick;
     }
     // Drain multiplier: pedalling reduces hunger/thirst by up to 65%

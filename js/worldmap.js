@@ -1062,15 +1062,17 @@ const WorldMap = {
     panel.classList.remove('hidden');
     panel.classList.add('slide-in');
 
-    document.getElementById('btn-start-travel')?.addEventListener('click', () => {
-      this._startTravel(wx, wy, distUnits, locationId, slowTime, normalTime, fastTime);
-    });
-    document.getElementById('btn-cancel-travel')?.addEventListener('click', () => {
+    // Use onclick= (not addEventListener) so re-tapping the map replaces the handler,
+    // never stacks multiple listeners that would fire with stale normalTime values.
+    const _btnGo  = document.getElementById('btn-start-travel');
+    const _btnCan = document.getElementById('btn-cancel-travel');
+    if (_btnGo)  _btnGo.onclick  = () => this._startTravel(wx, wy, distUnits, locationId, slowTime, normalTime, fastTime);
+    if (_btnCan) _btnCan.onclick = () => {
       this._pendingTravel = null;
       panel.classList.add('hidden');
       if (hint) hint.classList.remove('hidden');
       this._drawMap();
-    });
+    };
   },
 
   // ── Start travel ──────────────────────────
@@ -1176,11 +1178,14 @@ const WorldMap = {
       this._roadEncounterClick();
     }
     // Extra progress per click — scales with CPM
-    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90), 0, 2);
     this._travelClickBonus = (this._travelClickBonus || 0) + ratio * 0.003;
   },
 
   _runTravelStep(targetWX, targetWY, locationId, slowTime, normalTime, fastTime) {
+    // Kill any leftover timer — prevents stacked tick loops from multiple travel starts
+    if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
+
     let progress = 0;
     this._travelClickBonus = 0;
     this._roadEncounterActive = false;
@@ -1201,7 +1206,7 @@ const WorldMap = {
       if (!this._travelling) return;
 
       const cpm    = State.data.cadence?.clicksPerMinute ?? 0;
-    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60;
+    const target = (State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90;
       const ratio  = Utils.clamp(cpm / target, 0, 2);
 
       // Speed calibrated so ratio=1.0 arrives in exactly normalTime seconds.
@@ -1339,14 +1344,18 @@ const WorldMap = {
     const isActive = msSinceClick < 1500; // clicked within last 1.5s = "fighting"
 
     if (isActive) {
-      // Pedalling bonus on top of clicking — ratio > 1.1 = above normal speed
-      if (ratio >= 1.1) {
-        const dmg = Utils.randFloat(1, 3) * (1 + def/200) * ratio;
-        this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dmg);
-        this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 0.5);
+      // Any pedalling while clicking does damage; more CPM = more damage
+      // ratio=1.0 = target speed (90 CPM) = solid attack
+      // ratio≥1.2 = fast speed (108+ CPM) = heavy attack
+      const dmg = Utils.randFloat(1, 3) * (1 + def/200) * Math.max(0.5, ratio);
+      this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dmg);
+      this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - Math.min(1, ratio * 0.5));
+      if (ratio >= 1.2) {
         if (instrEl) instrEl.textContent = '💥 FULL ATTACK! Keep hammering!';
+      } else if (ratio >= 0.5) {
+        if (instrEl) instrEl.textContent = '⚔️ Fighting — pedal harder for more damage!';
       } else {
-        if (instrEl) instrEl.textContent = '⚔️ Keep clicking/tapping to fight!';
+        if (instrEl) instrEl.textContent = '⚠️ Pedal faster to deal damage!';
       }
     } else {
       // Not clicking — lose timer counts up
@@ -1368,7 +1377,7 @@ const WorldMap = {
 
   _roadEncounterClick() {
     if (!this._roadEncounterActive) return;
-    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 60), 0, 2);
+    const ratio = Utils.clamp((State.data.cadence?.clicksPerMinute ?? 0) / ((State.data.world.activeRaid ? State.data.cadence?.raidTargetCPM : State.data.cadence?.targetCPM) || 90), 0, 2);
     // Clicking always does damage — base + pedal bonus
     const baseDmg = Utils.randFloat(3, 6);
     const speedBonus = ratio >= 1.1 ? ratio * 2 : ratio >= 0.67 ? 1.0 : 0.5;
