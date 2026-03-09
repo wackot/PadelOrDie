@@ -47,13 +47,13 @@ const Bluetooth = {
   // ── CHARACTERISTIC UUIDs — NOT for optionalServices ──────────────
   CHAR: {
     ICO_NOTIFY:  '0000fff1-0000-1000-8000-00805f9b34fb',
-    ICO_WRITE:   '0000fff2-0000-1000-8000-00805f9b34fb',
+    // ICO_WRITE: fff2 — not used (read-only mode)
     ICO2_NOTIFY: '0000ffe1-0000-1000-8000-00805f9b34fb',
     FTMS_DATA:   '00002ad2-0000-1000-8000-00805f9b34fb',
     FTMS_CTRL:   '00002ad9-0000-1000-8000-00805f9b34fb',
     CSC_MEAS:    '00002a5b-0000-1000-8000-00805f9b34fb',
     HR_MEAS:     '00002a37-0000-1000-8000-00805f9b34fb',
-    UART_TX:     '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
+    // UART_TX: not used
   },
 
   MAX_RETRIES:       5,
@@ -330,52 +330,17 @@ const Bluetooth = {
   // [15] = XOR checksum of bytes 1..14
   // ═════════════════════════════════════════════════════════════════
   async _subscribeIConsole(svc, log) {
-    // ── 1. Get notify characteristic (fff1 or ffe1 fallback) ─────
+    // READ-ONLY mode — we never write to the bike.
+    // Just subscribe to the notify characteristic and parse whatever arrives.
+    // This avoids taking over the bike's screen or interrupting its session.
     let notifyChar = null;
     for (const uuid of [this.CHAR.ICO_NOTIFY, this.CHAR.ICO2_NOTIFY]) {
       try { notifyChar = await svc.getCharacteristic(uuid); break; } catch (_) {}
     }
     if (!notifyChar) throw new Error('iConsole notify char not found');
-
-    // ── 2. Get write characteristic (fff2) ───────────────────────
-    let writeChar = null;
-    try { writeChar = await svc.getCharacteristic(this.CHAR.ICO_WRITE); } catch (_) {}
-
-    // Store write char for use in handshake responses
-    this._ico = this._ico || {};
-    this._ico.writeChar = writeChar;
-    this._ico.log = log;
-
-    // ── 3. Subscribe BEFORE sending any commands ─────────────────
     await notifyChar.startNotifications();
     notifyChar.addEventListener('characteristicvaluechanged', e => this._parseIConsole(e.target.value));
-    log('iConsole subscribed to notifications.', 'info');
-
-    // ── 4. Send the full handshake sequence ───────────────────────
-    // The protocol is a conversation: each command gets an ACK,
-    // and _parseIConsole replies to each ACK to advance the state machine.
-    // We kick it off here; the rest is handled reactively in _parseIConsole.
-    await this._icoSend([0xF0, 0xA0, 0x01, 0x01, 0x92], writeChar, log); // connect request
-    log('iConsole handshake started.', 'info');
-  },
-
-  // XOR-checksum helper for iConsole commands
-  _icoChecksum(bytes) {
-    let x = 0;
-    for (let i = 1; i < bytes.length; i++) x ^= bytes[i];
-    return x;
-  },
-
-  // Write a command to fff2 (fire-and-forget, errors are non-fatal)
-  async _icoSend(bytes, writeChar, log) {
-    const wc = writeChar || this._ico?.writeChar;
-    if (!wc) return;
-    try {
-      await wc.writeValue(new Uint8Array(bytes));
-      log?.('→ iConsole: ' + bytes.map(b=>'0x'+b.toString(16).padStart(2,'0').toUpperCase()).join(' '), 'info');
-    } catch (err) {
-      log?.('iConsole write failed: ' + err.message, 'warn');
-    }
+    log('iConsole: subscribed (read-only, no writes).', 'info');
   },
 
   _parseIConsole(dv) {
@@ -385,105 +350,58 @@ const Bluetooth = {
     if (dv.getUint8(0) !== 0xF0) return;
 
     const type = dv.getUint8(1);
-    const log  = this._ico?.log || (() => {});
 
-    // ── HANDSHAKE ACK PACKETS (bike → app) ───────────────────────
-    // The iConsole+ protocol is a state machine. The bike responds
-    // to each command with an ACK (type = command_type - 0x20).
-    // We must reply to each ACK to advance to the next state.
-    // Without completing the full sequence the bike stays idle (0xA0).
-
-    // 0x80 = ACK to our 0xA0 connect request → send 0xA1 (get device info)
-    if (type === 0x80) {
-      log('← iConsole: 0x80 connect ACK → sending 0xA1 device info request', 'info');
-      this._icoSend([0xF0, 0xA1, 0x00, 0x00, 0x91], null, log);
+    // 0xD1 — main workout data, 16 bytes, XOR checksum
+    // [0]=0xF0 [1]=0xD1 [6]=speed×10 [8]=RPM [9]=level
+    // [10-11]=dist [12-13]=cal [14]=HR [15]=checksum
+    if (type === 0xD1 && len >= 16) {
+      let xor = 0;
+      for (let i = 1; i < 15; i++) xor ^= dv.getUint8(i);
+      if (xor !== dv.getUint8(15)) return; // bad checksum, skip
+      this._applyIConsoleData(
+        dv.getUint8(8),         // RPM
+        dv.getUint8(6) / 10,   // km/h
+        dv.getUint8(14),        // HR
+        dv.getUint8(9),         // resistance level
+        dv.getUint16(10, true), // distance m
+        dv.getUint16(12, true)  // calories
+      );
       return;
     }
 
-    // 0x81 = response to 0xA1 device info → send 0xA3 (get capabilities)
-    if (type === 0x81) {
-      log('← iConsole: 0x81 device info → sending 0xA3 capabilities request', 'info');
-      this._icoSend([0xF0, 0xA3, 0x00, 0x00, 0x93], null, log);
-      return;
-    }
-
-    // 0x82 = response to 0xA2 → send 0xA4 (set workout params: free mode, level 1)
-    if (type === 0x82) {
-      log('← iConsole: 0x82 → sending 0xA4 workout params', 'info');
-      this._icoSend([0xF0, 0xA4, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x65], null, log);
-      return;
-    }
-
-    // 0x83 = response to 0xA3 capabilities → send 0xA4 (set workout params)
-    if (type === 0x83) {
-      log('← iConsole: 0x83 capabilities → sending 0xA4 workout params', 'info');
-      // Free workout mode: [F0 A4 01 00 00 00 00 00 00 00 00 00 00 00 00 checksum]
-      const cmd = [0xF0, 0xA4, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-      cmd[15] = this._icoChecksum(cmd);
-      this._icoSend(cmd, null, log);
-      return;
-    }
-
-    // 0x84 = workout params ACK → bike is now ready, send 0xA0 again to start stream
-    if (type === 0x84) {
-      log('← iConsole: 0x84 workout params ACK → sending start stream', 'info');
-      this._icoSend([0xF0, 0xA0, 0x01, 0x01, 0x92], null, log);
-      return;
-    }
-
-    // 0xA0 = bike re-sending its own status (some models echo this) → re-send our connect
-    if (type === 0xA0) {
-      if (!this._lastA0Log || Date.now() - this._lastA0Log > 8000) {
-        log('← iConsole: 0xA0 idle status (re-sending connect request)', 'info');
-        this._lastA0Log = Date.now();
-        // Re-trigger handshake — some bikes need multiple attempts
-        this._icoSend([0xF0, 0xA0, 0x01, 0x01, 0x92], null, null);
+    // 0xE0 / 0xE1 — OEM variant, same byte layout, no checksum field
+    if ((type === 0xE0 || type === 0xE1) && len >= 9) {
+      const rpm = dv.getUint8(8);
+      const kmh = dv.getUint8(6) / 10;
+      if (rpm > 0 || kmh > 0) {
+        this._applyIConsoleData(
+          rpm, kmh,
+          len >= 15 ? dv.getUint8(14) : 0,
+          len >= 10 ? dv.getUint8(9) : 0,
+          len >= 12 ? dv.getUint16(10, true) : 0,
+          len >= 14 ? dv.getUint16(12, true) : 0
+        );
       }
+      return;
+    }
+
+    // 0xA0 — bike status / idle broadcast. No data to extract.
+    // Just emit bike:data so BikeConfig panel stays updated.
+    if (type === 0xA0) {
       this.channels.iconsole_rpm   = 0;
       this.channels.iconsole_speed = 0;
       Events.emit('bike:data', { channels: Object.assign({}, this.channels) });
       return;
     }
 
-    // ── WORKOUT DATA PACKETS (bike → app) ────────────────────────
-
-    // 0xD1 = main workout data — 16 bytes with XOR checksum
-    if (type === 0xD1 && len >= 16) {
-      let xor = 0;
-      for (let i = 1; i < 15; i++) xor ^= dv.getUint8(i);
-      if (xor !== dv.getUint8(15)) {
-        console.warn('[BLE] iConsole 0xD1 checksum fail: got 0x' + xor.toString(16) + ' expected 0x' + dv.getUint8(15).toString(16));
-        return;
-      }
-      this._applyIConsoleData(
-        dv.getUint8(8),          // RPM
-        dv.getUint8(6) / 10,     // km/h
-        dv.getUint8(14),         // HR
-        dv.getUint8(9),          // level
-        dv.getUint16(10, true),  // dist
-        dv.getUint16(12, true)   // cal
-      );
-      return;
-    }
-
-    // 0xE0/0xE1 = alternate workout data format (some Chinese OEM variants)
-    if ((type === 0xE0 || type === 0xE1) && len >= 9) {
-      const rpm = dv.getUint8(8);
-      const kmh = dv.getUint8(6) / 10;
-      if (rpm > 0 || kmh > 0) {
-        this._applyIConsoleData(rpm, kmh, len >= 15 ? dv.getUint8(14) : 0,
-          dv.getUint8(9), dv.getUint16(10, true), dv.getUint16(12, true));
-      }
-      return;
-    }
-
-    // ── UNKNOWN — log once so we can learn ───────────────────────
+    // Any other type — log raw hex once for diagnostics
     if (!this._unknownTypes) this._unknownTypes = {};
     if (!this._unknownTypes[type]) {
       this._unknownTypes[type] = true;
-      const bytes = new Uint8Array(dv.buffer);
-      const hex = Array.from(bytes).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
-      console.log('[BLE] iConsole UNKNOWN type=0x' + type.toString(16).toUpperCase() + ' len=' + len + ' | ' + hex);
+      const hex = Array.from(new Uint8Array(dv.buffer))
+        .map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+      console.log('[BLE] iConsole type=0x' + type.toString(16).toUpperCase()
+        + ' len=' + len + ' | ' + hex);
     }
   },
 
@@ -737,38 +655,49 @@ const Bluetooth = {
 // ═══════════════════════════════════════════════════════════════════
 
 (function() {
-  // Smoothing: exponential moving average to reduce jitter
-  // alpha=0.3 → new value weighted 30%, old value 70%
-  const ALPHA     = 0.35;
-  const HOLD_MS   = 3000;   // keep last RPM alive for this long between CSC packets
-  let   smoothRpm = 0;
-  let   holdTimer = null;
+  const ALPHA   = 0.35;   // EMA weight — lower = smoother but slower to respond
+  const HOLD_MS = 2500;   // hold last reading this long before zeroing (CSC ~1 packet/sec)
+  let smoothRpm = 0;
+  let holdTimer = null;
+
+  function zeroOut() {
+    holdTimer  = null;
+    smoothRpm  = 0;
+    // Directly zero State — this is what cadence.js reads everywhere
+    if (typeof State !== 'undefined' && State.data?.cadence) {
+      State.data.cadence.clicksPerMinute = 0;
+    }
+    // Clear the click window too so natural decay also sees 0
+    if (typeof Cadence !== 'undefined' && Cadence._clickTimes) {
+      Cadence._clickTimes = [];
+    }
+    if (typeof Cadence !== 'undefined' && Cadence._updateUI) {
+      Cadence._updateUI();
+    }
+  }
 
   Events.on('bike:pedal', ({ rpm }) => {
     if (typeof Cadence === 'undefined') return;
     if (!Bluetooth.state.enabled) return;
     if (!Cadence._active) Cadence.start();
 
-    // Smooth the incoming RPM to reduce jitter
+    // EMA smoothing — softens single-packet jitter from CSC sensors
     smoothRpm = smoothRpm === 0
       ? rpm
       : Math.round(ALPHA * rpm + (1 - ALPHA) * smoothRpm);
 
-    // Write directly into State — bypasses the click-counting window entirely
+    // Write directly into State (bypasses 5s click window)
     State.data.cadence.clicksPerMinute = smoothRpm;
-
-    // Refresh Cadence UI
     if (Cadence._updateUI) Cadence._updateUI();
 
-    // Hold: cancel any previous decay, restart 3s hold timer
+    // Restart the hold timer — when it fires, zero everything
     if (holdTimer) clearTimeout(holdTimer);
-    holdTimer = setTimeout(() => {
-      // After hold period, hand back to cadence.js natural decay
-      // by clearing _clickTimes so _decayCPM() will zero it out
-      holdTimer = null;
-      if (typeof Cadence !== 'undefined' && Cadence._clickTimes) {
-        Cadence._clickTimes = [];
-      }
-    }, HOLD_MS);
+    holdTimer = setTimeout(zeroOut, HOLD_MS);
+  });
+
+  // Also zero out when bike disconnects
+  Events.on('bike:disconnected', () => {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    zeroOut();
   });
 })();
