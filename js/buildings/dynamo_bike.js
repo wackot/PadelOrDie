@@ -245,10 +245,12 @@ const DynamoBike = {
 
     const p = State.data.power;
     if (p) {
-      const maxStor = Power.getMaxStorage();
+      const maxStor = typeof Power !== 'undefined' ? Power.getMaxStorage() : 0;
       if (maxStor > 0) {
+        // Battery bank exists: store the power
         p.stored = Utils.clamp((p.stored || 0) + wh, 0, maxStor);
       }
+      // No battery: power dissipates but session Wh counter and HUD still update
     }
 
     this._sessionWh += wh;
@@ -370,10 +372,12 @@ Events.on('game:boot', () => {
     const wh    = watts / 3600;             // 1 real second of generation
 
     const maxStor = typeof Power !== 'undefined' ? Power.getMaxStorage() : 0;
-    if (maxStor <= 0) return; // no battery to store in
-    State.data.power.stored = Math.min(maxStor,
-      (State.data.power.stored || 0) + wh);
-
+    if (maxStor > 0) {
+      // Battery bank exists: store power
+      State.data.power.stored = Math.min(maxStor,
+        (State.data.power.stored || 0) + wh);
+    }
+    // No battery: power dissipates but HUD still shows generation rate
     Events.emit('hud:update');
   }, 1000);
 });
