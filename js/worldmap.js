@@ -23,8 +23,8 @@
 const WorldMap = {
 
   // ── World dimensions ──────────────────────
-  WORLD_W: 16000,
-  WORLD_H: 16000,
+  WORLD_W: 32000,
+  WORLD_H: 32000,
   TILE:    20,      // pixels per world-unit on canvas
 
   // ── Location zone definitions ─────────────
@@ -33,7 +33,7 @@ const WorldMap = {
   locationDefs: [
     { id:'forest',        name:'FOREST',        emoji:'🌲', dangerLevel:1, dangerCol:'#4caf50',
       desc:'Dense mutated woodland.',
-      wx: -790, wy: -510, radius: 160,
+      wx: -1580, wy: -1020, radius: 160,
       bgColor:'#0d1a08', bgEmoji:'🌲🌲🌳🌲🌳🌲🌲',
       tileColor:'#1a3010', fogReveal:'#3d7a22',
       animals:['wolf','boar','insect','bear'], encounterChance:0.20,
@@ -50,7 +50,7 @@ const WorldMap = {
 
     { id:'abandoned_farm', name:'ABANDONED FARM', emoji:'🚜', dangerLevel:1, dangerCol:'#4caf50',
       desc:'Overgrown farmland with wild crops.',
-      wx: 620,  wy: -710, radius: 145,
+      wx: 1240,  wy: -1420, radius: 145,
       bgColor:'#1a1500', bgEmoji:'🌾🚜🌾🌾🐄🌾',
       tileColor:'#2a2010', fogReveal:'#52481e',
       animals:['wolf','boar','insect'], encounterChance:0.18,
@@ -67,7 +67,7 @@ const WorldMap = {
 
     { id:'gas_station', name:'GAS STATION', emoji:'⛽', dangerLevel:2, dangerCol:'#ffd600',
       desc:'Abandoned fuel stop. Potentially explosive.',
-      wx: 1130,  wy: 225,  radius: 125,
+      wx: 2260,  wy: 450,  radius: 125,
       bgColor:'#1a1000', bgEmoji:'⛽🏪⛽🛢️⛽🏚️',
       tileColor:'#2a1a00', fogReveal:'#4a3c18',
       animals:['rat','bird'], encounterChance:0.22,
@@ -84,7 +84,7 @@ const WorldMap = {
 
     { id:'city_ruins', name:'CITY RUINS', emoji:'🏙️', dangerLevel:2, dangerCol:'#ffd600',
       desc:'Collapsed buildings, scavengers everywhere.',
-      wx: -510, wy: 1075, radius: 195,
+      wx: -1020, wy: 2150, radius: 195,
       bgColor:'#0d0d12', bgEmoji:'🏚️🧱🏗️🏚️🧱🏙️',
       tileColor:'#141418', fogReveal:'#363650',
       animals:['rat','bird','zombie_dog'], encounterChance:0.28,
@@ -103,7 +103,7 @@ const WorldMap = {
 
     { id:'junkyard', name:'JUNKYARD', emoji:'♻️', dangerLevel:2, dangerCol:'#ffd600',
       desc:'Mountains of scrap. Metal heaven.',
-      wx: 1585,  wy: -990, radius: 145,
+      wx: 3170,  wy: -1980, radius: 145,
       bgColor:'#100d0d', bgEmoji:'🔩🗑️♻️🚗💀🔩',
       tileColor:'#1a1010', fogReveal:'#442828',
       animals:['rat','bird','insect'], encounterChance:0.25,
@@ -120,7 +120,7 @@ const WorldMap = {
 
     { id:'hospital', name:'HOSPITAL', emoji:'🏥', dangerLevel:3, dangerCol:'#ff6d00',
       desc:'Medical goldmine — if you survive the infected.',
-      wx: -1470, wy: 790, radius: 135,
+      wx: -2940, wy: 1580, radius: 135,
       bgColor:'#100d0d', bgEmoji:'🏥🚑🏥🩺🏥🚑',
       tileColor:'#1a0d0d', fogReveal:'#401a1a',
       animals:['zombie_dog','rat','insect'], encounterChance:0.35,
@@ -137,7 +137,7 @@ const WorldMap = {
 
     { id:'cave', name:'DEEP CAVE', emoji:'🪨', dangerLevel:3, dangerCol:'#ff6d00',
       desc:'Dark cave system rich in minerals.',
-      wx: -1980, wy: -1190, radius: 150,
+      wx: -3960, wy: -2380, radius: 150,
       bgColor:'#050508', bgEmoji:'🪨🕯️🪨💎🪨🕯️',
       tileColor:'#0a0a0f', fogReveal:'#222238',
       animals:['insect','rat','bear'], encounterChance:0.30,
@@ -154,7 +154,7 @@ const WorldMap = {
 
     { id:'military_base', name:'MILITARY BASE', emoji:'🪖', dangerLevel:4, dangerCol:'#e53935',
       desc:'The last government stronghold. Now overrun.',
-      wx: 1925,  wy: 1415, radius: 160,
+      wx: 3850,  wy: 2830, radius: 160,
       bgColor:'#0a0a05', bgEmoji:'🪖🔫🏗️🚧🪖🔫',
       tileColor:'#0f0f08', fogReveal:'#323218',
       animals:['zombie_dog','bird','boss_mutant'], encounterChance:0.45,
@@ -174,7 +174,7 @@ const WorldMap = {
     // ── SPECIAL MISSIONS — unlocked by Radio Tower ──────────────────────────
     { id:'signal_drop', name:'SIGNAL DROP', emoji:'📦', dangerLevel:2, dangerCol:'#42a5f5',
       desc:'A supply crate was broadcast. Find it before raiders do.',
-      wx: 425,  wy: 340, radius: 110, isMission:true, missionKey:'signal_drop',
+      wx: 850,  wy: 680, radius: 110, isMission:true, missionKey:'signal_drop',
       bgColor:'#0a0d14', bgEmoji:'📦🪂📦🌫️📦🪂',
       tileColor:'#111820', fogReveal:'#2a3e5c',
       animals:['bird','rat'], encounterChance:0.20,
@@ -191,7 +191,7 @@ const WorldMap = {
 
     { id:'rescue_beacon', name:'RESCUE BEACON', emoji:'🆘', dangerLevel:3, dangerCol:'#ff6d00',
       desc:'A survivor beacon. Rescue them and share their supplies.',
-      wx: -990, wy: 510, radius: 115, isMission:true, missionKey:'rescue_beacon',
+      wx: -1980, wy: 1020, radius: 115, isMission:true, missionKey:'rescue_beacon',
       bgColor:'#140808', bgEmoji:'🆘🩸🚑🔦🆘🩸',
       tileColor:'#1e0e0e', fogReveal:'#4c2020',
       animals:['zombie_dog','rat'], encounterChance:0.35,
@@ -208,7 +208,7 @@ const WorldMap = {
 
     { id:'black_market', name:'BLACK MARKET', emoji:'🏴', dangerLevel:3, dangerCol:'#ab47bc',
       desc:'A hidden trading post. Dangerous — but the rarest goods.',
-      wx: 850,  wy: -1360, radius: 125, isMission:true, missionKey:'black_market',
+      wx: 1700,  wy: -2720, radius: 125, isMission:true, missionKey:'black_market',
       bgColor:'#0d0814', bgEmoji:'🏴🕯️💀🏴🗡️💀',
       tileColor:'#130d1c', fogReveal:'#32204e',
       animals:['bird','zombie_dog'], encounterChance:0.30,
@@ -225,7 +225,7 @@ const WorldMap = {
 
     { id:'command_bunker', name:'COMMAND BUNKER', emoji:'🎖️', dangerLevel:4, dangerCol:'#e53935',
       desc:'Last known command post. Hardened intel and mil-spec supplies.',
-      wx: -1755, wy: 1755, radius: 145, isMission:true, missionKey:'command_bunker',
+      wx: -3510, wy: 3510, radius: 145, isMission:true, missionKey:'command_bunker',
       bgColor:'#050508', bgEmoji:'🎖️🔐💣🎖️🔐💣',
       tileColor:'#080810', fogReveal:'#1e1e3c',
       animals:['zombie_dog','boss_mutant'], encounterChance:0.50,
@@ -242,7 +242,7 @@ const WorldMap = {
 
     { id:'endgame_transmission', name:'THE TRANSMISSION', emoji:'🌐', dangerLevel:4, dangerCol:'#ffd600',
       desc:'A signal from beyond the collapse. What is still out there?',
-      wx: 0,    wy: -2405, radius: 170, isMission:true, missionKey:'endgame_transmission',
+      wx: 0,    wy: -4810, radius: 170, isMission:true, missionKey:'endgame_transmission',
       bgColor:'#02020a', bgEmoji:'🌐📡💫🌐📡✨',
       tileColor:'#050510', fogReveal:'#181840',
       animals:['boss_mutant','bird','zombie_dog'], encounterChance:0.55,
@@ -264,12 +264,13 @@ const WorldMap = {
   _mapData:      null,   // generated world data (stored in save)
   _viewX:        0,      // camera top-left in world-units
   _viewY:        0,
-  _scale:        0.12,   // world-units → screen pixels (zoomed out for bigger world)
+  _scale:        0.06,   // world-units → screen pixels (doubled world)
   _travelling:   false,
   _travelTimer:  null,
   _travelPath:   [],
   _travelStep:   0,
   _travelTarget: null,   // { wx, wy, locationId or null }
+  _passedNodes:  null,   // Set of node ids already prompted this trip
   _playerWX:     0,      // current player world position
   _playerWY:     0,
   _pendingTravel: null,  // { wx, wy, distUnits, locationId }
@@ -280,12 +281,29 @@ const WorldMap = {
     const saved = State.data.worldMapData;
     if (saved && saved.seed) {
       this._mapData = saved;
+      // Migrate old saves: add resource nodes if missing
+      if (!this._mapData.resourceNodes) {
+        const rng = this._makeRng(this._mapData.seed);
+        this._mapData.resourceNodes = this._generateResourceNodes(rng);
+      }
     } else {
       this._mapData = this._generate();
       State.data.worldMapData = this._mapData;
     }
     this._playerWX = this._mapData.playerWX;
     this._playerWY = this._mapData.playerWY;
+
+    // Regen depleted nodes: +1 stock per 4 real-world hours
+    const now = Date.now();
+    (this._mapData.resourceNodes || []).forEach(n => {
+      if (n.isPond || n.qty >= n.maxQty) return;
+      const hoursElapsed = (now - (n.lastRegen || 0)) / 3600000;
+      const refill = Math.floor(hoursElapsed / 4);
+      if (refill > 0) {
+        n.qty = Math.min(n.maxQty, n.qty + refill);
+        n.lastRegen = now;
+      }
+    });
   },
 
   // ── Generate procedural world ─────────────
@@ -304,10 +322,11 @@ const WorldMap = {
     // Generate road network — winding paths from base to each zone
     const roads = zones.map(z => this._generateRoad(0, 0, z.wx, z.wy, rng));
 
-    // Fog grid: 200×200 cells covering the world, 0=fogged, 1=revealed
-    const fogW = 200, fogH = 200;
+    // Fog grid: 400×400 cells covering the world, 0=fogged, 1=revealed
+    // 32000 world-units / 400 cells = 80 units/cell (same as original 16000/200)
+    const fogW = 400, fogH = 400;
     const fog  = new Array(fogW * fogH).fill(0);
-    // Reveal small area around base start
+    // Reveal small area around base start (±3 cells = ±240 world-units)
     const baseFogX = Math.floor(fogW/2);
     const baseFogY = Math.floor(fogH/2);
     for (let dy = -3; dy <= 3; dy++)
@@ -315,7 +334,100 @@ const WorldMap = {
         fog[(baseFogY+dy)*fogW + (baseFogX+dx)] = 1;
 
     return { seed, zones, roads, fog, fogW, fogH,
-      playerWX: 0, playerWY: 0 };
+      playerWX: 0, playerWY: 0,
+      resourceNodes: this._generateResourceNodes(rng) };
+  },
+
+  // ── Resource node definitions (issue 62) ──
+  // count: fewer = rarer. minDist/maxDist from base (world units, radius 5000)
+  _resourceNodeDefs: [
+    { key:'wood',        emoji:'🪵', count:18, minDist:100,  maxDist:1200, color:'#2d5a1a',
+      name:'Woodland', bgColor:'#0d1a08', bgEmoji:'🌲🌿🌲🍄🌲🌿🌳',
+      animals:['wolf','boar','insect'], encounterChance:0.18,
+      loot:{ common:{resources:['wood','rope'],weight:70}, rare:{resources:['wood','food'],weight:25}, legendary:{resources:['rope','wild_seeds'],weight:5} },
+      uniqueMaterial:{key:'spores',name:'Glowing Spores',emoji:'🍄'} },
+    { key:'food',        emoji:'🌾', count:16, minDist:150,  maxDist:1400, color:'#4a6a10',
+      name:'Crop Field', bgColor:'#1a1500', bgEmoji:'🌾🚜🌾🌱🌾🐄🌾',
+      animals:['boar','insect','rat'], encounterChance:0.14,
+      loot:{ common:{resources:['food','water'],weight:70}, rare:{resources:['food','rope','cloth'],weight:25}, legendary:{resources:['food','food','wild_seeds'],weight:5} },
+      uniqueMaterial:{key:'wild_seeds',name:'Wild Seeds',emoji:'🌱'} },
+    { key:'rope',        emoji:'🪢', count:14, minDist:200,  maxDist:1600, color:'#6a5020',
+      name:'Overgrown Lot', bgColor:'#181008', bgEmoji:'🪢🌿🌾🪴🌿🪢🌿',
+      animals:['insect','rat','bird'], encounterChance:0.12,
+      loot:{ common:{resources:['rope','cloth'],weight:65}, rare:{resources:['rope','wood','food'],weight:28}, legendary:{resources:['rope','cloth'],weight:7} },
+      uniqueMaterial:{key:'wild_seeds',name:'Wild Seeds',emoji:'🌱'} },
+    { key:'metal',       emoji:'⚙️', count:12, minDist:400,  maxDist:2200, color:'#505050',
+      name:'Scrap Yard', bgColor:'#100d0d', bgEmoji:'🔩🗑️♻️🚗💀🔩',
+      animals:['rat','zombie_dog','insect'], encounterChance:0.22,
+      loot:{ common:{resources:['metal','rope'],weight:60}, rare:{resources:['metal','electronics','glass'],weight:30}, legendary:{resources:['electronics','engine_parts'],weight:10} },
+      uniqueMaterial:{key:'scrap_wire',name:'Scrap Wire',emoji:'🔌'} },
+    { key:'cloth',       emoji:'🧵', count:10, minDist:500,  maxDist:2400, color:'#5a3060',
+      name:'Textile Ruin', bgColor:'#180d18', bgEmoji:'🧵🏚️🧶🏚️🧵🏚️🧶',
+      animals:['rat','insect','bird'], encounterChance:0.16,
+      loot:{ common:{resources:['cloth','rope'],weight:65}, rare:{resources:['cloth','medicine','food'],weight:25}, legendary:{resources:['cloth','cloth'],weight:10} },
+      uniqueMaterial:{key:'scrap_wire',name:'Scrap Wire',emoji:'🔌'} },
+    { key:'coal',        emoji:'⛏️', count:8,  minDist:800,  maxDist:3000, color:'#282828',
+      name:'Coal Seam', bgColor:'#060608', bgEmoji:'⛏️🪨💎⛏️🪨🕯️🪨',
+      animals:['insect','rat','bear'], encounterChance:0.26,
+      loot:{ common:{resources:['coal','metal'],weight:55}, rare:{resources:['coal','chemicals'],weight:35}, legendary:{resources:['coal','coal','cave_crystal'],weight:10} },
+      uniqueMaterial:{key:'cave_crystal',name:'Cave Crystal',emoji:'💎'} },
+    { key:'medicine',    emoji:'💊', count:7,  minDist:1000, maxDist:3200, color:'#1a4a1a',
+      name:'Medical Cache', bgColor:'#100d0d', bgEmoji:'🏥💊🩺🧪💉🏥💊',
+      animals:['zombie_dog','rat','insect'], encounterChance:0.30,
+      loot:{ common:{resources:['medicine','cloth'],weight:55}, rare:{resources:['medicine','chemicals'],weight:35}, legendary:{resources:['medicine','antiseptic'],weight:10} },
+      uniqueMaterial:{key:'antiseptic',name:'Antiseptic',emoji:'🧫'} },
+    { key:'chemicals',   emoji:'⚗️', count:6,  minDist:1200, maxDist:3800, color:'#1a3060',
+      name:'Chemical Plant', bgColor:'#0a0d14', bgEmoji:'⚗️🏭⚗️🧪🏭💀⚗️',
+      animals:['rat','zombie_dog','insect'], encounterChance:0.28,
+      loot:{ common:{resources:['chemicals','metal'],weight:50}, rare:{resources:['chemicals','electronics'],weight:35}, legendary:{resources:['chemicals','circuit_board'],weight:15} },
+      uniqueMaterial:{key:'circuit_board',name:'Circuit Board',emoji:'💾'} },
+    { key:'electronics', emoji:'💡', count:5,  minDist:1500, maxDist:4200, color:'#1a2a4a',
+      name:'Tech Ruins', bgColor:'#080c14', bgEmoji:'💡🖥️📟💡🔌📡💡',
+      animals:['zombie_dog','rat','bird'], encounterChance:0.32,
+      loot:{ common:{resources:['electronics','metal'],weight:50}, rare:{resources:['electronics','circuit_board'],weight:35}, legendary:{resources:['circuit_board','military_chip'],weight:15} },
+      uniqueMaterial:{key:'circuit_board',name:'Circuit Board',emoji:'💾'} },
+    { key:'gasoline',    emoji:'⛽', count:5,  minDist:1400, maxDist:4000, color:'#3a2200',
+      name:'Fuel Depot', bgColor:'#100a00', bgEmoji:'⛽🛢️🔧⛽🏪⛽🛢️',
+      animals:['rat','bird','zombie_dog'], encounterChance:0.24,
+      loot:{ common:{resources:['gasoline','metal'],weight:55}, rare:{resources:['gasoline','chemicals','electronics'],weight:32}, legendary:{resources:['electronics','engine_parts'],weight:13} },
+      uniqueMaterial:{key:'engine_parts',name:'Engine Parts',emoji:'⚙️'} },
+    { key:'circuit_board',emoji:'🖥️',count:3, minDist:3000, maxDist:4800, color:'#002a2a',
+      name:'Circuit Dump', bgColor:'#030d0d', bgEmoji:'🖥️💾🔌📡🖥️💾🔌',
+      animals:['zombie_dog','rat','boss_mutant'], encounterChance:0.38,
+      loot:{ common:{resources:['circuit_board','electronics'],weight:45}, rare:{resources:['circuit_board','military_chip'],weight:38}, legendary:{resources:['military_chip','circuit_board','circuit_board'],weight:17} },
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'} },
+    { key:'military_chip',emoji:'🎖️',count:2, minDist:4000, maxDist:5000, color:'#2a1a00',
+      name:'Military Cache', bgColor:'#050504', bgEmoji:'🎖️🔐💣🔫🎖️🔐💣',
+      animals:['zombie_dog','boss_mutant'], encounterChance:0.45,
+      loot:{ common:{resources:['military_chip','electronics'],weight:40}, rare:{resources:['military_chip','circuit_board'],weight:38}, legendary:{resources:['military_chip','military_chip'],weight:22} },
+      uniqueMaterial:{key:'military_chip',name:'Military Chip',emoji:'🎖️'} },
+    // Ponds — fishing only, no harvest session
+    { key:'pond', emoji:'🎣', count:8, minDist:200, maxDist:3000, color:'#0a2a4a', isPond:true },
+  ],
+
+  _generateResourceNodes(rng) {
+    const nodes = [];
+    for (const def of this._resourceNodeDefs) {
+      for (let i = 0; i < def.count; i++) {
+        // Place at random angle, distance in [minDist, maxDist], inside circle
+        const angle = rng() * Math.PI * 2;
+        const dist  = def.minDist + rng() * (def.maxDist - def.minDist);
+        const wx = Math.cos(angle) * dist;
+        const wy = Math.sin(angle) * dist;
+        const maxQty = def.isPond ? 0 : (3 + Math.floor(rng() * 5)); // ponds: unlimited fish
+        nodes.push({
+          id:       `${def.key}_${i}_${Math.floor(rng()*9999)}`,
+          key:      def.key,
+          wx, wy,
+          qty:      maxQty,   // current stock (0 = depleted)
+          maxQty,
+          isPond:   !!def.isPond,
+          // Regen: refills 1 unit per real-world day (checked on map open)
+          lastRegen: 0,
+        });
+      }
+    }
+    return nodes;
   },
 
   // Seeded RNG (simple mulberry32)
@@ -376,9 +488,11 @@ const WorldMap = {
         // Cancel any in-progress travel
         if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
         this._travelling = false;
-
         if (State.data?.world) State.data.world.playerAway = false;
         this._roadEncounterActive = false;
+        // Reset to base so next trip always starts from home
+        this._playerWX = 0; this._playerWY = 0;
+        this._mapData.playerWX = 0; this._mapData.playerWY = 0;
         Events.emit('navigate', { screen: 'base' });
       });
 
@@ -392,7 +506,7 @@ const WorldMap = {
       this._centreOnPlayer(); this._drawMap();
     });
     document.getElementById('wm-zoom-fit')?.addEventListener('click', () => {
-      this._scale = 0.12; this._centreOnPlayer(); this._drawMap();
+      this._scale = 0.06; this._centreOnPlayer(); this._drawMap();
     });
 
     this._setupCanvas();
@@ -467,6 +581,9 @@ const WorldMap = {
     };
   },
 
+  // World radius (world units) — defines the circle boundary
+  WORLD_R: 5000,
+
   // ── Draw the full map ─────────────────────
   _drawMap() {
     const c = this._ctx;
@@ -474,9 +591,17 @@ const WorldMap = {
     const W = this._cssW || this._canvas.width;
     const H = this._cssH || this._canvas.height;
 
-    // Background — only visible under fog
-    c.fillStyle = '#090910';
+    // Background void outside the circle
+    c.fillStyle = '#02020a';
     c.fillRect(0, 0, W, H);
+
+    // Clip everything to the circular world boundary
+    const { sx: cx, sy: cy } = this._toScreen(0, 0);
+    const rPx = this.WORLD_R * this._scale;
+    c.save();
+    c.beginPath();
+    c.arc(cx, cy, rPx, 0, Math.PI * 2);
+    c.clip();
 
     // Revealed terrain base (biome colours + noise)
     this._drawTerrain(c);
@@ -484,6 +609,9 @@ const WorldMap = {
     // Roads + zone glows on top of terrain
     this._drawRoads(c);
     this._drawZones(c);
+
+    // Resource nodes
+    this._drawResourceNodes(c);
 
     // Fog of war overlay
     this._drawFog(c, W, H);
@@ -498,6 +626,21 @@ const WorldMap = {
     if (this._pendingTravel) {
       this._drawTravelPreview(c);
     }
+
+    c.restore();
+
+    // Circle world border ring (drawn outside clip so it shows over fog edge)
+    c.beginPath();
+    c.arc(cx, cy, rPx, 0, Math.PI * 2);
+    c.strokeStyle = '#1a1a40';
+    c.lineWidth = 3;
+    c.stroke();
+    // Outer glow
+    c.beginPath();
+    c.arc(cx, cy, rPx + 2, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(60,60,120,0.4)';
+    c.lineWidth = 6;
+    c.stroke();
   },
 
   _drawRoads(c) {
@@ -507,62 +650,167 @@ const WorldMap = {
       const def  = zone && this.locationDefs.find(d => d.id === zone.id);
       const danger = def?.dangerLevel || 1;
 
-      const roadCol   = danger >= 4 ? '#3a1a0a' :
-                        danger >= 3 ? '#2e1c0a' :
-                        danger >= 2 ? '#2a2010' : '#2a2418';
-      const centerCol = danger >= 3 ? '#5a3010' : '#3a3020';
-
+      // Road surface — wide dark base
       c.beginPath();
       road.forEach((pt, idx) => {
         const { sx, sy } = this._toScreen(pt.x, pt.y);
         idx === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
       });
-      c.strokeStyle = roadCol;
-      c.lineWidth = 3 + danger;
+      c.strokeStyle = danger >= 4 ? '#2a0a04' : danger >= 3 ? '#24100a' : danger >= 2 ? '#221808' : '#1e1a10';
+      c.lineWidth = 5 + danger * 1.5;
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
       c.stroke();
-      c.strokeStyle = centerCol;
+
+      // Road centre stripe — colour indicates danger
+      c.beginPath();
+      road.forEach((pt, idx) => {
+        const { sx, sy } = this._toScreen(pt.x, pt.y);
+        idx === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
+      });
+      c.strokeStyle = danger >= 4 ? '#6a1a06' : danger >= 3 ? '#5a2808' : danger >= 2 ? '#3a3010' : '#2e2a18';
       c.lineWidth = 1.5;
-      c.setLineDash(danger >= 3 ? [3, 9] : [8, 6]);
+      c.setLineDash(danger >= 3 ? [4, 10] : [10, 8]);
       c.stroke();
       c.setLineDash([]);
+
+      // Shoulder edge glow for dangerous roads
+      if (danger >= 3) {
+        c.beginPath();
+        road.forEach((pt, idx) => {
+          const { sx, sy } = this._toScreen(pt.x, pt.y);
+          idx === 0 ? c.moveTo(sx, sy) : c.lineTo(sx, sy);
+        });
+        c.strokeStyle = danger >= 4 ? 'rgba(180,20,5,0.25)' : 'rgba(140,60,10,0.2)';
+        c.lineWidth = 9 + danger * 2;
+        c.stroke();
+      }
     });
   },
 
   _drawZones(c) {
-    const md = this._mapData;
+    const md  = this._mapData;
+    const t   = Date.now() / 1000;
     md.zones.forEach(zone => {
       const def = this.locationDefs.find(d => d.id === zone.id);
       if (!def) return;
       const { sx, sy } = this._toScreen(zone.wx, zone.wy);
       const r = zone.radius * this._scale;
+      const pal = this._biomePalette[def.id] || this._biomePalette._default;
 
-      // Use fogReveal as the bright inner colour, tileColor only for outer fade
-      const grad = c.createRadialGradient(sx, sy, 0, sx, sy, r * 1.5);
-      grad.addColorStop(0,    def.fogReveal + 'cc');
-      grad.addColorStop(0.4,  def.fogReveal + '88');
-      grad.addColorStop(0.75, def.tileColor + '44');
-      grad.addColorStop(1,    def.tileColor + '00');
-      c.beginPath();
-      c.arc(sx, sy, r * 1.5, 0, Math.PI*2);
-      c.fillStyle = grad;
-      c.fill();
+      // Outer ambient glow (large, soft)
+      const outer = c.createRadialGradient(sx, sy, r * 0.5, sx, sy, r * 2.8);
+      outer.addColorStop(0,   pal.mid + 'aa');
+      outer.addColorStop(0.4, pal.base + '66');
+      outer.addColorStop(0.8, pal.detail + '22');
+      outer.addColorStop(1,   'transparent');
+      c.beginPath(); c.arc(sx, sy, r * 2.8, 0, Math.PI*2);
+      c.fillStyle = outer; c.fill();
 
-      // Danger ring
-      c.beginPath();
-      c.arc(sx, sy, r * 0.6, 0, Math.PI*2);
-      c.strokeStyle = def.dangerCol + '70';
-      c.lineWidth = 2;
+      // Zone boundary ring with pulse
+      const pulse = 0.5 + 0.5 * Math.sin(t * 1.2 + zone.wx);
+      c.beginPath(); c.arc(sx, sy, r, 0, Math.PI*2);
+      c.strokeStyle = def.dangerCol + Math.floor(60 + pulse * 60).toString(16).padStart(2,'0');
+      c.lineWidth = 1 + pulse;
       c.stroke();
+
+      // Biome-specific zone fill patterns (drawn as small sprites over the zone)
+      this._drawZoneDetails(c, def, sx, sy, r, t);
     });
   },
 
-  // ── Terrain base for revealed cells ──────
+  // ── Zone-interior decorative details ─────────────────────────────────
+  _drawZoneDetails(c, def, sx, sy, r, t) {
+    const rng = this._makeRng(def.wx ? Math.abs(def.wx * 31 + def.wy) : 12345);
+    const count = 6 + Math.floor(r / 8);
+    c.save();
+    c.beginPath(); c.arc(sx, sy, r * 1.1, 0, Math.PI*2); c.clip();
+
+    for (let i = 0; i < count; i++) {
+      const ang = rng() * Math.PI * 2;
+      const dist = rng() * r * 0.9;
+      const ex = sx + Math.cos(ang) * dist;
+      const ey = sy + Math.sin(ang) * dist;
+      const sz = 3 + rng() * 5;
+
+      switch (def.id) {
+        case 'forest':
+          // Tree crowns — dark green circles
+          c.fillStyle = rng() > 0.5 ? '#1a5010' : '#0d3508';
+          c.beginPath(); c.arc(ex, ey, sz, 0, Math.PI*2); c.fill();
+          if (rng() > 0.6) { c.fillStyle = '#2a6a18'; c.beginPath(); c.arc(ex - sz*0.3, ey - sz*0.3, sz*0.5, 0, Math.PI*2); c.fill(); }
+          break;
+        case 'city_ruins': case 'abandoned_farm':
+          // Ruined building footprints
+          c.strokeStyle = def.id === 'city_ruins' ? '#303050' : '#403820';
+          c.lineWidth = 1;
+          c.strokeRect(ex - sz, ey - sz, sz * 2, sz * 2);
+          if (rng() > 0.5) { c.strokeRect(ex - sz*0.3, ey - sz*0.3, sz*0.6, sz*0.6); }
+          break;
+        case 'junkyard':
+          // Scrap piles — angular shapes
+          c.fillStyle = '#3a1a10';
+          c.fillRect(ex - sz*0.4, ey - sz*0.8, sz*0.8, sz*1.6);
+          c.fillRect(ex - sz*0.8, ey - sz*0.4, sz*1.6, sz*0.8);
+          break;
+        case 'hospital':
+          // Red cross motif
+          c.fillStyle = 'rgba(80,10,10,0.5)';
+          c.fillRect(ex - sz*0.25, ey - sz*0.75, sz*0.5, sz*1.5);
+          c.fillRect(ex - sz*0.75, ey - sz*0.25, sz*1.5, sz*0.5);
+          break;
+        case 'cave':
+          // Stalactite triangles
+          c.fillStyle = '#0a0a18';
+          c.beginPath(); c.moveTo(ex, ey + sz); c.lineTo(ex - sz*0.4, ey - sz*0.2); c.lineTo(ex + sz*0.4, ey - sz*0.2); c.closePath(); c.fill();
+          if (rng() > 0.6) { c.fillStyle = 'rgba(60,60,150,0.4)'; c.beginPath(); c.arc(ex, ey, 1.5, 0, Math.PI*2); c.fill(); }
+          break;
+        case 'military_base':
+          // Sandbag bunkers and watchtower shapes
+          c.fillStyle = '#1e1e08';
+          c.fillRect(ex - sz, ey - sz*0.4, sz*2, sz*0.8);
+          c.fillStyle = '#2a2a10';
+          c.fillRect(ex - sz*0.3, ey - sz*0.8, sz*0.6, sz*0.8);
+          break;
+        case 'gas_station':
+          // Fuel tanks and pipes
+          c.fillStyle = '#2a1808';
+          c.beginPath(); c.ellipse(ex, ey, sz*0.6, sz*0.4, 0, 0, Math.PI*2); c.fill();
+          c.strokeStyle = '#3a2810'; c.lineWidth = 0.5;
+          c.strokeRect(ex - sz*0.8, ey - sz*0.8, sz*1.6, sz*1.6);
+          break;
+        default:
+          // Wasteland rocks
+          c.fillStyle = 'rgba(50,45,35,0.6)';
+          c.beginPath(); c.arc(ex, ey, sz*0.5, 0, Math.PI*2); c.fill();
+          break;
+      }
+    }
+    c.restore();
+  },
+
+  // ── Biome colour maps — rich terrain per zone type ──────────────────
+  _biomePalette: {
+    forest:        { base:'#1a3a10', mid:'#2a5a18', accent:'#3d7a22', detail:'#0d2008', type:'forest' },
+    abandoned_farm:{ base:'#2a2008', mid:'#3a3010', accent:'#524818', detail:'#1a1204', type:'farm' },
+    gas_station:   { base:'#1e1408', mid:'#2e2010', accent:'#4a3c18', detail:'#120c04', type:'industrial' },
+    city_ruins:    { base:'#141418', mid:'#1e1e28', accent:'#363650', detail:'#0a0a10', type:'ruins' },
+    junkyard:      { base:'#1a1010', mid:'#281818', accent:'#442828', detail:'#100808', type:'junk' },
+    hospital:      { base:'#1a0d0d', mid:'#2a1414', accent:'#401a1a', detail:'#0f0808', type:'medical' },
+    cave:          { base:'#080810', mid:'#0f0f1a', accent:'#222238', detail:'#040408', type:'cave' },
+    military_base: { base:'#0f0f08', mid:'#1a1a0c', accent:'#323218', detail:'#080804', type:'military' },
+    _default:      { base:'#2a2418', mid:'#343020', accent:'#403c2c', detail:'#1c1810', type:'wasteland' },
+  },
+
+  // ── Terrain base for revealed cells — biome-specific ──────────────
   _drawTerrain(c) {
-    const md = this._mapData;
-    const fw = md.fogW, fh = md.fogH;
+    const md   = this._mapData;
+    const fw   = md.fogW, fh = md.fogH;
     const cellWX = this.WORLD_W / fw;
     const cellWY = this.WORLD_H / fh;
 
+    // Pre-build influence map: for each world-unit position → nearest zone + distance
+    // (computed lazily per-cell using zone list)
     for (let fy = 0; fy < fh; fy++) {
       for (let fx = 0; fx < fw; fx++) {
         if (md.fog[fy * fw + fx] !== 1) continue;
@@ -570,36 +818,100 @@ const WorldMap = {
         const wx = (fx - fw/2 + 0.5) * cellWX;
         const wy = (fy - fh/2 + 0.5) * cellWY;
         const { sx, sy } = this._toScreen(wx, wy);
-        const cellPxW = cellWX * this._scale + 1;
-        const cellPxH = cellWY * this._scale + 1;
+        const pw = cellWX * this._scale + 1;
+        const ph = cellWY * this._scale + 1;
 
-        // Tint by nearest zone biome
-        let baseColor = '#3a3628';
-        let minDist = Infinity;
-        md.zones.forEach(zone => {
+        // Find nearest zone and how deep inside its biome we are (0=outside, 1=centre)
+        let nearestDef = null, nearestDist = Infinity;
+        for (const zone of md.zones) {
           const def = this.locationDefs.find(d => d.id === zone.id);
-          if (!def) return;
+          if (!def) continue;
           const dx = wx - zone.wx, dy = wy - zone.wy;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < zone.radius * 2.5 && dist < minDist) {
-            minDist = dist;
-            baseColor = def.fogReveal;
-          }
-        });
-
-        c.fillStyle = baseColor;
-        c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW, cellPxH);
-
-        // Noise stipple variation
-        const n = this._cellNoise(fx, fy);
-        if (n > 0.72) {
-          c.fillStyle = 'rgba(255,245,200,0.07)';
-          c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW * 0.55, cellPxH * 0.55);
-        } else if (n < 0.28) {
-          c.fillStyle = 'rgba(0,0,0,0.15)';
-          c.fillRect(sx - cellPxW/2, sy - cellPxH/2, cellPxW, cellPxH);
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if (d < nearestDist) { nearestDist = d; nearestDef = def; }
         }
+
+        const pal = (nearestDef && this._biomePalette[nearestDef.id]) || this._biomePalette._default;
+        // Blend depth: 0 far from zone, 1 at zone centre
+        const maxR = nearestDef ? nearestDef.radius * 3 : 800;
+        const depth = Math.max(0, 1 - nearestDist / maxR);
+
+        const n   = this._cellNoise(fx, fy);
+        const n2  = this._cellNoise(fx * 3 + 7, fy * 5 + 11);
+        const n3  = this._cellNoise(fx * 7 + 31, fy * 2 + 53);
+
+        // Base ground colour interpolated by depth
+        const col = depth > 0.6 ? pal.mid : depth > 0.25 ? pal.base : pal.detail;
+        c.fillStyle = col;
+        c.fillRect(sx - pw/2, sy - ph/2, pw, ph);
+
+        // Biome-specific overlays
+        this._drawBiomeDetail(c, pal.type, sx, sy, pw, ph, depth, n, n2, n3);
       }
+    }
+  },
+
+  // ── Per-cell biome texture detail ────────────────────────────────────
+  _drawBiomeDetail(c, type, sx, sy, pw, ph, depth, n, n2, n3) {
+    switch (type) {
+      case 'forest':
+        // Dense canopy patches — dark green dabs
+        if (n > 0.55) { c.fillStyle = 'rgba(20,70,10,0.7)'; c.beginPath(); c.arc(sx, sy, pw*0.6, 0, Math.PI*2); c.fill(); }
+        if (n2 > 0.7 && depth > 0.3) { c.fillStyle = 'rgba(60,130,20,0.4)'; c.fillRect(sx-pw*0.3, sy-ph*0.3, pw*0.6, ph*0.6); }
+        if (n3 > 0.85) { c.fillStyle = 'rgba(10,40,5,0.9)'; c.beginPath(); c.arc(sx+pw*0.2, sy-ph*0.1, pw*0.35, 0, Math.PI*2); c.fill(); }
+        break;
+      case 'farm':
+        // Row crops — horizontal stripes
+        if (Math.floor(sy / (ph * 2)) % 2 === 0 && depth > 0.2) { c.fillStyle = 'rgba(80,70,10,0.35)'; c.fillRect(sx-pw, sy-ph*0.2, pw*2, ph*0.4); }
+        if (n > 0.75) { c.fillStyle = 'rgba(100,90,20,0.4)'; c.fillRect(sx-pw*0.2, sy-ph*0.2, pw*0.4, ph*0.4); }
+        break;
+      case 'industrial':
+        // Oil stains + metal scraps
+        if (n > 0.6) { c.fillStyle = 'rgba(20,10,0,0.6)'; c.fillRect(sx-pw*0.4, sy-ph*0.3, pw*0.8, ph*0.6); }
+        if (n2 > 0.8) { c.fillStyle = 'rgba(60,50,20,0.5)'; c.fillRect(sx-pw*0.1, sy-ph*0.1, pw*0.2, ph*0.2); }
+        if (n3 > 0.88) { c.strokeStyle = 'rgba(80,60,10,0.4)'; c.lineWidth = 0.5; c.strokeRect(sx-pw*0.4, sy-ph*0.4, pw*0.8, ph*0.8); }
+        break;
+      case 'ruins':
+        // Crumbled concrete blocks + rubble
+        if (n > 0.5) { c.fillStyle = 'rgba(30,30,40,0.7)'; c.fillRect(sx-pw*0.45, sy-ph*0.45, pw*0.4, ph*0.4); }
+        if (n2 > 0.6) { c.fillStyle = 'rgba(20,20,35,0.5)'; c.fillRect(sx, sy, pw*0.4, ph*0.4); }
+        if (n3 > 0.78) { c.fillStyle = 'rgba(50,50,70,0.3)'; c.beginPath(); c.arc(sx, sy, pw*0.5, 0, Math.PI*2); c.fill(); }
+        // Cracks
+        if (n > 0.82) { c.strokeStyle = 'rgba(60,60,80,0.4)'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(sx-pw*0.3, sy-ph*0.3); c.lineTo(sx+pw*0.2, sy+ph*0.3); c.stroke(); }
+        break;
+      case 'junk':
+        // Scattered scrap metal — orange-red rust patches
+        if (n > 0.45) { c.fillStyle = 'rgba(60,20,10,0.55)'; c.fillRect(sx-pw*0.3, sy-ph*0.2, pw*0.6, ph*0.4); }
+        if (n2 > 0.7) { c.fillStyle = 'rgba(80,30,10,0.4)'; c.beginPath(); c.arc(sx, sy, pw*0.4, 0, Math.PI*2); c.fill(); }
+        if (n3 > 0.85) { c.strokeStyle = 'rgba(100,40,20,0.5)'; c.lineWidth = 0.8; c.strokeRect(sx-pw*0.25, sy-ph*0.25, pw*0.5, ph*0.5); }
+        break;
+      case 'medical':
+        // Sterile tile pattern + bio-hazard stains
+        if (n > 0.72) { c.fillStyle = 'rgba(40,10,10,0.6)'; c.fillRect(sx-pw*0.5, sy-ph*0.5, pw, ph); }
+        if (n2 > 0.6 && depth > 0.3) { c.fillStyle = 'rgba(20,0,0,0.3)'; c.fillRect(sx-pw*0.1, sy-ph*0.1, pw*0.2, ph*0.2); }
+        // Tile grid
+        c.strokeStyle = 'rgba(60,20,20,0.2)'; c.lineWidth = 0.3;
+        c.strokeRect(sx-pw*0.5, sy-ph*0.5, pw, ph);
+        break;
+      case 'cave':
+        // Stalactite shadow patches + crystal glints
+        if (n > 0.6) { c.fillStyle = 'rgba(5,5,20,0.8)'; c.beginPath(); c.arc(sx, sy, pw*0.6, 0, Math.PI*2); c.fill(); }
+        if (n2 > 0.82 && depth > 0.4) { c.fillStyle = 'rgba(80,80,180,0.3)'; c.beginPath(); c.arc(sx, sy, pw*0.25, 0, Math.PI*2); c.fill(); }
+        if (n3 > 0.90) { c.fillStyle = 'rgba(140,140,255,0.5)'; c.fillRect(sx-1, sy-1, 2, 2); } // crystal glint
+        break;
+      case 'military':
+        // Camo pattern — dark olive blotches
+        if (n > 0.5) { c.fillStyle = 'rgba(20,20,8,0.6)'; c.fillRect(sx-pw*0.4, sy-ph*0.3, pw*0.7, ph*0.5); }
+        if (n2 > 0.65) { c.fillStyle = 'rgba(35,35,12,0.4)'; c.fillRect(sx-pw*0.2, sy, pw*0.5, ph*0.4); }
+        // Barbed wire cross pattern near centre
+        if (depth > 0.5 && n3 > 0.7) { c.strokeStyle = 'rgba(60,50,10,0.4)'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(sx-pw*0.4, sy-ph*0.4); c.lineTo(sx+pw*0.4, sy+ph*0.4); c.moveTo(sx+pw*0.4, sy-ph*0.4); c.lineTo(sx-pw*0.4, sy+ph*0.4); c.stroke(); }
+        break;
+      default: // wasteland
+        // Cracked dry earth
+        if (n > 0.65) { c.fillStyle = 'rgba(255,230,150,0.05)'; c.fillRect(sx-pw*0.3, sy-ph*0.3, pw*0.6, ph*0.6); }
+        if (n2 > 0.8)  { c.fillStyle = 'rgba(0,0,0,0.15)'; c.fillRect(sx-pw*0.5, sy-ph*0.5, pw, ph); }
+        if (n3 > 0.88) { c.strokeStyle = 'rgba(255,200,100,0.06)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(sx-pw*0.4, sy); c.lineTo(sx+pw*0.4, sy+ph*0.3); c.stroke(); }
+        break;
     }
   },
 
@@ -655,6 +967,258 @@ const WorldMap = {
       if (nx<0||nx>=fw||ny<0||ny>=fh) return false;
       return md.fog[ny*fw+nx] === 1;
     });
+  },
+
+  // ── Draw resource nodes on map (issues 61/62/63) ──────────────────────
+  _drawResourceNodes(c) {
+    const nodes = this._mapData?.resourceNodes;
+    if (!nodes) return;
+    const fog = this._mapData.fog;
+    const fw = this._mapData.fogW, fh = this._mapData.fogH;
+    const now = Date.now() / 1000;
+
+    nodes.forEach(n => {
+      // Only show if fog is revealed at this position
+      const fx = Math.floor((n.wx / this.WORLD_W + 0.5) * fw);
+      const fy = Math.floor((n.wy / this.WORLD_H + 0.5) * fh);
+      const revealed = fog[fy * fw + fx] === 1;
+      if (!revealed) return;
+
+      const { sx, sy } = this._toScreen(n.wx, n.wy);
+      const def = this._resourceNodeDefs.find(d => d.key === n.key);
+      const depleted = !n.isPond && n.qty <= 0;
+
+      // Node circle
+      c.beginPath();
+      c.arc(sx, sy, 7, 0, Math.PI * 2);
+      c.fillStyle = depleted ? '#1a1a1a' : (def?.color || '#333');
+      c.fill();
+      c.strokeStyle = depleted ? '#333' : (n.isPond ? '#4af' : '#888');
+      c.lineWidth = depleted ? 1 : 1.5;
+      c.stroke();
+
+      // Pulse ring for ponds
+      if (n.isPond) {
+        const pulse = 0.5 + 0.5 * Math.sin(now * 2);
+        c.beginPath();
+        c.arc(sx, sy, 8 + pulse * 3, 0, Math.PI * 2);
+        c.strokeStyle = `rgba(60,170,255,${0.3 + pulse * 0.3})`;
+        c.lineWidth = 1;
+        c.stroke();
+      }
+
+      // Emoji label (small, only if not too zoomed out)
+      if (this._scale > 0.05) {
+        c.font = '9px serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.globalAlpha = depleted ? 0.3 : 1;
+        c.fillText(depleted ? '✗' : (def?.emoji || '📦'), sx, sy);
+        c.globalAlpha = 1;
+      }
+
+      // Stock indicator bar (not for ponds)
+      if (!n.isPond && !depleted && this._scale > 0.07) {
+        const pct = n.qty / n.maxQty;
+        c.fillStyle = 'rgba(0,0,0,0.5)';
+        c.fillRect(sx - 6, sy + 9, 12, 3);
+        c.fillStyle = pct > 0.5 ? '#4f4' : pct > 0.25 ? '#fa0' : '#f44';
+        c.fillRect(sx - 6, sy + 9, 12 * pct, 3);
+      }
+    });
+  },
+
+  // ── Forage / fish a resource node (called on map tap near node) ─────────
+  _tryInteractNode(wx, wy) {
+    const nodes = this._mapData?.resourceNodes;
+    if (!nodes) return false;
+
+    // Find nearest node within 200 world units
+    let best = null, bestDist = 200;
+    nodes.forEach(n => {
+      const d = Math.sqrt((n.wx - wx) ** 2 + (n.wy - wy) ** 2);
+      if (d < bestDist) { bestDist = d; best = n; }
+    });
+    if (!best) return false;
+
+    const def = this._resourceNodeDefs.find(d => d.key === best.key);
+    const depleted = !best.isPond && best.qty <= 0;
+
+    // Show travel panel to bike there — same UX as biking to a location
+    const panel  = document.getElementById('wm-travel-panel');
+    const hint   = document.getElementById('wm-travel-hint');
+    if (!panel) return false;
+
+    const distUnits = Math.sqrt(best.wx ** 2 + best.wy ** 2);
+    const maxDist   = 5000;
+    const normDist  = Utils.clamp(distUnits / maxDist, 0, 1);
+    const normalTime = Math.max(15, Math.round(normDist * 1200));
+    const slowTime   = Math.round(normalTime * 1.5);
+    const fastTime   = Math.round(normalTime * 0.6);
+
+    if (hint) hint.classList.add('hidden');
+    this._pendingTravel = { wx: best.wx, wy: best.wy, distUnits, nodeId: best.id };
+
+    const statusLine = depleted
+      ? `<div style="color:#e53935;font-size:0.85rem">⚠️ DEPLETED — refills over time. You can still travel to scout the area.</div>`
+      : best.isPond
+        ? `<div style="color:#4af;font-size:0.85rem">🎣 Cast your line and pedal hard when a fish bites!</div>`
+        : `<div style="color:#4caf50;font-size:0.85rem">📦 Stock: ${best.qty} / ${best.maxQty} — bike there to collect</div>`;
+
+    panel.innerHTML = `
+      <div class="wm-panel-title">${def?.emoji || '📦'} ${best.isPond ? 'FISHING POND' : (best.key.replace(/_/g,' ').toUpperCase())}</div>
+      ${statusLine}
+      <div class="wm-dist-label">${Math.round(distUnits)} units from base</div>
+      <div class="wm-speed-options">
+        <div class="wm-speed-card slow">
+          <div class="wm-speed-icon">🐌</div><div class="wm-speed-name">SLOW</div>
+          <div class="wm-speed-time">~${Math.round(slowTime/60)}m ${slowTime%60}s</div>
+          <div class="wm-speed-note">Risky — monsters may catch you</div>
+        </div>
+        <div class="wm-speed-card normal">
+          <div class="wm-speed-icon">🚴</div><div class="wm-speed-name">NORMAL</div>
+          <div class="wm-speed-time">~${Math.round(normalTime/60)}m ${normalTime%60}s</div>
+          <div class="wm-speed-note">Safe passage</div>
+        </div>
+        <div class="wm-speed-card fast">
+          <div class="wm-speed-icon">💨</div><div class="wm-speed-name">FAST</div>
+          <div class="wm-speed-time">~${Math.round(fastTime/60)}m ${fastTime%60}s</div>
+          <div class="wm-speed-note">Rare loot on encounters!</div>
+        </div>
+      </div>
+      <div class="wm-panel-actions">
+        <button class="btn-pixel btn-primary" id="btn-start-travel">🚴 BIKE THERE</button>
+        <button class="btn-pixel btn-secondary" id="btn-cancel-travel">✕ CANCEL</button>
+      </div>
+    `;
+    panel.classList.remove('hidden');
+    panel.classList.add('slide-in');
+    this._drawMap();
+
+    document.getElementById('btn-start-travel').onclick =
+      () => this._startTravel(best.wx, best.wy, distUnits, null, slowTime, normalTime, fastTime, best.id);
+    document.getElementById('btn-cancel-travel').onclick = () => {
+      this._pendingTravel = null;
+      panel.classList.add('hidden');
+      if (hint) hint.classList.remove('hidden');
+      this._drawMap();
+    };
+    return true;
+  },
+
+  _forageNode(node, def) {
+    const amount = 1 + Math.floor(Math.random() * 3);
+    const gained = Math.min(amount, node.qty);
+    node.qty -= gained;
+    State.addResource(node.key, gained);
+    const deplStr = node.qty <= 0 ? ' — DEPLETED!' : ` (${node.qty} left)`;
+    Utils.toast(`${def?.emoji || '📦'} Collected ${gained}× ${node.key.replace(/_/g,' ')}${deplStr}`, 'good', 2500);
+    this._drawMap();
+    Events.emit('hud:update');
+  },
+
+  // ── FISHING minigame (issue 63) ───────────────────────────────────────
+  // Phase 1 — waiting: random bite after 5-20s  
+  // Phase 2 — on the line: player must pedal hard to reel in before timer expires
+  _fishingNode: null,
+  _fishingState: null, // 'waiting' | 'biting' | null
+  _fishingTimer: null,
+  _fishingBiteTimer: 0,
+  _fishingReelTimer: 0,
+  _fishingReelNeeded: 0,
+
+  _startFishing(pondNode) {
+    if (this._fishingState) return;
+    this._fishingNode = pondNode;
+    this._fishingState = 'waiting';
+    this._fishingBiteTimer = 5 + Math.floor(Math.random() * 16); // 5-20s wait
+
+    // Show fishing UI panel
+    const panel = document.getElementById('wm-travel-active');
+    if (panel) {
+      panel.classList.remove('hidden');
+      panel.innerHTML = `
+        <div class="wm-fish-panel">
+          <div class="wm-fish-title">🎣 FISHING — keep pedalling…</div>
+          <div class="wm-fish-status" id="fish-status">🌊 Line in water… waiting for a bite…</div>
+          <div class="wm-fish-bars">
+            <div class="wm-fish-bar-wrap"><div class="wm-fish-bar" id="fish-bite-bar" style="width:100%;background:#1a4a6a"></div></div>
+          </div>
+          <button class="btn-pixel btn-secondary" id="btn-stop-fishing" style="margin-top:8px;padding:6px 14px">🚪 Stop Fishing</button>
+        </div>`;
+      document.getElementById('btn-stop-fishing')?.addEventListener('click', () => this._stopFishing());
+    }
+
+    clearInterval(this._fishingTimer);
+    this._fishingTimer = setInterval(() => this._fishingTick(), 1000);
+  },
+
+  _fishingTick() {
+    const cpm   = State.data.cadence?.clicksPerMinute ?? 0;
+    const target = State.data.cadence?.targetCPM || 90;
+    const ratio  = Utils.clamp(cpm / target, 0, 2);
+    const statusEl  = document.getElementById('fish-status');
+    const barEl     = document.getElementById('fish-bite-bar');
+
+    if (this._fishingState === 'waiting') {
+      this._fishingBiteTimer -= (0.5 + ratio * 0.5); // pedalling speeds up bite
+      const pct = Utils.clamp(this._fishingBiteTimer / 20, 0, 1);
+      if (barEl) { barEl.style.width = `${pct * 100}%`; barEl.style.background = '#1a4a6a'; }
+      if (statusEl) statusEl.textContent = '🌊 Line in water… keep pedalling…';
+
+      if (this._fishingBiteTimer <= 0) {
+        // BITE!
+        this._fishingState = 'biting';
+        this._fishingReelNeeded = 6 + Math.floor(Math.random() * 6); // 6-11s to reel in
+        this._fishingReelTimer = this._fishingReelNeeded;
+        if (statusEl) statusEl.textContent = '🐟 FISH ON THE LINE! PEDAL HARD TO REEL IN!';
+        Audio.sfx?.('ping');
+        Utils.toast('🐟 FISH ON THE LINE! PEDAL FAST!', 'good', 3000);
+      }
+    } else if (this._fishingState === 'biting') {
+      // Reel progress: fast pedalling drains timer quickly
+      if (ratio >= 0.8) {
+        this._fishingReelTimer -= ratio * 1.5;  // fast pedal reels in faster
+      } else {
+        this._fishingReelTimer -= ratio * 0.5;  // slow pedal barely reels
+        this._fishingReelTimer += (1 - ratio) * 0.8; // fish fights back
+      }
+      this._fishingReelTimer = Math.max(0, this._fishingReelTimer);
+      const pct = this._fishingReelTimer / this._fishingReelNeeded;
+      if (barEl) {
+        barEl.style.width = `${(1 - pct) * 100}%`;
+        barEl.style.background = pct < 0.3 ? '#4f4' : pct < 0.6 ? '#fa0' : '#f44';
+      }
+      if (statusEl) {
+        const rateStr = ratio >= 0.8 ? '💪 Reeling fast!' : ratio >= 0.4 ? '⚠️ Pedal harder!' : '🐟 Fish escaping!';
+        statusEl.textContent = `🐟 ${rateStr}`;
+      }
+
+      if (this._fishingReelTimer <= 0) {
+        // CAUGHT!
+        const fishTypes = ['🐟 Bass','🐠 Carp','🦈 Mutant Fish','🐡 Bloatfish','🫧 Glowfish'];
+        const fishName  = fishTypes[Math.floor(Math.random() * fishTypes.length)];
+        State.addResource('food', 3);
+        Utils.toast(`🎣 Caught a ${fishName}! +3 food`, 'good', 4000);
+        this._stopFishing();
+        // Reset for next cast
+        setTimeout(() => this._startFishing(this._fishingNode), 2000);
+      } else if (this._fishingReelTimer >= this._fishingReelNeeded) {
+        // Fish got away
+        Utils.toast('🐟 The fish got away! Cast again…', 'warn', 2500);
+        this._fishingState = 'waiting';
+        this._fishingBiteTimer = 5 + Math.floor(Math.random() * 10);
+      }
+    }
+  },
+
+  _stopFishing() {
+    clearInterval(this._fishingTimer);
+    this._fishingTimer = null;
+    this._fishingState = null;
+    this._fishingNode  = null;
+    const panel = document.getElementById('wm-travel-active');
+    if (panel) panel.classList.add('hidden');
   },
 
   _drawLocationIcons(c) {
@@ -959,7 +1523,15 @@ const WorldMap = {
   // ── Tap on map ────────────────────────────
   _onTap(sx, sy) {
     const { wx, wy } = this._toWorld(sx, sy);
-    const distUnits  = Math.sqrt(wx*wx + wy*wy); // distance from base (0,0)
+
+    // Issue 64: clamp taps to circle world boundary
+    const dist = Math.sqrt(wx*wx + wy*wy);
+    if (dist > this.WORLD_R) return; // outside world circle — ignore
+
+    const distUnits = dist;
+
+    // Issue 72: tapping anywhere on the map starts travel to that spot.
+    // Resource node interaction happens EN ROUTE (proximity check in travel tick).
 
     // Check if tapped near a location zone
     let tappedLocation = null;
@@ -983,8 +1555,8 @@ const WorldMap = {
     if (!panel) return;
     if (hint) hint.classList.add('hidden');
 
-    // Max world distance — farthest zone is ~2500 units
-    const maxDist  = 2500;
+    // Max world distance — farthest zone is ~5000 units (doubled world)
+    const maxDist  = 5000;
     const normDist = Utils.clamp(distUnits / maxDist, 0, 1);
 
     // Travel times scale linearly with distance.
@@ -1066,7 +1638,7 @@ const WorldMap = {
     // never stacks multiple listeners that would fire with stale normalTime values.
     const _btnGo  = document.getElementById('btn-start-travel');
     const _btnCan = document.getElementById('btn-cancel-travel');
-    if (_btnGo)  _btnGo.onclick  = () => this._startTravel(wx, wy, distUnits, locationId, slowTime, normalTime, fastTime);
+    if (_btnGo)  _btnGo.onclick  = () => this._startTravel(wx, wy, distUnits, locationId, slowTime, normalTime, fastTime, null);
     if (_btnCan) _btnCan.onclick = () => {
       this._pendingTravel = null;
       panel.classList.add('hidden');
@@ -1076,7 +1648,7 @@ const WorldMap = {
   },
 
   // ── Start travel ──────────────────────────
-  _startTravel(wx, wy, distUnits, locationId, slowTime, normalTime, fastTime) {
+  _startTravel(wx, wy, distUnits, locationId, slowTime, normalTime, fastTime, nodeId = null) {
     const panel = document.getElementById('wm-travel-panel');
     const active = document.getElementById('wm-travel-active');
     if (panel) panel.classList.add('hidden');
@@ -1097,13 +1669,14 @@ const WorldMap = {
       });
     }
     this._travelStep   = 0;
-    this._travelTarget = { wx, wy, locationId };
+    this._travelTarget = { wx, wy, locationId, nodeId };
+    this._passedNodes  = new Set(); // reset for each new trip
 
     // Start Cadence
     Cadence.start();
 
     this._renderTravelHUD(active, slowTime, normalTime, fastTime);
-    this._runTravelStep(wx, wy, locationId, slowTime, normalTime, fastTime);
+    this._runTravelStep(wx, wy, locationId, slowTime, normalTime, fastTime, nodeId);
   },
 
   _renderTravelHUD(container, slowTime, normalTime, fastTime) {
@@ -1164,9 +1737,11 @@ const WorldMap = {
     document.getElementById('btn-abort-travel')?.addEventListener('click', () => {
       if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
       this._travelling = false;
-
       if (State.data?.world) State.data.world.playerAway = false;
       this._roadEncounterActive = false;
+      // Always reset to base position so next travel starts from home
+      this._playerWX = 0; this._playerWY = 0;
+      this._mapData.playerWX = 0; this._mapData.playerWY = 0;
       Utils.toast('↩ Turned back.', 'info');
       Events.emit('navigate', { screen: 'base' });
     });
@@ -1183,7 +1758,7 @@ const WorldMap = {
     this._travelClickBonus = (this._travelClickBonus || 0) + ratio * 0.003;
   },
 
-  _runTravelStep(targetWX, targetWY, locationId, slowTime, normalTime, fastTime) {
+  _runTravelStep(targetWX, targetWY, locationId, slowTime, normalTime, fastTime, nodeId = null) {
     // Kill any leftover timer — prevents stacked tick loops from multiple travel starts
     if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
 
@@ -1232,11 +1807,16 @@ const WorldMap = {
         const t = (i / pathSteps) * progress;
         const rx = startWX + (targetWX - startWX) * t;
         const ry = startWY + (targetWY - startWY) * t;
-        this._revealAround(rx, ry, 80);
+        this._revealAround(rx, ry, 60);
       }
 
       // Redraw map (partial — just reposition, don't full rebuild)
       this._drawMap();
+
+      // Issue 72: check if player is passing near a resource node
+      if (!this._roadEncounterActive) {
+        this._checkNodeProximity();
+      }
 
       // Update travel HUD
       this._updateTravelHUD(progress, cpm, ratio, speed, normalTime);
@@ -1254,7 +1834,7 @@ const WorldMap = {
       }
 
       if (progress >= 1) {
-        this._arriveAtDestination(locationId);
+        this._arriveAtDestination(locationId, nodeId);
         return;
       }
 
@@ -1262,6 +1842,106 @@ const WorldMap = {
     };
 
     this._travelTimer = setTimeout(tick, 1000);
+  },
+
+  // ── Issue 72: node proximity check during travel ─────────────────────────
+  // Called every tick. Looks for any resource node within 150 world units of
+  // the player's current travel position. Shows a non-blocking inline prompt.
+  _checkNodeProximity() {
+    const nodes = this._mapData?.resourceNodes;
+    if (!nodes) return;
+    if (!this._passedNodes) this._passedNodes = new Set();
+
+    // Only show one prompt at a time — check if one is already visible
+    if (document.getElementById('node-pass-prompt')) return;
+
+    for (const node of nodes) {
+      if (this._passedNodes.has(node.id)) continue;
+      const d = Math.sqrt(
+        (node.wx - this._playerWX) ** 2 + (node.wy - this._playerWY) ** 2
+      );
+      if (d < 150) {
+        this._passedNodes.add(node.id); // mark so we don't re-prompt on next tick
+        const def = this._resourceNodeDefs.find(r => r.key === node.key);
+        this._showNodePassPrompt(node, def);
+        return; // one at a time
+      }
+    }
+  },
+
+  // Non-blocking inline prompt that appears inside the travel HUD.
+  // Player can harvest or keep going without stopping the route.
+  _showNodePassPrompt(node, def) {
+    const container = document.getElementById('wm-travel-active');
+    if (!container) return;
+
+    const depleted  = !node.isPond && node.qty <= 0;
+    const em        = def?.emoji || '📦';
+    const nm        = (def?.name || node.key.replace(/_/g,' ')).toUpperCase();
+
+    const prompt = document.createElement('div');
+    prompt.id = 'node-pass-prompt';
+    prompt.style.cssText = `
+      position:absolute;bottom:8px;left:8px;right:8px;
+      background:rgba(10,14,8,0.97);border:1px solid #3a5a2a;
+      border-radius:6px;padding:10px 12px;z-index:20;
+      font-family:var(--font-pixel,monospace);
+      animation:node-pass-slidein 0.25s ease-out;
+    `;
+
+    const stockLine = depleted
+      ? `<span style="color:#e53935">⛔ DEPLETED</span>`
+      : node.isPond
+        ? `<span style="color:#4af">🎣 pond nearby</span>`
+        : `<span style="color:#4caf50">${node.qty} runs left</span>`;
+
+    prompt.innerHTML = `
+      <div style="font-size:0.7rem;color:#8a9a7a;margin-bottom:6px">
+        📍 PASSING: ${em} ${nm} &nbsp;${stockLine}
+      </div>
+      <div style="display:flex;gap:8px;">
+        ${depleted
+          ? `<button id="npp-skip" class="btn-pixel btn-secondary" style="flex:1;padding:7px 4px;font-size:0.65rem">→ KEEP GOING</button>`
+          : `<button id="npp-harvest" class="btn-pixel btn-primary"   style="flex:1;padding:7px 4px;font-size:0.65rem">⛏ STOP &amp; HARVEST</button>
+             <button id="npp-skip"    class="btn-pixel btn-secondary" style="flex:1;padding:7px 4px;font-size:0.65rem">→ KEEP GOING</button>`
+        }
+      </div>
+      <style>
+        @keyframes node-pass-slidein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+      </style>
+    `;
+
+    // Make position relative on container so absolute child positions correctly
+    container.style.position = 'relative';
+    container.appendChild(prompt);
+
+    const dismiss = () => prompt.remove();
+
+    document.getElementById('npp-harvest')?.addEventListener('click', () => {
+      dismiss();
+      // Stop travel cleanly — save position, don't reset to base yet
+      if (this._travelTimer) { clearTimeout(this._travelTimer); this._travelTimer = null; }
+      this._travelling = false;
+      // Snap player to the node position
+      this._playerWX = node.wx;
+      this._playerWY = node.wy;
+      this._mapData.playerWX = node.wx;
+      this._mapData.playerWY = node.wy;
+      if (node.isPond) {
+        Utils.toast(`🎣 Stopped at ${em} ${nm} — starting fishing!`, 'good', 2000);
+        setTimeout(() => this._startFishing(node), 400);
+      } else {
+        this._showNodeArrival(node, def);
+      }
+    });
+
+    document.getElementById('npp-skip')?.addEventListener('click', () => {
+      dismiss();
+      // nothing — travel tick continues normally
+    });
+
+    // Auto-dismiss after 8 seconds if player ignores it
+    setTimeout(() => { if (document.getElementById('node-pass-prompt')) dismiss(); }, 8000);
   },
 
   _updateTravelHUD(progress, cpm, ratio, speed, normalTime) {
@@ -1302,14 +1982,29 @@ const WorldMap = {
 
   // ── Road encounter ────────────────────────
   _triggerRoadEncounter(currentRatio) {
-    const animalKeys = ['wolf','boar','rat','insect','bear','zombie_dog','bird'];
-    const id = animalKeys[Math.floor(Math.random() * animalKeys.length)];
+    // Issue 60: scale monster pool and HP by distance from base
+    const dist = Math.sqrt(this._playerWX ** 2 + this._playerWY ** 2);
+    const distRatio = Utils.clamp(dist / this.WORLD_R, 0, 1); // 0=base, 1=edge
+
+    // Closer to base: only weak animals. Further: rarer and stronger.
+    let animalPool;
+    if (distRatio < 0.25)      animalPool = ['rat','insect','bird','boar'];
+    else if (distRatio < 0.50) animalPool = ['wolf','boar','rat','zombie_dog'];
+    else if (distRatio < 0.75) animalPool = ['wolf','bear','zombie_dog','mutant_hound'];
+    else                        animalPool = ['bear','zombie_dog','mutant_hound','boss_mutant'];
+
+    // Filter to only animal keys that exist in Animals.types
+    const validPool = animalPool.filter(k => Animals.types[k]);
+    const id = validPool[Math.floor(Math.random() * validPool.length)] || 'wolf';
     const animal = Animals.types[id];
     if (!animal) return;
 
+    // Issue 60: distance danger multiplier (1× near base → 3× at edge)
+    const dangerMult = 1 + distRatio * 2;
+
     this._roadEncounterActive = true;
     this._roadEncounterAnimal = animal;
-    this._roadEncounterHP = (animal.baseStrength || 20) * 0.7; // road encounters are slightly easier
+    this._roadEncounterHP = (animal.baseStrength || 20) * 3 * dangerMult;
     this._roadEncounterMaxHP = this._roadEncounterHP;
     this._roadEncounterLoseTimer = 0;
     this._atkAccum = 0; // reset attack accumulator
@@ -1353,50 +2048,26 @@ const WorldMap = {
     const loseEl  = document.getElementById('road-enc-lose');
     const loseSecs= document.getElementById('road-enc-lose-secs');
 
-    // ── CPM-driven automatic attack system ───────────────────────────────
-    // Attacks per second = ratio * 1.5.  Each tick (1s) we fire that many attacks.
-    // Works purely from cadence — no button press needed.
-    // Accumulate fractional attacks across ticks.
-    if (this._atkAccum === undefined) this._atkAccum = 0;
-    if (this._encounterGrace === undefined) this._encounterGrace = 0;
+    // ── Constant DPS combat: dmg/sec = baseDmg * speedRatio ─────────────
+    // No accumulator, no button needed. Every second of pedalling deals damage.
+    // baseDmg scales with defence. speedRatio = cpm/target (1.0 at 90 CPM).
+    const baseDmg = 1.0 * (1 + def / 200);  // ~1.0 dmg/sec at target CPM → ~30-45s per wolf
+    const dps     = baseDmg * Math.max(0, ratio); // 0 dps at 0 CPM, scales linearly
 
-    // Grace period: freeze lose timer for first 3 ticks while cadence sensor spins up
-    if (this._encounterGrace > 0) this._encounterGrace--;
-
-    // Attack rate: 1.5 attacks/sec at target CPM. Fire when accumulator >= 0.6
-    // (lower threshold = more responsive at slow cadence)
-    const atkRate = Math.max(0, ratio * 1.5);
-    this._atkAccum += atkRate;
-
-    let totalDmg = 0;
-    let hits = 0;
-    while (this._atkAccum >= 0.6) {
-      this._atkAccum -= 0.6;
-      const dmg = Utils.randFloat(2, 5) * (1 + def / 200) * Math.max(0.3, ratio);
-      totalDmg += dmg;
-      hits++;
-    }
-
-    if (hits > 0) {
-      this._roadEncounterHP = Math.max(0, this._roadEncounterHP - totalDmg);
+    if (dps > 0) {
+      this._roadEncounterHP = Math.max(0, this._roadEncounterHP - dps);
       this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - ratio * 0.5);
-      const hitMsg = hits > 1 ? `💥 ${hits} HITS! (${totalDmg.toFixed(1)} dmg)` :
-                     ratio >= 1.1 ? `💥 HIT! (${totalDmg.toFixed(1)} dmg)` :
-                                    `⚔️ Hit! (${totalDmg.toFixed(1)} dmg)`;
-      if (instrEl) instrEl.textContent = hitMsg;
-    } else if (ratio >= 0.2) {
-      // Pedalling — show attack rate so user knows it's working
-      const rateStr = (ratio * 1.5 / 0.6).toFixed(1);
-      if (instrEl) instrEl.textContent = `⚡ Attacking ${rateStr}/s — pedal harder for more!`;
-      this._roadEncounterLoseTimer = Math.max(0, this._roadEncounterLoseTimer - 0.2);
+      const colour = ratio >= 1.1 ? '💥' : ratio >= 0.6 ? '⚔️' : '🗡️';
+      if (instrEl) instrEl.textContent =
+        `${colour} ${dps.toFixed(1)} dmg/s — pedal ${ratio < 1 ? 'harder' : 'faster'} for more!`;
     } else {
-      // Too slow or stopped — lose timer (respects grace period)
-      if (this._encounterGrace <= 0) this._roadEncounterLoseTimer++;
+      // Not pedalling — lose timer advances (grace period for first 3 ticks)
+      if (this._encounterGrace === undefined) this._encounterGrace = 3;
+      if (this._encounterGrace > 0) { this._encounterGrace--; }
+      else { this._roadEncounterLoseTimer++; }
       const maxLose = 8;
       const secsLeft = Math.max(0, maxLose - Math.floor(this._roadEncounterLoseTimer));
-      if (instrEl) instrEl.textContent = ratio > 0
-        ? `🐌 Pedal faster! Monster overwhelms in ${secsLeft}s!`
-        : `⚠️ START PEDALLING! Monster attacks in ${secsLeft}s!`;
+      if (instrEl) instrEl.textContent = `⚠️ PEDAL TO FIGHT! Monster takes loot in ${secsLeft}s!`;
     }
 
     const maxLose = 8;
@@ -1467,7 +2138,7 @@ const WorldMap = {
   },
 
   // ── Arrive at destination ─────────────────
-  _arriveAtDestination(locationId) {
+  _arriveAtDestination(locationId, nodeId = null) {
     clearTimeout(this._travelTimer);
     this._travelling = false;
 
@@ -1484,11 +2155,31 @@ const WorldMap = {
     }
 
     // Reveal large area at destination
-    this._revealAround(this._playerWX, this._playerWY, 200);
+    this._revealAround(this._playerWX, this._playerWY, 180);
     this._drawMap();
 
     const active = document.getElementById('wm-travel-active');
     if (active) active.classList.add('hidden');
+
+    // ── Arrived at a resource node (bike-to-resource / bike-to-forage) ──
+    if (nodeId) {
+      const node = (this._mapData.resourceNodes || []).find(n => n.id === nodeId);
+      const def  = node && this._resourceNodeDefs.find(d => d.key === node.key);
+      if (node) {
+        if (node.isPond) {
+          Utils.toast(`🎣 Arrived at pond! Starting fishing…`, 'good', 2000);
+          setTimeout(() => this._startFishing(node), 500);
+        } else if (node.qty <= 0) {
+          Utils.toast(`${def?.emoji || '📦'} ${node.key.replace(/_/g,' ')} is depleted here. Area revealed.`, 'warn', 3000);
+          this._returnToBase();
+        } else {
+          this._showNodeArrival(node, def);
+        }
+      } else {
+        this._returnToBase();
+      }
+      return;
+    }
 
     // Check if this is a known location
     if (locationId) {
@@ -1510,6 +2201,103 @@ const WorldMap = {
       Utils.toast('🗺 Area explored! Fog revealed.', 'info', 2000);
       this._returnToBase();
     }
+  },
+
+  // ── Arrived at resource node — harvest or keep biking ────────────────
+  _showNodeArrival(node, def) {
+    const screen = document.getElementById('screen-map');
+    if (!screen) { this._returnToBase(); return; }
+
+    const em      = def?.emoji || '📦';
+    const nm      = (def?.name || node.key).toUpperCase();
+    const depleted = node.qty <= 0;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'wm-arrival-overlay';
+    overlay.innerHTML = `
+      <div class="wm-arrival-card">
+        <div class="wm-arrival-icon">${em}</div>
+        <div class="wm-arrival-name">${nm}</div>
+        <div class="wm-arrival-desc">
+          ${depleted
+            ? '<span style="color:#e53935">⛔ DEPLETED — nothing left to harvest here</span>'
+            : `Stock: <strong>${node.qty}</strong> harvest runs remaining`}
+        </div>
+        <div class="wm-arrival-loot" style="color:#aaa;font-size:0.8rem">
+          ${depleted ? 'This node will slowly refill over time.' : '⏱ 2-minute harvest — pedal fast for more loot!'}
+        </div>
+        <div class="wm-arrival-actions">
+          ${depleted
+            ? `<button class="btn-pixel btn-secondary" id="btn-skip-node">→ KEEP BIKING</button>`
+            : `<button class="btn-pixel btn-primary"   id="btn-harvest-node">⛏ HARVEST (2 min)</button>
+               <button class="btn-pixel btn-secondary" id="btn-skip-node">→ KEEP BIKING</button>`}
+        </div>
+      </div>
+    `;
+    screen.appendChild(overlay);
+
+    document.getElementById('btn-harvest-node')?.addEventListener('click', () => {
+      overlay.remove();
+      this._startNodeHarvest(node, def);
+    });
+    document.getElementById('btn-skip-node')?.addEventListener('click', () => {
+      overlay.remove();
+      this._returnToBase();
+    });
+  },
+
+  // ── Launch a Foraging session for a resource node ─────────────────────
+  // Costs 1 node stock. Speed-based loot via existing Foraging system.
+  // After session ends → player is returned to base map automatically.
+  _startNodeHarvest(node, def) {
+    if (node.qty <= 0) {
+      Utils.toast('⛔ Node depleted — nothing to harvest.', 'warn', 3000);
+      this._returnToBase();
+      return;
+    }
+
+    // Deduct 1 stock for this harvest run
+    node.qty = Math.max(0, node.qty - 1);
+
+    // Build a State.locations entry from the node def
+    const locId = `node_${node.id}`;
+    State.locations[locId] = {
+      id:             locId,
+      name:           def.name || node.key,
+      emoji:          def.emoji || '📦',
+      bgColor:        def.bgColor || '#0d0d0d',
+      bgEmoji:        def.bgEmoji || '🌿🌿🌿',
+      animals:        def.animals || ['rat','insect'],
+      encounterChance: def.encounterChance ?? 0.15,
+      loot:           def.loot || {
+        common:    { resources:[node.key], weight:80 },
+        rare:      { resources:[node.key, node.key], weight:18 },
+        legendary: { resources:[node.key, node.key, node.key], weight:2 }
+      },
+      events:         [],
+      uniqueMaterial: def.uniqueMaterial || { key:node.key, name:node.key, emoji:def.emoji||'📦' },
+      duration:       120,   // fixed 2-minute harvest
+      energyCost:     0,
+    };
+
+    // Primary resource override so _gatherTick drips the right resource
+    // (_getPrimaryResource in foraging.js reads _nodePrimaryRes from State.locations)
+    State.locations[locId]._nodePrimaryRes = node.key;
+
+    const intensityCfg = { lootMult: 1.2, durationMult: 1, encounterMult: 1 };
+    Foraging.start(locId, intensityCfg);
+
+    // When foraging session ends → return to base map
+    const onEnd = (e) => {
+      if (e?.screen === 'foraging') return; // entering, not leaving
+      Events.off('navigate', onEnd);
+      setTimeout(() => {
+        if (node.qty <= 0) {
+          Utils.toast(`${def?.emoji || '📦'} ${def?.name || node.key} node is now depleted!`, 'warn', 3500);
+        }
+      }, 500);
+    };
+    Events.on('navigate', onEnd);
   },
 
   // ── Location arrival popup ─────────────────

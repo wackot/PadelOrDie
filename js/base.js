@@ -713,14 +713,28 @@ const Base = {
         upgradeBody = `<div class="bsc-upgrade-status locked">🚧 Busy building: ${ab.upg.name}</div>`;
       } else {
         const nextDesc = nextDef?.desc || '';
+        // Per-resource cost rows — missing ones are tappable for location hints
+        const costRows = Object.entries(nextDef.cost || {})
+          .filter(([,v]) => v > 0)
+          .map(([r, v]) => {
+            const have = s.inventory[r] || 0;
+            const ok   = have >= v;
+            const em   = Utils.emojiMap?.[r] || '📦';
+            const nm   = r.replace(/_/g, ' ');
+            const tap  = !ok ? `onclick="Base._showResourceHint('${r}')" style="cursor:pointer;user-select:none"` : '';
+            return `<div class="bsc-cost-row ${ok ? 'ok' : 'short'}" ${tap}>
+              <span>${em} ${nm}${!ok ? ` <span class="bsc-short-amt">– need ${v - have} more ❓</span>` : ''}</span>
+              <span class="bsc-cost-count">${have}/${v} ${ok ? '✓' : ''}</span>
+            </div>`;
+          }).join('');
         upgradeBody = `
           <div class="bsc-next-effect">→ ${nextDesc}</div>
-          <button class="bsc-upgrade-btn${canAfford?'':' disabled'}"
+          ${costRows ? `<div class="bsc-cost-list">${costRows}</div>` : ''}
+          <button class="bsc-upgrade-btn${canAfford ? '' : ' disabled'}"
             onclick="Base.showUpgradeConfirm('${id}','${upgKey}')"
             ${canAfford ? '' : 'disabled'}>
-            ${curLv===0 ? '🔨 BUILD THIS' : '▲ UPGRADE TO LV'+(curLv+1)}
-          </button>
-          ${!canAfford ? '<div class="bsc-cant-afford">❌ Not enough resources</div>' : ''}`;
+            ${curLv === 0 ? '🔨 BUILD THIS' : '▲ UPGRADE TO LV' + (curLv + 1)}
+          </button>`;
       }
 
       upgradeSection = `
@@ -765,7 +779,55 @@ const Base = {
     }, 500);
   },
 
-  showUpgradeConfirm(screenId, upgKey) {
+  // ── Resource hint popup (tapped from cost row) ──────────────────────
+  _showResourceHint(resId) {
+    const locationHints = {
+      wood:          '🌲 Forage: Ruined Farm, Forest, any early zone',
+      metal:         '🔩 Forage: Industrial Zone, Junkyard, City Ruins',
+      rope:          '🪢 Forage: Ruined Farm, Flooded Town',
+      cloth:         '🧵 Forage: Old Hospital, Flooded Town',
+      food:          '🥫 Forage: Ruined Farm, Flooded Town · Grow at Greenhouse/Crop Field',
+      water:         '💧 Collect at Well · Forage: Flooded Town, any water zone',
+      medicine:      '💊 Forage: Old Hospital, Rescue Beacon',
+      electronics:   '💡 Forage: Tech Campus, Dead City, Industrial Zone',
+      chemicals:     '⚗️ Forage: Industrial Zone, Cave, Tech Campus',
+      gasoline:      '⛽ Forage: Industrial Zone, Dead City',
+      coal:          '⛏️ Mine at Cave zone',
+      glass:         '🪟 Craft at Workbench (sand + heat) · Forage: Industrial Zone',
+      copper_wire:   '🔌 Craft at Electric Bench from metal + chemicals',
+      circuit_board: '🖥️ Craft at Electric Bench · Found at Tech Campus (rare)',
+      battery_cell:  '🔋 Craft at Electric Bench from metal + chemicals',
+      steel_casing:  '⚙️ Craft at Workshop from metal',
+      capacitor:     '🔆 Craft at Electric Bench',
+      power_core:    '⚡ Craft at Electric Bench (advanced)',
+      military_chip: '🎖️ Found at Military Base (legendary loot)',
+      spores:        '🍄 Forage: Cave, Forest zones',
+      wild_seeds:    '🌱 Forage: Forest, Ruined Farm',
+      engine_parts:  '🔧 Forage: Industrial Zone, Junkyard',
+      scrap_wire:    '🪛 Forage: any industrial zone',
+    };
+    const em   = Utils.emojiMap?.[resId] || '📦';
+    const nm   = resId.replace(/_/g, ' ');
+    const hint = locationHints[resId] || '🗺 Explore further zones to find this resource';
+    const have = State.data.inventory[resId] || 0;
+
+    // Remove any existing hint panel
+    document.querySelectorAll('.bsc-res-hint').forEach(el => el.remove());
+
+    const div = document.createElement('div');
+    div.className = 'bsc-res-hint';
+    div.innerHTML = `
+      <button class="bsc-res-hint-close" onclick="this.closest('.bsc-res-hint').remove()">✕</button>
+      <div class="bsc-res-hint-name">${em} ${nm} — you have: <strong>${have}</strong></div>
+      <div class="bsc-res-hint-where">${hint}</div>
+    `;
+    // Insert at top of the active bld-content div
+    const activeContent = document.querySelector('.bld-container[id$="-content"]');
+    if (activeContent) activeContent.prepend(div);
+    else Utils.toast(`${em} ${nm}: ${hint}`, 'info', 5000);
+  },
+
+    showUpgradeConfirm(screenId, upgKey) {
     const upg   = BuildingUpgrades?.[upgKey];
     if (!upg) return;
     const stKey = upgKey === 'shelter' ? 'house' : upgKey;

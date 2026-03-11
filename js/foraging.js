@@ -95,11 +95,20 @@ const Foraging = {
     const nightTint = State.data.world.isNight ? 'rgba(0,0,40,0.5)' : 'transparent';
     const um = loc.uniqueMaterial;
 
+    // Per-node custom scene — registered in js/nodes/*.js
+    const nodeScene = (typeof NodeRegistry !== 'undefined')
+      ? NodeRegistry.sceneHTML(this._locationId, loc, State.data.world.isNight)
+      : null;
+
+    const sceneInner = nodeScene
+      ? nodeScene
+      : `<div class="foraging-bg-overlay" style="background:${nightTint}"></div>
+         <div class="foraging-bg-emoji">${loc.bgEmoji} ${loc.bgEmoji}</div>`;
+
     screen.innerHTML = `
       <div class="foraging-container">
-        <div class="foraging-scene" style="background:${loc.bgColor||'#0d1a08'}">
-          <div class="foraging-bg-overlay" style="background:${nightTint}"></div>
-          <div class="foraging-bg-emoji">${loc.bgEmoji} ${loc.bgEmoji}</div>
+        <div class="foraging-scene" style="background:${nodeScene ? 'transparent' : (loc.bgColor||'#0d1a08')}">
+          ${sceneInner}
           <div class="foraging-character"><div class="char-emoji" id="char-emoji">🚴</div></div>
           <div class="encounter-popup hidden" id="encounter-popup"></div>
           <div class="combat-arena hidden" id="combat-arena"></div>
@@ -257,6 +266,9 @@ const Foraging = {
 
   // Helper: get primary resource name for this location
   _getPrimaryResource() {
+    // Node harvest sessions set _nodePrimaryRes on the location
+    const loc = State.locations[this._locationId];
+    if (loc?._nodePrimaryRes) return loc._nodePrimaryRes;
     return {
       forest:'wood', abandoned_farm:'food', gas_station:'gasoline',
       city_ruins:'metal', junkyard:'metal', hospital:'medicine',
@@ -371,7 +383,15 @@ const Foraging = {
     const scale  = Math.min(3.0, 1 + (State.data.world.day - 1) * 0.05);
     const intMul = this._intensityCfg?.encounterMult || 1;
     if (Math.random() < loc.encounterChance * scale * intMul * (10/60)) {
-      const animal = Animals.randomEncounterAnimal(this._locationId);
+      // 30% chance to spawn the node-exclusive monster if one is registered
+      let animal = null;
+      if (typeof NodeRegistry !== 'undefined') {
+        const exclusive = NodeRegistry.exclusiveMonster(this._locationId);
+        if (exclusive && Math.random() < 0.30) {
+          animal = exclusive;
+        }
+      }
+      if (!animal) animal = Animals.randomEncounterAnimal(this._locationId);
       if (animal) this._startEncounter(animal);
     }
   },
@@ -399,6 +419,8 @@ const Foraging = {
       command_bunker:'#050508', endgame_transmission:'#02020a'
     };
     const bgCol = bgColors[locId] || '#0d1208';
+    // Check for per-node custom bg — injected after build via _injectNodeArenaBg()
+    // (deferred so the arena SVG content is built first)
     const groundCol = isNight ? '#0a0810' : (bgCol);
 
     return '<div class="ca-overlay">' +
@@ -445,7 +467,7 @@ const Foraging = {
         '<g id="ca-effects"></g>' +
       '</svg>' +
       '<!-- Status text -->' +
-      '<div class="ca-status" id="ca-status">⚔️ PEDAL +20% FASTER TO ATTACK!</div>' +
+      '<div class="ca-status" id="ca-status">⚡ AUTO-ATTACKING — damage every second × cadence!</div>' +
       '<!-- Lose timer bar -->' +
       '<div class="ca-lose-row">' +
         '<span class="ca-lose-label">⏱ <span id="ca-lose-secs">15</span>s</span>' +
@@ -1161,7 +1183,7 @@ const Foraging = {
   _startEncounter(animal) {
     this._encounterActive    = true;
     this._currentEncounter   = animal;
-    this._encounterHP        = animal.strength * 2;
+    this._encounterHP        = (animal.strength || animal.baseStrength || 15) * 3;
     this._encounterMaxHP     = this._encounterHP;
     this._encounterLoseTimer = 0;
     this._atkAccum           = 0;  // reset CPM attack accumulator
@@ -1183,11 +1205,26 @@ const Foraging = {
     if (arena) {
       arena.classList.remove('hidden');
       arena.innerHTML = this._buildArenaHTML(animal);
+      // Per-node custom arena background — prepend behind the SVG content
+      if (typeof NodeRegistry !== 'undefined') {
+        const loc = State.locations[this._locationId];
+        const nodeBg = NodeRegistry.arenaHTML(this._locationId, loc, animal, State.data.world.isNight);
+        if (nodeBg) {
+          const bgWrap = document.createElement('div');
+          bgWrap.style.cssText = 'position:absolute;inset:0;z-index:0;pointer-events:none;';
+          bgWrap.innerHTML = nodeBg;
+          const caOverlay = arena.querySelector('.ca-overlay');
+          if (caOverlay) {
+            caOverlay.style.position = 'relative';
+            caOverlay.insertBefore(bgWrap, caOverlay.firstChild);
+          }
+        }
+      }
     }
 
     const btn = document.getElementById('btn-pedal');
     if (btn) {
-      btn.innerHTML = '⚔️ FIGHT ' + animal.emoji + '! <span class="pedal-sub">+20% speed to damage, +40% to destroy</span>';
+      btn.innerHTML = '🚴 PEDAL TO FIGHT ' + animal.emoji + ' <span class="pedal-sub">auto-attacks every second — pedal harder for more damage</span>';
       btn.style.background = 'linear-gradient(135deg,#3a0808,#6a1010)';
       btn.style.borderColor = '#e53935';
     }
@@ -1210,38 +1247,22 @@ const Foraging = {
     const ratio  = cpm / target;
     const def    = State.data.base.defenceRating;
 
-    // ── CPM-driven automatic attack accumulator ───────────────────────────
-    // attacks per second = ratio * 1.5  (same formula as road encounters)
-    // No button press needed — cadence sensor drives this directly.
-    if (this._atkAccum === undefined) this._atkAccum = 0;
+    // ── Constant DPS combat: dmg/sec = baseDmg * speedRatio ─────────────
+    // Every second of pedalling deals damage proportional to speed.
+    // No accumulator, no button needed. baseDmg * ratio applied each tick.
     if (this._encounterGrace === undefined) this._encounterGrace = 0;
     if (this._encounterGrace > 0) this._encounterGrace--;
 
-    // Attack rate: 1.5 attacks/sec at target CPM. Fire at accumulator >= 0.6
-    // so even 40 CPM (ratio≈0.44) gets ~1 hit/sec
-    const atkRate = Math.max(0, ratio * 1.5);
-    this._atkAccum += atkRate;
+    const baseDmg = 1.0 * (1 + def / 180); // ~1.0 dmg/sec at target CPM → ~30-45s per wolf
+    const dps     = baseDmg * Math.max(0, ratio);
 
-    let totalDmg = 0;
-    let hits = 0;
-    while (this._atkAccum >= 0.6) {
-      this._atkAccum -= 0.6;
-      const dmg = Utils.randFloat(1.5, 4) * (1 + def / 180) * Math.max(0.3, ratio);
-      totalDmg += dmg;
-      hits++;
-    }
-
-    if (hits > 0) {
-      this._encounterHP = Math.max(0, this._encounterHP - totalDmg);
+    if (dps > 0) {
+      this._encounterHP = Math.max(0, this._encounterHP - dps);
       this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - ratio);
       const phase = ratio >= 1.1 ? 'heavy' : 'light';
-      this._arenaUpdate(phase, totalDmg, hits);
-    } else if (ratio >= 0.2) {
-      // Pedalling but accumulating — show feedback
-      this._encounterLoseTimer = Math.max(0, this._encounterLoseTimer - 0.2);
-      this._arenaUpdate('hold', 0);
+      this._arenaUpdate(phase, dps, 1);
     } else {
-      // Too slow — lose timer (respects grace)
+      // Not pedalling
       if (this._encounterGrace <= 0) this._encounterLoseTimer++;
       this._arenaUpdate('slow', 0);
     }
@@ -1279,11 +1300,10 @@ const Foraging = {
     const player = document.getElementById('ca-player');
 
     if (phase === 'hold') {
-      if (status) { status.textContent = '⚡ Building attack… pedal harder!'; status.className = 'ca-status ca-status-hold'; }
+      if (status) { status.textContent = '⚡ Pedalling… speed up for more damage!'; status.className = 'ca-status ca-status-hold'; }
     } else if (phase === 'heavy') {
-      const hitStr = hits > 1 ? `${hits} HITS` : 'HIT';
-      const dmgStr = dmg > 0 ? ` (${dmg.toFixed(1)} dmg)` : '';
-      if (status) { status.textContent = `💥 ${hitStr}!${dmgStr}`; status.className = 'ca-status ca-status-heavy'; }
+      const dmgStr = dmg > 0 ? `${dmg.toFixed(1)} dmg/s` : '';
+      if (status) { status.textContent = `💥 FULL POWER! ${dmgStr}`; status.className = 'ca-status ca-status-heavy'; }
       // Player lunges forward — translate right
       if (player) { player.style.transition = 'transform 0.1s ease-out'; player.style.transform = 'translateX(18px) rotate(5deg)'; }
       // Monster recoils back
@@ -1295,8 +1315,8 @@ const Foraging = {
       this._spawnHitEffect(true, dmg);
       this._arenaShake(4);
     } else if (phase === 'light') {
-      const _dmgStr2 = dmg > 0 ? ` (${dmg.toFixed(1)})` : '';
-      if (status) { status.textContent = `⚔️ Hit!${_dmgStr2} Pedal harder!`; status.className = 'ca-status ca-status-light'; }
+      const dmgStr2 = dmg > 0 ? `${dmg.toFixed(1)} dmg/s` : '';
+      if (status) { status.textContent = `⚔️ Attacking! ${dmgStr2}`; status.className = 'ca-status ca-status-light'; }
       if (player) { player.style.transition = 'transform 0.12s ease-out'; player.style.transform = 'translateX(8px)'; }
       if (mon)    { mon.style.transition = 'transform 0.15s ease-out'; mon.style.transform = 'translateX(6px) rotate(2deg)'; }
       setTimeout(() => {
