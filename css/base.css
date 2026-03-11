@@ -463,6 +463,49 @@
   text-align: center;
 }
 
+/* Per-resource cost rows */
+.bsc-cost-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 6px 0 8px;
+}
+.bsc-cost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.bsc-cost-row.ok   { color: #4caf50; border-color: rgba(76,175,80,0.2); }
+.bsc-cost-row.short { color: #ff9800; border-color: rgba(255,152,0,0.25); }
+.bsc-cost-row.short:active { background: rgba(255,152,0,0.12); }
+.bsc-short-amt { color: #aaa; font-size: 0.85em; }
+.bsc-cost-count { font-size: 0.85em; white-space: nowrap; margin-left: 6px; }
+
+/* Inline resource hint panel */
+.bsc-res-hint {
+  position: relative;
+  background: rgba(30,20,0,0.92);
+  border: 1px solid #ffd600;
+  border-radius: 6px;
+  padding: 10px 32px 10px 12px;
+  margin-bottom: 10px;
+  animation: fadeIn 0.15s ease;
+}
+.bsc-res-hint-name  { font-family: var(--font-mono); font-size: 0.9rem; color: #ffd600; margin-bottom: 4px; }
+.bsc-res-hint-where { font-size: 0.82rem; color: #ccc; line-height: 1.4; }
+.bsc-res-hint-close {
+  position: absolute; top: 6px; right: 8px;
+  background: none; border: none; color: #888;
+  font-size: 1rem; cursor: pointer; padding: 0 4px;
+}
+.bsc-res-hint-close:hover { color: #fff; }
+
 /* Status messages */
 .bsc-upgrade-status {
   font-family: var(--font-mono);
